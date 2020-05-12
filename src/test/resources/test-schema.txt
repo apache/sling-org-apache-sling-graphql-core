@@ -19,7 +19,7 @@
 # annotated with our fetch: definitions
 
 type Query {
-    ## fetch:test/echo
+    ## fetch:echoNS/echo
     currentResource : SlingResource
 
     ## fetch:test/static
@@ -39,8 +39,11 @@ type SlingResource {
     ## fetch:test/digest/md5 resourceType
     resourceTypeMD5: String
 
-    ## fetch:test/echo/null
+    ## fetch:echoNS/echo/null
     nullValue: String
+
+    ## fetch:failure/fail
+    failure: String
 }
 
 type Test { 

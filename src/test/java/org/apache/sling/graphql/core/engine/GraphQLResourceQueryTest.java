@@ -40,6 +40,7 @@ import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.apache.sling.graphql.core.mocks.DigestDataFetcher;
 import org.apache.sling.graphql.core.mocks.DigestDataFetcherProvider;
 import org.apache.sling.graphql.core.mocks.EchoDataFetcherProvider;
+import org.apache.sling.graphql.core.mocks.FailingDataFetcherProvider;
 import org.apache.sling.graphql.core.mocks.MockSchemaProvider;
 import org.junit.Before;
 import org.junit.Rule;
@@ -73,7 +74,10 @@ public class GraphQLResourceQueryTest {
         final Dictionary<String, Object> staticData = new Hashtable<>();
         staticData.put("test", true);
 
-        registerDataFetcherProvider("test", new EchoDataFetcherProvider("echo"));
+        // Use "echo" in two namespaces intentionally, to validate the correct selection
+        registerDataFetcherProvider("echoNS", new EchoDataFetcherProvider("echo"));
+        registerDataFetcherProvider("test", new FailingDataFetcherProvider("echo"));
+        registerDataFetcherProvider("failure", new FailingDataFetcherProvider("fail"));
         registerDataFetcherProvider("test", new EchoDataFetcherProvider("static", staticData));
         registerDataFetcherProvider("test", new DigestDataFetcherProvider());
 
@@ -121,5 +125,15 @@ public class GraphQLResourceQueryTest {
         final String json = queryJSON("{ currentResource { nullValue } }");
         assertThat(json, hasJsonPath("$.data.currentResource"));
         assertThat(json, hasJsonPath("$.data.currentResource.nullValue", is(nullValue())));
+    }
+
+    @Test
+    public void dataFetcherFailureTest() throws Exception {
+        try {
+            final String stmt = "{ currentResource { failure } }";
+            new GraphQLResourceQuery().executeQuery(schemaProvider, dataFetchersSelector, resource, stmt);
+        } catch(RuntimeException rex) {
+            assertThat(rex.getMessage(), equalTo("FailureDataFetcher"));
+        }
     }
 }
