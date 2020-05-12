@@ -64,7 +64,7 @@ public class GraphQLServletIT extends GraphQLScriptingTestSupport {
                 .asOption(),
             factoryConfiguration(GRAPHQL_SERVLET_CONFIG_PID)
                 .put("sling.servlet.resourceTypes", "graphql/test/two")
-                .put("sling.servlet.selectors", "testing")
+                .put("sling.servlet.selectors", new String[] { "testing", "another" })
                 .put("sling.servlet.extensions", "otherExt")
                 .asOption(),
         };
@@ -87,12 +87,18 @@ public class GraphQLServletIT extends GraphQLScriptingTestSupport {
     }
 
     @Test
-    public void testOtherExt() throws Exception {
-        final String json = getContent("/graphql/two.testing.otherExt", "query", "{ currentResource { path name } }");
-        assertThat(json, hasJsonPath("$.data.currentResource.path", equalTo("/content/graphql/two")));
-        assertThat(json, hasJsonPath("$.data.currentResource.name", equalTo("two")));
-        assertThat(json, hasNoJsonPath("$.data.currentResource.resourceType"));
+    public void testOtherExtAndTestingSelector() throws Exception {
         executeRequest("GET", "/graphql/two.otherExt", null, 404);
+        final String json = getContent("/graphql/two.testing.otherExt", "query", "{ withTestingSelector { farenheit } }");
+        assertThat(json, hasJsonPath("$.data.withTestingSelector.farenheit", equalTo(451)));
+    }
+
+    @Test
+    public void testOtherExtAndOtherSelector() throws Exception {
+        final String json = getContent("/graphql/two.another.otherExt", "query", "{ currentResource { resourceType name } }");
+        assertThat(json, hasJsonPath("$.data.currentResource.resourceType", equalTo("graphql/test/two")));
+        assertThat(json, hasJsonPath("$.data.currentResource.name", equalTo("two")));
+        assertThat(json, hasNoJsonPath("$.data.currentResource.path"));
     }
 
     @Test

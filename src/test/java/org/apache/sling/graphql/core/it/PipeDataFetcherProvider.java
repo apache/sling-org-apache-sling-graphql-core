@@ -30,21 +30,15 @@ public class PipeDataFetcherProvider implements DataFetcherProvider {
 
     static class PipeDataFetcher implements DataFetcher<Object> {
 
-        private final Resource r;
-        private final String options;
+        private final Object value;
 
-        PipeDataFetcher(Resource r, String name, String options, String source) {
-            this.r = r;
-            this.options = options;
+        PipeDataFetcher(Object value) {
+            this.value = value;
         }
 
         @Override
         public Object get(DataFetchingEnvironment environment) throws Exception {
-            if (!options.isEmpty() && !options.equals("$")) {
-                throw new IllegalArgumentException("Invalid fetcher options: " + options);
-            }
-
-            return r;
+            return value;
         }
 
     }
@@ -52,7 +46,11 @@ public class PipeDataFetcherProvider implements DataFetcherProvider {
     @Override
     public DataFetcher<Object> createDataFetcher(Resource r, String name, String options, String source) {
         if("pipe".equals(name)) {
-            return new PipeDataFetcher(r, name, options, source);
+            if("farenheit".equals(options)) {
+                return new PipeDataFetcher(451);
+            } else {
+                return new PipeDataFetcher(r);
+            }
         } else {
             return null;
         }

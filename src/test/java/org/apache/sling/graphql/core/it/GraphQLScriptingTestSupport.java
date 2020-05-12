@@ -70,23 +70,6 @@ public abstract class GraphQLScriptingTestSupport extends TestSupport {
     @Inject
     protected SlingRequestProcessor requestProcessor;
 
-    protected ServiceRegistration<DataFetcherProvider> dataFetcherFactoryRegistration;
-
-    @Inject
-    private BundleContext bundleContext;
-
-    @Before
-    public void registerFetchers() {
-        PipeDataFetcherProvider pipeDataFetcherFactory = new PipeDataFetcherProvider();
-        dataFetcherFactoryRegistration =
-                bundleContext.registerService(DataFetcherProvider.class, pipeDataFetcherFactory, null);
-    }
-
-    @After
-    public void unregisterFetchers() {
-        dataFetcherFactoryRegistration.unregister();
-    }
-
     public ModifiableCompositeOption baseConfiguration() {
         final String vmOpt = System.getProperty("pax.vm.options");
 

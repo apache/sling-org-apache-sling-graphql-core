@@ -128,7 +128,8 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
 
         try {
             final GraphQLResourceQuery q = new GraphQLResourceQuery();
-            final ExecutionResult result = q.executeQuery(schemaProvider, dataFetcherSelector, resource, query, parser.getVariables());
+            final ExecutionResult result = q.executeQuery(schemaProvider, dataFetcherSelector,
+                resource, request.getRequestPathInfo().getSelectors(), query, parser.getVariables());
             jsonSerializer.sendJSON(response.getWriter(), result);
         } catch(Exception ex) {
             throw new IOException(ex);

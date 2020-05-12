@@ -37,6 +37,7 @@ import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.api.graphqljava.DataFetcherProvider;
 import org.apache.sling.graphql.core.schema.DataFetcherSelector;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.apache.sling.graphql.core.json.JsonSerializer;
 import org.apache.sling.graphql.core.mocks.DigestDataFetcher;
 import org.apache.sling.graphql.core.mocks.DigestDataFetcherProvider;
 import org.apache.sling.graphql.core.mocks.EchoDataFetcherProvider;
@@ -50,7 +51,7 @@ import org.mockito.Mockito;
 import graphql.ExecutionResult;
 
 public class GraphQLResourceQueryTest {
-    private final SchemaProvider schemaProvider = new MockSchemaProvider();
+    private SchemaProvider schemaProvider = new MockSchemaProvider("test-schema");
     private DataFetcherSelector dataFetchersSelector;
     private Resource resource;
 
@@ -79,15 +80,20 @@ public class GraphQLResourceQueryTest {
         registerDataFetcherProvider("test", new FailingDataFetcherProvider("echo"));
         registerDataFetcherProvider("failure", new FailingDataFetcherProvider("fail"));
         registerDataFetcherProvider("test", new EchoDataFetcherProvider("static", staticData));
+        registerDataFetcherProvider("test", new EchoDataFetcherProvider("fortyTwo", 42));
         registerDataFetcherProvider("test", new DigestDataFetcherProvider());
 
         dataFetchersSelector = new DataFetcherSelector(context.bundleContext());
     }
 
     private String queryJSON(String stmt) throws Exception {
-        final ExecutionResult result = new GraphQLResourceQuery().executeQuery(schemaProvider, dataFetchersSelector, resource, stmt);
+        return queryJSON(stmt, null);
+    }
+
+    private String queryJSON(String stmt, String [] selectors) throws Exception {
+        final ExecutionResult result = new GraphQLResourceQuery().executeQuery(schemaProvider, dataFetchersSelector, resource, selectors, stmt);
         assertTrue("Expecting no errors: " + result.getErrors(), result.getErrors().isEmpty());
-        return JsonWriter.objectToJson(result);
+        return new JsonSerializer().toJSON(result);
     }
 
     @Test
@@ -131,9 +137,19 @@ public class GraphQLResourceQueryTest {
     public void dataFetcherFailureTest() throws Exception {
         try {
             final String stmt = "{ currentResource { failure } }";
-            new GraphQLResourceQuery().executeQuery(schemaProvider, dataFetchersSelector, resource, stmt);
+            new GraphQLResourceQuery().executeQuery(schemaProvider, dataFetchersSelector, resource, null, stmt);
         } catch(RuntimeException rex) {
             assertThat(rex.getMessage(), equalTo("FailureDataFetcher"));
         }
+    }
+
+    @Test
+    public void schemaSelectorsTest() throws Exception {
+        final String [] selectors = { "selected", "foryou" };
+        final String json = queryJSON("{ currentResource { path fortyTwo } }", selectors);
+
+        assertThat(json, hasJsonPath("$.data.currentResource"));
+        assertThat(json, hasJsonPath("$.data.currentResource.path", equalTo(42)));
+        assertThat(json, hasJsonPath("$.data.currentResource.fortyTwo", equalTo(42)));
     }
 }

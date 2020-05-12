@@ -59,7 +59,16 @@ public class DefaultSchemaProvider implements SchemaProvider {
     public String getSchema(Resource r, String [] selectors) throws SchemaProviderException {
         final ResourceResolver resourceResolver = r.getResourceResolver();
         final MockSlingHttpServletRequest request = new MockSlingHttpServletRequest(resourceResolver);
-        final String path = r.getPath() + SCHEMA_EXTENSION;
+
+        final StringBuilder sb = new StringBuilder();
+        sb.append(r.getPath());
+        if(selectors != null) {
+            for(String s : selectors) {
+                sb.append(".").append(s);
+            }
+        }
+        sb.append(SCHEMA_EXTENSION);
+        final String path = sb.toString();
         request.setPathInfo(path);
         final MockSlingHttpServletResponse response = new MockSlingHttpServletResponse();
         final int status = response.getStatus();

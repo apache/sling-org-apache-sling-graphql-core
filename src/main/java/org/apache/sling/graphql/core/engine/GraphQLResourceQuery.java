@@ -52,12 +52,14 @@ public class GraphQLResourceQuery {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     public ExecutionResult executeQuery(SchemaProvider schemaProvider, DataFetcherSelector fetchers,
-                                        Resource r, String query) throws ScriptException {
-        return executeQuery(schemaProvider, fetchers, r, query, Collections.emptyMap());
+                                        Resource r, String [] requestSelectors, String query) throws ScriptException {
+        return executeQuery(schemaProvider, fetchers, r, requestSelectors, query, Collections.emptyMap());
     }
 
     public ExecutionResult executeQuery(SchemaProvider schemaProvider, DataFetcherSelector fetchersSelector,
-                                        Resource r, String query, Map<String, Object> variables) throws ScriptException {
+                                        Resource r,
+                                        String [] requestSelectors,
+                                        String query, Map<String, Object> variables) throws ScriptException {
         if(r == null) {
             throw new ScriptException("Resource is null");
         }
@@ -73,7 +75,7 @@ public class GraphQLResourceQuery {
 
         String schemaDef = null;
         try {
-            schemaDef = schemaProvider.getSchema(r, null);
+            schemaDef = schemaProvider.getSchema(r, requestSelectors);
         } catch(Exception e) {
             final ScriptException up = new ScriptException("Schema provider failed");
             up.initCause(e);
@@ -146,7 +148,7 @@ public class GraphQLResourceQuery {
                         log.warn("No data fetcher registered for {}", def.toString());
                     }
                 } catch (IllegalArgumentException iae) {
-                    log.warn("Invalid fetcher definition", iae);
+                    throw new IOException("Invalid fetcher definition", iae);
                 }
             }
         }
