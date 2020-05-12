@@ -33,7 +33,6 @@ import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.core.engine.GraphQLResourceQuery;
 import org.apache.sling.graphql.core.json.JsonSerializer;
 import org.apache.sling.graphql.core.schema.DataFetcherSelector;
-import org.apache.sling.graphql.core.scripting.GraphQLScriptEngine;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;

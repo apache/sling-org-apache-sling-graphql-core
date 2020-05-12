@@ -19,7 +19,6 @@
 package org.apache.sling.graphql.core.it;
 
 import javax.inject.Inject;
-import javax.script.ScriptEngineFactory;
 
 import com.cedarsoftware.util.io.JsonWriter;
 
@@ -35,7 +34,6 @@ import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.ProbeBuilder;
 import org.ops4j.pax.exam.TestProbeBuilder;
 import org.ops4j.pax.exam.options.ModifiableCompositeOption;
-import org.ops4j.pax.exam.util.Filter;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 
