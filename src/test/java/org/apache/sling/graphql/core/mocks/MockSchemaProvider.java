@@ -18,32 +18,28 @@
  */
 package org.apache.sling.graphql.core.mocks;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringWriter;
+
+import org.apache.commons.io.IOUtils;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.graphql.api.SchemaProvider;
 
 public class MockSchemaProvider implements SchemaProvider {
 
-    private static final String MOCK_SCHEMA = 
-        "type Query {\n"
-        + "    ## fetch:test/echo\n"
-        + "    currentResource : SlingResource\n"
-        + "    ## fetch:test/static\n"
-        + "    staticContent: Test"
-        + "}\n"
-        + "type SlingResource { \n"
-        + "    path: String\n"
-        + "    resourceType: String\n"
-        + "\n"
-        + "    ## fetch:test/digest/md5 path\n"
-        + "    pathMD5: String\n"
-        + "\n"
-        + "    ## fetch:test/digest/sha-256 path\n"
-        + "    pathSHA256: String\n"
-        + "\n"
-        + "    ## fetch:test/digest/md5 resourceType\n"
-        + "    resourceTypeMD5: String\n"
-        + " }\n"
-        + "type Test { test: Boolean }";
+    private static final String MOCK_SCHEMA_PATH = "/test-schema.txt";
+    private static final String MOCK_SCHEMA;
+
+    static {
+        try (InputStream is = MockSchemaProvider.class.getResourceAsStream(MOCK_SCHEMA_PATH)) {
+            final StringWriter w = new StringWriter();
+            IOUtils.copy(is, w);
+            MOCK_SCHEMA = w.toString();
+        } catch(IOException ioe) {
+            throw new RuntimeException("Error reading " + MOCK_SCHEMA_PATH, ioe);
+        }
+    }
 
     @Override
     public String getSchema(Resource r, String[] selectors) {
