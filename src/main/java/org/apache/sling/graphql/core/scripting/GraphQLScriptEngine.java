@@ -30,19 +30,18 @@ import javax.script.ScriptContext;
 import javax.script.ScriptEngineFactory;
 import javax.script.ScriptException;
 
-import com.cedarsoftware.util.io.JsonWriter;
-
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.output.WriterOutputStream;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.scripting.SlingBindings;
 import org.apache.sling.graphql.core.engine.GraphQLResourceQuery;
+import org.apache.sling.graphql.core.json.JsonSerializer;
 
 import graphql.ExecutionResult;
 
 public class GraphQLScriptEngine extends AbstractScriptEngine {
 
     private final GraphQLScriptEngineFactory factory;
+    private final JsonSerializer jsonSerializer = new JsonSerializer();
     public static final int JSON_INDENT_SPACES = 2;
 
     public GraphQLScriptEngine(GraphQLScriptEngineFactory factory) {
@@ -61,24 +60,14 @@ public class GraphQLScriptEngine extends AbstractScriptEngine {
 
             final Resource resource = (Resource) context.getBindings(ScriptContext.ENGINE_SCOPE)
                     .get(SlingBindings.RESOURCE);
-            final ExecutionResult result = q.executeQuery(factory.getSchemaProvider(), factory.getFetcherManager(),
+            final ExecutionResult result = q.executeQuery(factory.getSchemaProvider(), factory.getdataFetcherSelector(),
                     resource, IOUtils.toString(reader));
             final PrintWriter out = (PrintWriter) context.getBindings(ScriptContext.ENGINE_SCOPE).get(SlingBindings.OUT);
-            sendJSON(out, result);
+            jsonSerializer.sendJSON(out, result);
         } catch(Exception e) {
             throw new ScriptException(e);
         }
         return null;
-    }
-
-    public static void sendJSON(PrintWriter out, ExecutionResult result) throws ScriptException {
-        final Object data = result.toSpecification();
-        if (data == null) {
-            throw new ScriptException("No data");
-        }
-        try(JsonWriter w = new JsonWriter(new WriterOutputStream(out))) {
-            w.write(data);
-        }
     }
 
     @Override

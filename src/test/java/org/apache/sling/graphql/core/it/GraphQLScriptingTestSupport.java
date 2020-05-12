@@ -67,10 +67,6 @@ public abstract class GraphQLScriptingTestSupport extends TestSupport {
     private final static int STARTUP_WAIT_SECONDS = 30;
 
     @Inject
-    @Filter(value = "(names=graphql)")
-    protected ScriptEngineFactory scriptEngineFactory;
-
-    @Inject
     private ResourceResolverFactory resourceResolverFactory;
 
     @Inject
@@ -83,7 +79,7 @@ public abstract class GraphQLScriptingTestSupport extends TestSupport {
 
     @Before
     public void registerFetchers() {
-        PipeDataFetcherFactory pipeDataFetcherFactory = new PipeDataFetcherFactory();
+        PipeDataFetcherProvider pipeDataFetcherFactory = new PipeDataFetcherProvider();
         dataFetcherFactoryRegistration =
                 bundleContext.registerService(DataFetcherProvider.class, pipeDataFetcherFactory, null);
     }
@@ -119,6 +115,10 @@ public abstract class GraphQLScriptingTestSupport extends TestSupport {
     public TestProbeBuilder probeConfiguration(final TestProbeBuilder testProbeBuilder) {
         testProbeBuilder.setHeader("Sling-Initial-Content", "initial-content");
         return testProbeBuilder;
+    }
+
+    protected Option pipeDataFetcher() {
+        return buildBundleWithBnd(PipeDataFetcherProvider.class);
     }
 
     protected Option slingQuickstart() {

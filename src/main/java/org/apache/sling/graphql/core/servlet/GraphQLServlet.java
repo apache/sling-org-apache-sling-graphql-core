@@ -31,8 +31,11 @@ import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.servlets.SlingAllMethodsServlet;
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.core.engine.GraphQLResourceQuery;
+import org.apache.sling.graphql.core.json.JsonSerializer;
 import org.apache.sling.graphql.core.schema.DataFetcherSelector;
 import org.apache.sling.graphql.core.scripting.GraphQLScriptEngine;
+import org.osgi.framework.BundleContext;
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Reference;
@@ -95,8 +98,13 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
     @Reference
     private SchemaProvider schemaProvider;
 
-    @Reference
-    private DataFetcherSelector fetchers;
+    private DataFetcherSelector dataFetcherSelector;
+    private final JsonSerializer jsonSerializer = new JsonSerializer();
+
+    @Activate
+    private void activate(final BundleContext ctx) {
+        dataFetcherSelector = new DataFetcherSelector(ctx);
+    }
 
     @Override
     public void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
@@ -121,8 +129,8 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
 
         try {
             final GraphQLResourceQuery q = new GraphQLResourceQuery();
-            final ExecutionResult result = q.executeQuery(schemaProvider, fetchers, resource, query, parser.getVariables());
-            GraphQLScriptEngine.sendJSON(response.getWriter(), result);
+            final ExecutionResult result = q.executeQuery(schemaProvider, dataFetcherSelector, resource, query, parser.getVariables());
+            jsonSerializer.sendJSON(response.getWriter(), result);
         } catch(Exception ex) {
             throw new IOException(ex);
         } finally {

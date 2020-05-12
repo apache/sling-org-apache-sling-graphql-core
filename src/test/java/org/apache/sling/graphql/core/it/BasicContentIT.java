@@ -19,6 +19,7 @@
 package org.apache.sling.graphql.core.it;
 
 import javax.inject.Inject;
+import javax.script.ScriptEngineFactory;
 
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 
@@ -41,6 +42,10 @@ import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.factoryConfigurati
 public class BasicContentIT extends GraphQLScriptingTestSupport {
 
     @Inject
+    @Filter(value = "(names=graphql)")
+    protected ScriptEngineFactory scriptEngineFactory;
+
+    @Inject
     @Filter(value = "(path=/apps/graphql/test/one/json.gql)")
     private ResourcePresence resourcePresence;
 
@@ -48,6 +53,7 @@ public class BasicContentIT extends GraphQLScriptingTestSupport {
     public Option[] configuration() {
         return new Option[]{
             baseConfiguration(),
+            pipeDataFetcher(),
             factoryConfiguration("org.apache.sling.resource.presence.internal.ResourcePresenter")
                 .put("path", "/apps/graphql/test/one/json.gql")
                 .asOption(),

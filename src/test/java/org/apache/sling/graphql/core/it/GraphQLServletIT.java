@@ -51,6 +51,7 @@ public class GraphQLServletIT extends GraphQLScriptingTestSupport {
     public Option[] configuration() {
         return new Option[]{
             baseConfiguration(),
+            pipeDataFetcher(),
             factoryConfiguration("org.apache.sling.resource.presence.internal.ResourcePresenter")
                 .put("path", "/content/graphql/two")
                 .asOption(),

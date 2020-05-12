@@ -23,8 +23,10 @@ import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.graphql.api.graphqljava.DataFetcherProvider;
+import org.osgi.service.component.annotations.Component;
 
-public class PipeDataFetcherFactory implements DataFetcherProvider {
+@Component(service=DataFetcherProvider.class, property = { "namespace=test"})
+public class PipeDataFetcherProvider implements DataFetcherProvider {
 
     static class PipeDataFetcher implements DataFetcher<Object> {
 
@@ -48,17 +50,12 @@ public class PipeDataFetcherFactory implements DataFetcherProvider {
     }
 
     @Override
-    public String getNamespace() {
-        return "test";
-    }
-
-    @Override
-    public String getName() {
-        return "pipe";
-    }
-
-    @Override
     public DataFetcher<Object> createDataFetcher(Resource r, String name, String options, String source) {
-        return new PipeDataFetcher(r, name, options, source);
+        if("pipe".equals(name)) {
+            return new PipeDataFetcher(r, name, options, source);
+        } else {
+            return null;
+        }
+
     }
 }

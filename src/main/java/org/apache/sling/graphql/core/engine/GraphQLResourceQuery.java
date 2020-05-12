@@ -56,7 +56,7 @@ public class GraphQLResourceQuery {
         return executeQuery(schemaProvider, fetchers, r, query, Collections.emptyMap());
     }
 
-    public ExecutionResult executeQuery(SchemaProvider schemaProvider, DataFetcherSelector fetchers,
+    public ExecutionResult executeQuery(SchemaProvider schemaProvider, DataFetcherSelector fetchersSelector,
                                         Resource r, String query, Map<String, Object> variables) throws ScriptException {
         if(r == null) {
             throw new ScriptException("Resource is null");
@@ -66,6 +66,9 @@ public class GraphQLResourceQuery {
         }
         if(schemaProvider == null) {
             throw new ScriptException("SchemaProvider is null");
+        }
+        if(fetchersSelector == null) {
+            throw new ScriptException("DataFetcherSelector is null");
         }
 
         String schemaDef = null;
@@ -78,7 +81,7 @@ public class GraphQLResourceQuery {
         }
         log.info("Resource {} maps to GQL schema {}", r.getPath(), schemaDef);
         try {
-            final GraphQLSchema schema = buildSchema(schemaDef, fetchers, r);
+            final GraphQLSchema schema = buildSchema(schemaDef, fetchersSelector, r);
             final GraphQL graphQL = GraphQL.newGraphQL(schema).build();
             ExecutionInput ei = ExecutionInput.newExecutionInput()
                 .query(query)

@@ -25,6 +25,7 @@ import javax.script.ScriptEngineFactory;
 import org.apache.sling.scripting.api.AbstractScriptEngineFactory;
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.core.schema.DataFetcherSelector;
+import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -52,14 +53,14 @@ public class GraphQLScriptEngineFactory extends AbstractScriptEngineFactory {
     @Reference
     private SchemaProvider schemaProvider;
 
-    @Reference
-    private DataFetcherSelector fetcherManager;
+    private DataFetcherSelector dataFetcherSelector;
 
     @Activate
-    private void activate(final GraphQLScriptEngineFactoryConfiguration config) {
+    private void activate(final GraphQLScriptEngineFactoryConfiguration config, final BundleContext ctx) {
         setExtensions(config.extensions());
         setMimeTypes(config.mimeTypes());
         setNames(config.names());
+        dataFetcherSelector = new DataFetcherSelector(ctx);
     }
 
     @Override
@@ -81,8 +82,8 @@ public class GraphQLScriptEngineFactory extends AbstractScriptEngineFactory {
         return schemaProvider;
     }
 
-    DataFetcherSelector getFetcherManager() {
-        return fetcherManager;
+    DataFetcherSelector getdataFetcherSelector() {
+        return dataFetcherSelector;
     }
 
 }

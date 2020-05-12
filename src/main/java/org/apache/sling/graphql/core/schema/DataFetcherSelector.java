@@ -20,49 +20,63 @@
 package org.apache.sling.graphql.core.schema;
 
 import graphql.schema.DataFetcher;
+
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.graphql.api.graphqljava.DataFetcherProvider;
-import org.osgi.framework.Constants;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.component.annotations.ReferenceCardinality;
-import org.osgi.service.component.annotations.ReferencePolicy;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.framework.ServiceReference;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.Optional;
 
-@Component(service = DataFetcherSelector.class, immediate = true, property = {
-        Constants.SERVICE_DESCRIPTION + "=Apache Sling Scripting GraphQL FetcherManager",
-        Constants.SERVICE_VENDOR + "=The Apache Software Foundation" })
 public class DataFetcherSelector {
 
-    @Reference(
-        name = "slingFetchers",
-        cardinality = ReferenceCardinality.MULTIPLE,
-        policy = ReferencePolicy.DYNAMIC)
-    private final List<DataFetcherProvider> factories = new CopyOnWriteArrayList<>();
+    private BundleContext bundleContext;
 
-    public DataFetcherSelector() {
-        // public default constructor required ...
+    public DataFetcherSelector(BundleContext ctx) {
+        bundleContext = ctx;
     }
 
-    /** Convenience constructor for testing */
-    protected DataFetcherSelector(DataFetcherProvider... testFetchers) {
-        factories.addAll(Arrays.asList(testFetchers));
-    }
-
-    public DataFetcher<Object> getDataFetcherForType(DataFetcherDefinition def, Resource r) throws IOException {
-        String ns = def.getFetcherNamespace();
-        String name = def.getFetcherName();
-
-        for (DataFetcherProvider factory : factories) {
-            if (factory.getNamespace().equals(ns) && factory.getName().equals(name)) {
-                return factory.createDataFetcher(r, def.getFetcherName(), def.getFetcherOptions(), def.getFetcherSourceExpression());
-            }
+    @Nullable
+    public DataFetcher<Object> getDataFetcherForType(@NotNull DataFetcherDefinition def, @NotNull Resource r) throws IOException {
+        // Query the DataFetcherProvider services for the
+        // request namespace, first one that returns a
+        // non-null value wins.
+        final String filter = "(namespace=" + def.getFetcherNamespace() + ")";
+        ServiceReference<?>[] refs= null;
+        try {
+            refs = bundleContext.getServiceReferences(DataFetcherProvider.class.getName(), filter);
+        } catch(InvalidSyntaxException ise) {
+            throw new IOException("Invalid OSGi filter syntax", ise);
         }
-        return null;
+
+        if(refs == null) {
+            return null;
+        }
+
+        try {
+            final Optional<DataFetcher<Object>> result =
+                Arrays.stream(refs)
+                .sorted()
+                .map(ref -> (DataFetcherProvider)bundleContext.getService(ref))
+                .map(provider -> createProvider(def, r, provider))
+                .filter(fetcher -> fetcher != null)
+                .findFirst();
+            return result.isPresent() ? result.get() : null;
+        } finally {
+            Arrays.stream(refs).forEach(ref -> bundleContext.ungetService(ref));
+        }
     }
 
+    static DataFetcher<Object> createProvider(DataFetcherDefinition def, Resource r, DataFetcherProvider p) throws RuntimeException {
+        try {
+            return p.createDataFetcher(r, def.getFetcherName(), def.getFetcherOptions(), def.getFetcherSourceExpression());
+        } catch(IOException ioe) {
+            throw new RuntimeException("IOException in providerMatches", ioe);
+        }
+    }
 }

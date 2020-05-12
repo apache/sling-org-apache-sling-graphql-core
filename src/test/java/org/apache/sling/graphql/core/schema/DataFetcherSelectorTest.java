@@ -20,51 +20,85 @@
 package org.apache.sling.graphql.core.schema;
 
 import graphql.schema.DataFetcher;
+
+import org.apache.sling.api.resource.Resource;
 import org.apache.sling.graphql.api.graphqljava.DataFetcherProvider;
+import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.osgi.framework.BundleContext;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
+import java.util.Dictionary;
+import java.util.Hashtable;
 
 public class DataFetcherSelectorTest {
 
-    @Test
-    @SuppressWarnings("unchecked")
-    public void testGetDataFetcher() throws IOException {
-        DataFetcher<Object> gqlFetcher1 = (DataFetcher<Object>) Mockito.mock(DataFetcher.class);
-        DataFetcher<Object> gqlFetcher2 = (DataFetcher<Object>) Mockito.mock(DataFetcher.class);
-        DataFetcher<Object> gqlFetcher3 = (DataFetcher<Object>) Mockito.mock(DataFetcher.class);
-        DataFetcherProvider fetcher1 = Mockito.mock(DataFetcherProvider.class);
-        Mockito.when(fetcher1.getNamespace()).thenReturn("ns1");
-        Mockito.when(fetcher1.getName()).thenReturn("name1");
-        Mockito.when(fetcher1.createDataFetcher(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
-                .thenReturn(gqlFetcher1);
-        DataFetcherProvider fetcher2 = Mockito.mock(DataFetcherProvider.class);
-        Mockito.when(fetcher2.getNamespace()).thenReturn("ns2");
-        Mockito.when(fetcher2.getName()).thenReturn("name2");
-        Mockito.when(fetcher2.createDataFetcher(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
-                .thenReturn(gqlFetcher2);
-        DataFetcherProvider fetcher3 = Mockito.mock(DataFetcherProvider.class);
-        Mockito.when(fetcher3.getNamespace()).thenReturn("ns1");
-        Mockito.when(fetcher3.getName()).thenReturn("name2");
-        Mockito.when(fetcher3.createDataFetcher(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
-                .thenReturn(gqlFetcher3);
-        DataFetcherSelector fetchers = new DataFetcherSelector(fetcher1, fetcher2, fetcher3);
+    @Rule
+    public final OsgiContext context = new OsgiContext();
 
-        assertEquals(
-                gqlFetcher1,
-                fetchers.getDataFetcherForType(new DataFetcherDefinition("fetch:ns1/name1"), null));
-        assertEquals(
-                gqlFetcher2,
-                fetchers.getDataFetcherForType(new DataFetcherDefinition("fetch:ns2/name2"), null));
-        assertEquals(
-                gqlFetcher3,
-                fetchers.getDataFetcherForType(new DataFetcherDefinition("fetch:ns1/name2"), null));
-        assertNull(
-                fetchers.getDataFetcherForType(new DataFetcherDefinition("fetch:ns2/name1"), null));
+    static class TestDataFetcherProvider implements DataFetcherProvider {
+        private final String namespace;
+        private final String name;
+
+        TestDataFetcherProvider(String namespace, String name) {
+            this.namespace = namespace;
+            this.name = name;
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public @Nullable DataFetcher<Object> createDataFetcher(@NotNull Resource r, @NotNull String name,
+            @Nullable String options, @Nullable String source) throws IOException {
+
+            DataFetcher<Object> result = null;
+
+            if(this.name.equals(name)) {
+                result = (DataFetcher<Object>) Mockito.mock(DataFetcher.class);
+                Mockito.when(result.toString()).thenReturn("DF#" + namespace + "#" + name);
+            }
+            return result;
+        }
+
+        public void register(BundleContext ctx) {
+            final Dictionary<String, Object> props = new Hashtable<>();
+            props.put(DataFetcherProvider.NAMESPACE_SERVICE_PROPERTY, namespace);
+            ctx.registerService(DataFetcherProvider.class, this, props);
+        }
     }
 
+    @Before
+    public void setup() {
+        new TestDataFetcherProvider("ns1", "name1").register(context.bundleContext());
+        new TestDataFetcherProvider("ns1", "name2").register(context.bundleContext());
+        new TestDataFetcherProvider("ns2", "name2").register(context.bundleContext());
+    }
+
+    private void assertFetcher(DataFetcherSelector s, String def, String expected) throws IOException {
+        final DataFetcher<Object> f = s.getDataFetcherForType(new DataFetcherDefinition(def), null);
+        if(expected == null) {
+            assertNull("Expected null DataFetcher for " + def, f);
+        } else {
+            assertNotNull("Expected non-null DataFetcher for " + def, f);
+            assertEquals(expected, f.toString());
+        }
+    }
+
+    @Test
+    public void testGetDataFetcher() throws IOException {
+        DataFetcherSelector s = new DataFetcherSelector(context.bundleContext());
+        assertFetcher(s, "fetch:ns1/name1", "DF#ns1#name1");
+        assertFetcher(s, "fetch:ns1/name2", "DF#ns1#name2");
+        assertFetcher(s, "fetch:ns2/name2", "DF#ns2#name2");
+        assertFetcher(s, "fetch:ns2/othername", null);
+        assertFetcher(s, "fetch:otherns/name2", null);
+    }
 }

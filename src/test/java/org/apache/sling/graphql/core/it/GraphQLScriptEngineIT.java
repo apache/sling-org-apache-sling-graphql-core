@@ -21,7 +21,9 @@ package org.apache.sling.graphql.core.it;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import javax.inject.Inject;
 import javax.script.ScriptEngine;
+import javax.script.ScriptEngineFactory;
 import javax.script.ScriptException;
 
 import org.junit.Test;
@@ -31,10 +33,15 @@ import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.junit.PaxExam;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerClass;
+import org.ops4j.pax.exam.util.Filter;
 
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerClass.class)
 public class GraphQLScriptEngineIT extends GraphQLScriptingTestSupport {
+
+    @Inject
+    @Filter(value = "(names=graphql)")
+    protected ScriptEngineFactory scriptEngineFactory;
 
     @Configuration
     public Option[] configuration() {

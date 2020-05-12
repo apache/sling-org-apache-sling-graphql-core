@@ -96,7 +96,7 @@ a Sling Starter instance to support this bundle.
 A simple way to install them in a Sling starter instance is:
 
     # Adapt this list based on the current version of the GraphQLScriptingTestSupport class!
-    export B="graphql reactive antlr dataloader"
+    export B="graphql reactive antlr dataloader json-io servlet-helpers"
 
     mvn dependency:copy-dependencies
     export S=http://localhost:8080

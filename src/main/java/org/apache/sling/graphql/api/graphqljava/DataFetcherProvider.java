@@ -28,16 +28,18 @@ import org.apache.sling.api.resource.Resource;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.NotNull;
 
+/** A Service that provides a specific DataFetcher
+ *  based on a namespace and name, optionall configured
+ *  with options and a data source definition.
+ */
 @ConsumerType
 public interface DataFetcherProvider {
-    // TODO this should be a service property
-    String getNamespace();
 
-    // TODO this is probably not needed as clients
-    // can query all (ranked) services that belong to the desired
-    // namespace by calling createDataFetcher and stopping
-    // as soon as one returns non-null.
-    String getName();
+    /*  Instances of this service must have this "namespace"
+    *  service property to is used along with the fetcher's
+    *  name to select it.
+    */
+       String NAMESPACE_SERVICE_PROPERTY = "namespace";
 
     /* Create a DataFetcher according to the supplied options.
      * The implementation can decide to reuse the same object
