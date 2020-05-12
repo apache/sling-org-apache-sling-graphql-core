@@ -22,8 +22,9 @@ import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 import java.util.Dictionary;
 import java.util.Hashtable;
@@ -41,7 +42,6 @@ import org.apache.sling.graphql.core.mocks.DigestDataFetcherProvider;
 import org.apache.sling.graphql.core.mocks.EchoDataFetcherProvider;
 import org.apache.sling.graphql.core.mocks.MockSchemaProvider;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -117,9 +117,9 @@ public class GraphQLResourceQueryTest {
     }
 
     @Test
-    @Ignore
-    public void nullValuesTest() {
-        // GsonBuilder().serializeNulls().create() used to take care of that
-        fail("TODO - add a test that verifies that null values are included in the generated JSON");
+    public void nullValueTest() throws Exception {
+        final String json = queryJSON("{ currentResource { nullValue } }");
+        assertThat(json, hasJsonPath("$.data.currentResource"));
+        assertThat(json, hasJsonPath("$.data.currentResource.nullValue", is(nullValue())));
     }
 }

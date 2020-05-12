@@ -38,6 +38,9 @@ type SlingResource {
 
     ## fetch:test/digest/md5 resourceType
     resourceTypeMD5: String
+
+    ## fetch:test/echo/null
+    nullValue: String
 }
 
 type Test { 

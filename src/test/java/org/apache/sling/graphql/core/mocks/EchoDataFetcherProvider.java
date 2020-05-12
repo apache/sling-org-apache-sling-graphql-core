@@ -60,7 +60,15 @@ public class EchoDataFetcherProvider implements DataFetcherProvider {
     public @Nullable DataFetcher<Object> createDataFetcher(@NotNull Resource r, @NotNull String name,
             @Nullable String options, @Nullable String source) throws IOException {
         if(this.name.equals(name)) {
-            return new EchoDataFetcher(staticData == null ? r : staticData);
+            Object value = null;
+            if("null".equals(options)) {
+                // keep null value
+            } else if(staticData != null) {
+                value = staticData;
+            } else {
+                value = r;
+            }
+            return new EchoDataFetcher(value);
         } else {
             return null;
         }
