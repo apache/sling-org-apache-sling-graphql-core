@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.sling.graphql.core.it;
+package org.apache.sling.graphql.core.mocks;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
