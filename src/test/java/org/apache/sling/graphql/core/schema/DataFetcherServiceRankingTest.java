@@ -19,36 +19,47 @@
 
 package org.apache.sling.graphql.core.schema;
 
-import graphql.schema.DataFetcher;
-
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.osgi.framework.ServiceRegistration;
 
 import static org.apache.sling.graphql.core.schema.TestDataFetcherProvider.assertFetcher;
 
 import java.io.IOException;
 
-public class DataFetcherSelectorTest {
+public class DataFetcherServiceRankingTest {
 
     @Rule
     public final OsgiContext context = new OsgiContext();
 
-    @Before
-    public void setup() {
-        new TestDataFetcherProvider("ns1", "name1").register(context.bundleContext());
-        new TestDataFetcherProvider("ns1", "name2").register(context.bundleContext());
-        new TestDataFetcherProvider("ns2", "name2").register(context.bundleContext());
-    }
-
     @Test
-    public void testGetDataFetcher() throws IOException {
+    public void testDataFetcherRankings() throws IOException {
         final DataFetcherSelector s = new DataFetcherSelector(context.bundleContext());
-        assertFetcher(s, "fetch:ns1/name1", "DF#ns1#name1");
-        assertFetcher(s, "fetch:ns1/name2", "DF#ns1#name2");
-        assertFetcher(s, "fetch:ns2/name2", "DF#ns2#name2");
-        assertFetcher(s, "fetch:ns2/othername", null);
-        assertFetcher(s, "fetch:otherns/name2", null);
+        final String fetcherDef = "fetch:ns/name";
+        final String ns = "ns";
+        final String name = "name";
+
+        // Verify that given the same namespace and name we always get 
+        // the DataFetcher which has the lowest service ranking.
+        assertFetcher(s, fetcherDef, null);
+
+        final ServiceRegistration<?> reg42 = new TestDataFetcherProvider(ns, name, 42).register(context.bundleContext());
+        assertFetcher(s, fetcherDef, "DF#ns#name#42");
+
+        final ServiceRegistration<?> reg40 = new TestDataFetcherProvider(ns, name, 40).register(context.bundleContext());
+        assertFetcher(s, fetcherDef, "DF#ns#name#40");
+
+        final ServiceRegistration<?> reg43 = new TestDataFetcherProvider(ns, name, 43).register(context.bundleContext());
+        assertFetcher(s, fetcherDef, "DF#ns#name#40");
+
+        reg42.unregister();
+        assertFetcher(s, fetcherDef, "DF#ns#name#40");
+
+        reg40.unregister();
+        assertFetcher(s, fetcherDef, "DF#ns#name#43");
+
+        reg43.unregister();
+        assertFetcher(s, fetcherDef, null);
     }
 }

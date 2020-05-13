@@ -29,7 +29,7 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.NotNull;
 
 /** A Service that provides a specific DataFetcher
- *  based on a namespace and name, optionall configured
+ *  based on a namespace and name, optionally configured
  *  with options and a data source definition.
  */
 @ConsumerType
@@ -46,14 +46,17 @@ public interface DataFetcherProvider {
      * multiple times,  new one every time or anything in
      * between, no assumptions should be made around that.
      *
+     * If multiple DataFetcher services are active, they are called
+     * in increasing order of their OSGi service ranking.
+     *
      * @param r the Resource to use as the context of the DataFetcher
      * @param name the name of the DataFetcher to select
      * @param options (optional) parameters for the DataFetcher, algorithm selection for example
      * @param source (optional) which data to use from r, a property name for example. The syntax of that
      *  value is defined by the specific DataFetcher that's selected by the "name" parameter.
      *
-     * @return a DataFetcher, or null if this provider does not have one
-     *  for the supplied parameters
+     * @return a DataFetcher, or null if this provider cannot supply
+     *      one for the supplied parameters.
      */
     @Nullable
     DataFetcher<Object> createDataFetcher(
