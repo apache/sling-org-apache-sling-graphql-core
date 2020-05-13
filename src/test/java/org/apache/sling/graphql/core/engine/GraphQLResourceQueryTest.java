@@ -91,7 +91,8 @@ public class GraphQLResourceQueryTest {
     }
 
     private String queryJSON(String stmt, String [] selectors) throws Exception {
-        final ExecutionResult result = new GraphQLResourceQuery().executeQuery(schemaProvider, dataFetchersSelector, resource, selectors, stmt);
+        final ExecutionResult result = new GraphQLResourceQuery().executeQuery(schemaProvider,
+            dataFetchersSelector, resource, selectors, stmt, null);
         assertTrue("Expecting no errors: " + result.getErrors(), result.getErrors().isEmpty());
         return new JsonSerializer().toJSON(result);
     }
@@ -137,7 +138,7 @@ public class GraphQLResourceQueryTest {
     public void dataFetcherFailureTest() throws Exception {
         try {
             final String stmt = "{ currentResource { failure } }";
-            new GraphQLResourceQuery().executeQuery(schemaProvider, dataFetchersSelector, resource, null, stmt);
+            new GraphQLResourceQuery().executeQuery(schemaProvider, dataFetchersSelector, resource, null, stmt, null);
         } catch(RuntimeException rex) {
             assertThat(rex.getMessage(), equalTo("FailureDataFetcher"));
         }

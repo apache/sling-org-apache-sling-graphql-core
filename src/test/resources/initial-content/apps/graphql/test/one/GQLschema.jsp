@@ -26,7 +26,7 @@ additional DataFetcher information that we need.
 
 type Query {
   ## fetch:test/pipe $
-  currentResource : SlingResource
+  scriptedSchemaResource : SlingResource
 }
 
 type SlingResource { 

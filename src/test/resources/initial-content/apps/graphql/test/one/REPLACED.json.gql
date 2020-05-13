@@ -16,4 +16,4 @@
 # * under the License.
 
 # Define the query for this resource type, selector and extension
-{ scriptedSchemaResource { path resourceType } }
+{ REPLACED { path resourceType } }

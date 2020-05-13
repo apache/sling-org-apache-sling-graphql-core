@@ -51,11 +51,6 @@ public class GraphQLResourceQuery {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    public ExecutionResult executeQuery(SchemaProvider schemaProvider, DataFetcherSelector fetchers,
-                                        Resource r, String [] requestSelectors, String query) throws ScriptException {
-        return executeQuery(schemaProvider, fetchers, r, requestSelectors, query, Collections.emptyMap());
-    }
-
     public ExecutionResult executeQuery(SchemaProvider schemaProvider, DataFetcherSelector fetchersSelector,
                                         Resource r,
                                         String [] requestSelectors,
@@ -71,6 +66,9 @@ public class GraphQLResourceQuery {
         }
         if(fetchersSelector == null) {
             throw new ScriptException("DataFetcherSelector is null");
+        }
+        if(variables == null) {
+            variables = Collections.emptyMap();
         }
 
         String schemaDef = null;

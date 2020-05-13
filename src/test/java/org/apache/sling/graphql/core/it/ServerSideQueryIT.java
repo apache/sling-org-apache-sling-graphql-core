@@ -23,6 +23,8 @@ import javax.script.ScriptEngineFactory;
 
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 
+import org.apache.sling.graphql.api.SchemaProvider;
+import org.apache.sling.graphql.core.mocks.ReplacingSchemaProvider;
 import org.apache.sling.resource.presence.ResourcePresence;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,6 +34,7 @@ import org.ops4j.pax.exam.junit.PaxExam;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerClass;
 import org.ops4j.pax.exam.util.Filter;
+import org.osgi.framework.BundleContext;
 
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -39,7 +42,7 @@ import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.factoryConfigurati
 
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerClass.class)
-public class BasicContentIT extends GraphQLScriptingTestSupport {
+public class ServerSideQueryIT extends GraphQLScriptingTestSupport {
 
     @Inject
     @Filter(value = "(names=graphql)")
@@ -48,6 +51,12 @@ public class BasicContentIT extends GraphQLScriptingTestSupport {
     @Inject
     @Filter(value = "(path=/apps/graphql/test/one/json.gql)")
     private ResourcePresence resourcePresence;
+
+    @Inject
+    private BundleContext bundleContext;
+
+    @Inject
+    private SchemaProvider defaultSchemaProvider;
 
     @Configuration
     public Option[] configuration() {
@@ -60,12 +69,23 @@ public class BasicContentIT extends GraphQLScriptingTestSupport {
         };
     }
 
+    private void assertDefaultContent(String selector, String fieldName) throws Exception {
+        final String path = "/graphql/one";
+        final String json = getContent(path + selector + ".json");
+        assertThat(json, hasJsonPath("$.data." + fieldName));
+        assertThat(json, hasJsonPath("$.data." + fieldName + ".path", equalTo("/content/graphql/one")));
+        assertThat(json, hasJsonPath("$.data." + fieldName + ".resourceType", equalTo("graphql/test/one")));
+    }
+
     @Test
     public void testJsonContent() throws Exception {
-        final String path = "/graphql/one";
-        final String json = getContent(path + ".json");
-        assertThat(json, hasJsonPath("$.data.currentResource"));
-        assertThat(json, hasJsonPath("$.data.currentResource.path", equalTo("/content/graphql/one")));
-        assertThat(json, hasJsonPath("$.data.currentResource.resourceType", equalTo("graphql/test/one")));
+        assertDefaultContent("", "scriptedSchemaResource");
+    }
+
+    @Test
+    public void testMultipleSchemaProviders() throws Exception {
+        new ReplacingSchemaProvider("scriptedSchemaResource", "REPLACED").register(bundleContext, defaultSchemaProvider, 1);
+        new ReplacingSchemaProvider("scriptedSchemaResource", "NOT_THIS_ONE").register(bundleContext, defaultSchemaProvider, Integer.MAX_VALUE);
+        assertDefaultContent(".REPLACED", "REPLACED");
     }
 }

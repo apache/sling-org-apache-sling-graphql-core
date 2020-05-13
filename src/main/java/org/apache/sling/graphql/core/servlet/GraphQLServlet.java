@@ -33,6 +33,7 @@ import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.core.engine.GraphQLResourceQuery;
 import org.apache.sling.graphql.core.json.JsonSerializer;
 import org.apache.sling.graphql.core.schema.DataFetcherSelector;
+import org.apache.sling.graphql.core.schema.RankedSchemaProviders;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -95,7 +96,7 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
     }
 
     @Reference
-    private SchemaProvider schemaProvider;
+    private RankedSchemaProviders schemaProviders;
 
     private DataFetcherSelector dataFetcherSelector;
     private final JsonSerializer jsonSerializer = new JsonSerializer();
@@ -128,7 +129,7 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
 
         try {
             final GraphQLResourceQuery q = new GraphQLResourceQuery();
-            final ExecutionResult result = q.executeQuery(schemaProvider, dataFetcherSelector,
+            final ExecutionResult result = q.executeQuery(schemaProviders, dataFetcherSelector,
                 resource, request.getRequestPathInfo().getSelectors(), query, parser.getVariables());
             jsonSerializer.sendJSON(response.getWriter(), result);
         } catch(Exception ex) {

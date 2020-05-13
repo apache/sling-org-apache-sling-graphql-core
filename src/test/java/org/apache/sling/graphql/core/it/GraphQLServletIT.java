@@ -23,6 +23,8 @@ import javax.inject.Inject;
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasNoJsonPath;
 
+import org.apache.sling.graphql.api.SchemaProvider;
+import org.apache.sling.graphql.core.mocks.ReplacingSchemaProvider;
 import org.apache.sling.resource.presence.ResourcePresence;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,6 +34,7 @@ import org.ops4j.pax.exam.junit.PaxExam;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerClass;
 import org.ops4j.pax.exam.util.Filter;
+import org.osgi.framework.BundleContext;
 
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -44,6 +47,12 @@ public class GraphQLServletIT extends GraphQLScriptingTestSupport {
     @Inject
     @Filter(value = "(path=/content/graphql/two)")
     private ResourcePresence resourcePresence;
+
+    @Inject
+    private BundleContext bundleContext;
+
+    @Inject
+    private SchemaProvider defaultSchemaProvider;
 
     private static final String GRAPHQL_SERVLET_CONFIG_PID = "org.apache.sling.graphql.core.GraphQLServlet";
 
@@ -111,5 +120,15 @@ public class GraphQLServletIT extends GraphQLScriptingTestSupport {
         final String json = getContent("/graphql/two.json");
         assertThat(json, hasJsonPath("$.title", equalTo("GraphQL two")));
         assertThat(json, hasJsonPath("$.jcr:primaryType", equalTo("nt:unstructured")));
+    }
+
+    @Test
+    public void testMultipleSchemaProviders() throws Exception {
+        new ReplacingSchemaProvider("currentResource", "REPLACED").register(bundleContext, defaultSchemaProvider, 1);
+        new ReplacingSchemaProvider("currentResource", "NOT_THIS_ONE").register(bundleContext, defaultSchemaProvider, Integer.MAX_VALUE);
+        final String json = getContent("/graphql/two.gql", "query", "{ REPLACED { resourceType name } }");
+        assertThat(json, hasJsonPath("$.data.REPLACED.resourceType", equalTo("graphql/test/two")));
+        assertThat(json, hasJsonPath("$.data.REPLACED.name", equalTo("two")));
+        assertThat(json, hasNoJsonPath("$.data.REPLACED.path"));
     }
 }

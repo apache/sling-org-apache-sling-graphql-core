@@ -34,10 +34,12 @@ import org.osgi.service.component.annotations.Reference;
 
 /** Provides a Resource-specific GraphQL Schema, as text */
 @Component(service = SchemaProvider.class, immediate = true, property = {
+        Constants.SERVICE_RANKING + ":Integer=" + DefaultSchemaProvider.SERVICE_RANKING,
         Constants.SERVICE_DESCRIPTION + "=Apache Sling Scripting GraphQL SchemaProvider",
         Constants.SERVICE_VENDOR + "=The Apache Software Foundation" })
 public class DefaultSchemaProvider implements SchemaProvider {
 
+    public static final int SERVICE_RANKING = Integer.MAX_VALUE - 100;
     public static final String SCHEMA_EXTENSION = ".GQLschema";
 
     public static class SchemaProviderException extends IOException {
