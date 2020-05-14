@@ -23,6 +23,7 @@ package org.apache.sling.graphql.core.json;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.io.Writer;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -45,7 +46,7 @@ public class JsonSerializer {
         }
     };
 
-    public void sendJSON(PrintWriter out, ExecutionResult result) throws IOException {
+    public void sendJSON(Writer out, ExecutionResult result) throws IOException {
         final Object data = result.toSpecification();
         if (data == null) {
             throw new IOException("No data");
