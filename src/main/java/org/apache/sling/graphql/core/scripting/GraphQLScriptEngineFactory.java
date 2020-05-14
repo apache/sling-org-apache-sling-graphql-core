@@ -23,7 +23,6 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
 
 import org.apache.sling.scripting.api.AbstractScriptEngineFactory;
-import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.core.schema.DataFetcherSelector;
 import org.apache.sling.graphql.core.schema.RankedSchemaProviders;
 import org.osgi.framework.BundleContext;

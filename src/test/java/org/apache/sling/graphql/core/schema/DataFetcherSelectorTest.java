@@ -19,8 +19,6 @@
 
 package org.apache.sling.graphql.core.schema;
 
-import graphql.schema.DataFetcher;
-
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Before;
 import org.junit.Rule;

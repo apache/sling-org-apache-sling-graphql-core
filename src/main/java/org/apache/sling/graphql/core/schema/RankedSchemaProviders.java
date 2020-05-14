@@ -23,8 +23,6 @@ package org.apache.sling.graphql.core.schema;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeSet;
 
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.commons.osgi.Order;
@@ -32,7 +30,6 @@ import org.apache.sling.commons.osgi.RankedServices;
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;

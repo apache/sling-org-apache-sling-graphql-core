@@ -22,7 +22,6 @@ package org.apache.sling.graphql.core.json;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintWriter;
 import java.io.Writer;
 import java.util.HashMap;
 import java.util.Map;
