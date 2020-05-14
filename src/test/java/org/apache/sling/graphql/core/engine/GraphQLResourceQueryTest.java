@@ -30,8 +30,6 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.UUID;
 
-import com.cedarsoftware.util.io.JsonWriter;
-
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.api.graphqljava.DataFetcherProvider;

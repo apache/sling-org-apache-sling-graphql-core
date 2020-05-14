@@ -21,12 +21,11 @@ package org.apache.sling.graphql.core.servlet;
 
 import org.apache.commons.io.input.ReaderInputStream;
 import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.graphql.core.json.JsonSerializer;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
-
-import com.cedarsoftware.util.io.JsonReader;
 
 public class RequestParser {
 
@@ -35,14 +34,14 @@ public class RequestParser {
     private String query;
 
     private Map<String, Object> variables;
+    private final JsonSerializer jsonSerializer = new JsonSerializer();
 
     RequestParser(SlingHttpServletRequest request) throws IOException {
         parse(request);
     }
 
-    @SuppressWarnings("unchecked")
     private Map<String, Object> getInputJson(SlingHttpServletRequest req) throws IOException {
-        return JsonReader.jsonToMaps(new ReaderInputStream(req.getReader()), null);
+        return jsonSerializer.JSONtoMaps(new ReaderInputStream(req.getReader()));
     }
 
     @SuppressWarnings("unchecked")

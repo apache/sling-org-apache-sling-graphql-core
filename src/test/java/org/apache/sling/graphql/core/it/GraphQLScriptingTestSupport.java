@@ -22,22 +22,21 @@ import javax.inject.Inject;
 
 import com.cedarsoftware.util.io.JsonWriter;
 
+import org.apache.commons.io.output.WriterOutputStream;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
-import org.apache.sling.graphql.api.graphqljava.DataFetcherProvider;
+import org.apache.sling.graphql.core.json.JsonSerializer;
 import org.apache.sling.graphql.core.mocks.PipeDataFetcherProvider;
 import org.apache.sling.servlethelpers.MockSlingHttpServletRequest;
 import org.apache.sling.servlethelpers.MockSlingHttpServletResponse;
 import org.apache.sling.testing.paxexam.TestSupport;
-import org.junit.After;
 import org.junit.Before;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.ProbeBuilder;
 import org.ops4j.pax.exam.TestProbeBuilder;
 import org.ops4j.pax.exam.options.ModifiableCompositeOption;
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.ServiceRegistration;
-
+import org.ops4j.pax.tinybundles.core.TinyBundle;
+import org.osgi.framework.Constants;
 import org.apache.sling.engine.SlingRequestProcessor;
 
 import static org.junit.Assert.assertEquals;
@@ -52,6 +51,7 @@ import static org.ops4j.pax.exam.CoreOptions.junitBundles;
 import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
 import static org.ops4j.pax.exam.CoreOptions.when;
 import static org.ops4j.pax.exam.CoreOptions.vmOption;
+import static org.ops4j.pax.exam.CoreOptions.streamBundle;
 import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.newConfiguration;
 
 import java.io.BufferedReader;
@@ -60,6 +60,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public abstract class GraphQLScriptingTestSupport extends TestSupport {
 
@@ -82,6 +83,7 @@ public abstract class GraphQLScriptingTestSupport extends TestSupport {
             slingQuickstart(),
             graphQLJava(),
             testBundle("bundle.filename"),
+            buildBundleWithExportedPackages(JsonSerializer.class, WriterOutputStream.class),
             newConfiguration("org.apache.sling.jcr.base.internal.LoginAdminWhitelist")
                 .put("whitelist.bundles.regexp", "^PAXEXAM.*$")
                 .asOption(),
@@ -239,7 +241,11 @@ public abstract class GraphQLScriptingTestSupport extends TestSupport {
             body.put("variables", variables);
         }
 
-        return executePostRequest(path, JsonWriter.objectToJson(body) ,"application/json", 200).getOutputAsString();
+        return executePostRequest(path, toJSON(body) ,"application/json", 200).getOutputAsString();
+    }
+
+    protected String toJSON(Object source) {
+        return JsonWriter.objectToJson(source, JsonSerializer.WRITER_OPTIONS);
     }
 
     protected Map<String, Object> toMap(String ...keyValuePairs) {
@@ -248,5 +254,23 @@ public abstract class GraphQLScriptingTestSupport extends TestSupport {
             result.put(keyValuePairs[i], keyValuePairs[i+1]);
         }
         return result;
+    }
+
+    protected Option buildBundleWithExportedPackages(final Class<?>... classes) {
+        final TinyBundle bundle = org.ops4j.pax.tinybundles.core.TinyBundles.bundle();
+        bundle.set(Constants.BUNDLE_SYMBOLICNAME, getClass().getSimpleName() + UUID.randomUUID());
+
+        final StringBuilder exports = new StringBuilder();
+        
+        for (final Class<?> clazz : classes) {
+            bundle.add(clazz);
+            if(exports.length() != 0) {
+                exports.append(",");
+            }
+            exports.append(clazz.getPackage().getName());
+        }
+
+        bundle.set(Constants.EXPORT_PACKAGE, exports.toString());
+        return streamBundle(bundle.build()).start();
     }
 }

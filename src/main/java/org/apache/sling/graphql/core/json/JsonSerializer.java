@@ -21,16 +21,21 @@
 package org.apache.sling.graphql.core.json;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.cedarsoftware.util.io.JsonReader;
 import com.cedarsoftware.util.io.JsonWriter;
 
 import org.apache.commons.io.output.WriterOutputStream;
 
 import graphql.ExecutionResult;
 
+/** All conversions between JSON and Objects should
+ *  happen in this class, in case we want to replace
+ *  the underlying converter library later */
 public class JsonSerializer {
 
     public static final Map<String, Object> WRITER_OPTIONS = new HashMap<String, Object>() {
@@ -51,6 +56,11 @@ public class JsonSerializer {
     }
 
     public String toJSON(Object data) {
-        return JsonWriter.objectToJson(data, JsonSerializer.WRITER_OPTIONS);
+        return JsonWriter.objectToJson(data, WRITER_OPTIONS);
+    }
+
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> JSONtoMaps(InputStream input) {
+        return JsonReader.jsonToMaps(input, null);
     }
 }
