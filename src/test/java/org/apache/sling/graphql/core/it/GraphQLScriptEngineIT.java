@@ -37,7 +37,7 @@ import org.ops4j.pax.exam.util.Filter;
 
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerClass.class)
-public class GraphQLScriptEngineIT extends GraphQLScriptingTestSupport {
+public class GraphQLScriptEngineIT extends GraphQLCoreTestSupport {
 
     @Inject
     @Filter(value = "(names=graphql)")

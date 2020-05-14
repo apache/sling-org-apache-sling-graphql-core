@@ -34,7 +34,7 @@ import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.factoryConfigurati
 
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerClass.class)
-public class GraphQLServletNoConfigIT extends GraphQLScriptingTestSupport {
+public class GraphQLServletNoConfigIT extends GraphQLCoreTestSupport {
 
     @Inject
     @Filter(value = "(path=/apps/graphql/test/one/json.gql)")

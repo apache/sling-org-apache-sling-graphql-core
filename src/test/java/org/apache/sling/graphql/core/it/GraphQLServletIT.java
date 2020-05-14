@@ -42,7 +42,7 @@ import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.factoryConfigurati
 
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerClass.class)
-public class GraphQLServletIT extends GraphQLScriptingTestSupport {
+public class GraphQLServletIT extends GraphQLCoreTestSupport {
 
     @Inject
     @Filter(value = "(path=/content/graphql/two)")

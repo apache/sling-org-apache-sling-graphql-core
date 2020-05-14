@@ -62,7 +62,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public abstract class GraphQLScriptingTestSupport extends TestSupport {
+public abstract class GraphQLCoreTestSupport extends TestSupport {
 
     private final static int STARTUP_WAIT_SECONDS = 30;
 

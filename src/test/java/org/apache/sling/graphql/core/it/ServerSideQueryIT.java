@@ -42,7 +42,7 @@ import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.factoryConfigurati
 
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerClass.class)
-public class ServerSideQueryIT extends GraphQLScriptingTestSupport {
+public class ServerSideQueryIT extends GraphQLCoreTestSupport {
 
     @Inject
     @Filter(value = "(names=graphql)")
