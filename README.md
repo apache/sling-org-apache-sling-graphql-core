@@ -16,6 +16,9 @@ Server-side queries are implemented as a Sling Script Engine.
 The current version uses the [graphql-java](https://github.com/graphql-java/graphql-java) library, which
 is exposed by the `org.apache.sling.graphql.api.graphqljava` interfaces. We might later remove this dependency
 by creating a facade that abstracts these things, if needed.
+
+The [GraphQL sample website](https://github.com/apache/sling-whiteboard/tree/master/org.apache.sling.graphql.samples.website)
+module provides usage examples.
  
 ## Supported GraphQL endpoint styles
 
@@ -91,33 +94,3 @@ Here's an example of such an annotated schema.
         resourceTypeMD5: String
      }
     type Test { test: Boolean }
-
-## How to test this in a Sling instance
-
-See the `GraphQLScriptingTestSupport` class for which bundles need to be added to
-a Sling Starter instance to support this bundle.
-
-A simple way to install them in a Sling starter instance is:
-
-    # Adapt this list based on the current version of the GraphQLScriptingTestSupport class!
-    export B="graphql reactive antlr dataloader json-io servlet-helpers"
-
-    mvn dependency:copy-dependencies
-    export S=http://localhost:8080
-    curl -u admin:admin -X DELETE $S/apps/gql
-    curl -u admin:admin -X MKCOL $S/apps/gql
-    curl -u admin:admin -X MKCOL $S/apps/gql/install
-    curl -u admin:admin -X MKCOL $S/apps/gql/install/15
-    for bundle in $B
-    do
-      path=$(ls target/dependency/*${bundle}* | head -1)
-      filename=$(basename $path)
-      curl -u admin:admin -T $path ${S}/apps/gql/install/15/${filename}
-    done
-
-And then install this bundle using for example
-
-    mvn clean install sling:install
-
-For some reason, as of April 14th the `org.apache.sling.installer.factory.packages` bundle
-has to be stopped for this to work - didn't investigate so far.
