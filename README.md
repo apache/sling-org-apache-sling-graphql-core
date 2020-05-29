@@ -17,8 +17,8 @@ The current version uses the [graphql-java](https://github.com/graphql-java/grap
 is exposed by the `org.apache.sling.graphql.api.graphqljava` interfaces. We might later remove this dependency
 by creating a facade that abstracts these things, if needed.
 
-The [GraphQL sample website](https://github.com/apache/sling-whiteboard/tree/master/org.apache.sling.graphql.samples.website)
-module provides usage examples.
+The [GraphQL sample website](https://github.com/apache/sling-samples/tree/master/org.apache.sling.graphql.samples.website)
+provides usage examples.
  
 ## Supported GraphQL endpoint styles
 
