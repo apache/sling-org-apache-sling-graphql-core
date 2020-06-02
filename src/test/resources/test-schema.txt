@@ -20,9 +20,11 @@
 
 type Query {
     ## fetch:echoNS/echo
+    #
     currentResource : SlingResource
 
     ## fetch:test/static
+    #
     staticContent: Test
 }
 
@@ -31,18 +33,26 @@ type SlingResource {
     resourceType: String
 
     ## fetch:test/digest/md5 path
+    #
     pathMD5: String
 
     ## fetch:test/digest/sha-256 path
+    #
+    # SHA256 digest of the path
     pathSHA256: String
 
     ## fetch:test/digest/md5 resourceType
+    #
+    # MD5 digest of the resource type
     resourceTypeMD5: String
 
     ## fetch:echoNS/echo/null
+    #
     nullValue: String
 
     ## fetch:failure/fail
+    #
+    # Failure message
     failure: String
 }
 
