@@ -15,9 +15,16 @@
 # * specific language governing permissions and limitations
 # * under the License.
 
+# Note the use of empty comment lines, like the one that follows
+# this, to dissociate comments from the types or fields
+# that follow.
+#
+
+# A blank line without leading hash does NOT dissociate the comments
+# from the type that follows.
+
 # GraphQL Schema used for our tests
 # annotated with our fetch: definitions
-
 type Query {
     ## fetch:echoNS/echo
     #
@@ -25,9 +32,13 @@ type Query {
 
     ## fetch:test/static
     #
+    # Test some static values
     staticContent: Test
 }
 
+# This should be omitted from the SlingResource type description
+#
+# SlingResource, for our tests
 type SlingResource { 
     path: String
     resourceType: String
@@ -51,8 +62,8 @@ type SlingResource {
     nullValue: String
 
     ## fetch:failure/fail
-    #
-    # Failure message
+    # Failure message - the above fetch: statement is included in the
+    # description as it's not separated by an empty comment.
     failure: String
 }
 
