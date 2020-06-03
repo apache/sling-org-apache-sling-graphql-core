@@ -60,6 +60,7 @@ schemas dynamically, taking request selectors into account.
 
 The GraphQL schemas used by this module can be enhanced using
 [schema directives](http://spec.graphql.org/June2018/#sec-Language.Directives)
+(see also the [Apollo docs](https://www.apollographql.com/docs/graphql-tools/schema-directives/) for how those work)
 that select specific `DataFetcher` to return the appropriate data.
 
 A default `DataFetcher` is used for types and fields which have no such annotation.
