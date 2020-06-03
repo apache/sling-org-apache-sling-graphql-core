@@ -15,18 +15,20 @@
 # * specific language governing permissions and limitations
 # * under the License.
 
-# GraphQL Schema used for our tests
-# annotated with our fetch: definitions
+# This directive maps fields to our Sling data fetchers
+directive @fetcher(
+    name : String,
+    options : String = "",
+    source : String = ""
+) on FIELD_DEFINITION
 
+# GraphQL Schema used for our tests
+# when specific request selectors are used
 type Query {
-    ## fetch:echoNS/echo
-    currentResource : SlingResource
+    currentResource : SlingResource @fetcher(name:"echoNS/echo")
 }
 
 type SlingResource { 
-    ## fetch:test/fortyTwo
-    fortyTwo: Int
-
-    ## fetch:test/fortyTwo
-    path: Int
+    fortyTwo: Int @fetcher(name:"test/fortyTwo")
+    path: Int @fetcher(name:"test/fortyTwo")
 }

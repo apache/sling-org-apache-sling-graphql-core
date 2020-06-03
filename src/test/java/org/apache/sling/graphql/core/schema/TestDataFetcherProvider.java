@@ -78,12 +78,12 @@ class TestDataFetcherProvider implements DataFetcherProvider {
         return ctx.registerService(DataFetcherProvider.class, this, props);
     }
 
-    static void assertFetcher(DataFetcherSelector s, String def, String expected) throws IOException {
-        final DataFetcher<Object> f = s.getDataFetcherForType(new DataFetcherDefinition(def), null);
+    static void assertFetcher(DataFetcherSelector s, String nsAndName, String expected) throws IOException {
+        final DataFetcher<Object> f = s.getDataFetcherForType(new DataFetcherDefinition(nsAndName, null, null), null);
         if(expected == null) {
-            assertNull("Expected null DataFetcher for " + def, f);
+            assertNull("Expected null DataFetcher for " + nsAndName, f);
         } else {
-            assertNotNull("Expected non-null DataFetcher for " + def, f);
+            assertNotNull("Expected non-null DataFetcher for " + nsAndName, f);
             assertEquals(expected, f.toString());
         }
     }

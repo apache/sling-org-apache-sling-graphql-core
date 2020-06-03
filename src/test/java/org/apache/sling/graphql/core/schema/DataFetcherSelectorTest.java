@@ -43,10 +43,10 @@ public class DataFetcherSelectorTest {
     @Test
     public void testGetDataFetcher() throws IOException {
         final DataFetcherSelector s = new DataFetcherSelector(context.bundleContext());
-        assertFetcher(s, "fetch:ns1/name1", "DF#ns1#name1");
-        assertFetcher(s, "fetch:ns1/name2", "DF#ns1#name2");
-        assertFetcher(s, "fetch:ns2/name2", "DF#ns2#name2");
-        assertFetcher(s, "fetch:ns2/othername", null);
-        assertFetcher(s, "fetch:otherns/name2", null);
+        assertFetcher(s, "ns1/name1", "DF#ns1#name1");
+        assertFetcher(s, "ns1/name2", "DF#ns1#name2");
+        assertFetcher(s, "ns2/name2", "DF#ns2#name2");
+        assertFetcher(s, "ns2/othername", null);
+        assertFetcher(s, "otherns/name2", null);
     }
 }

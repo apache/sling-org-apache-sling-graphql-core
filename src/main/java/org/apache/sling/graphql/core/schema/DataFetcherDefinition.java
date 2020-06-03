@@ -20,39 +20,22 @@
 
 package org.apache.sling.graphql.core.schema;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
+// TODO Since moving to schema directives, we don't really need this class anymore...
 public class DataFetcherDefinition {
     public final String fetcherNamespace;
     public final String fetcherName;
     public final String fetcherOptions;
     public final String fetcherSourceExpression;
 
-    /** Definitions are formatted like 
-     *  fetch:test/digest:sha512/$.path
-     */
-    private static final Pattern REGEXP = Pattern.compile("fetch\\:(\\w+)/(\\w+)(/(\\S+))?( +(.*))?");
-
-    /** Creates a definition from a formatted String like
-     *  
-      */
-    public DataFetcherDefinition(String fetcherDef) {
-        if(fetcherDef == null) {
-            throw new IllegalArgumentException("Invalid input: " + fetcherDef);
+    public DataFetcherDefinition(String nameSpaceAndName, String options, String source) throws IllegalArgumentException {
+        final String [] parts = nameSpaceAndName.split("/");
+        if(parts.length != 2) {
+            throw new IllegalArgumentException("Expected a namespace/name String, got " + nameSpaceAndName);
         }
-        final Matcher m = REGEXP.matcher(fetcherDef);
-        if(!m.matches()) {
-            throw new IllegalArgumentException("Input does not match " + REGEXP + ": " + fetcherDef);
-        }
-        fetcherNamespace = m.group(1);
-        fetcherName = m.group(2);
-        fetcherOptions = optional(m.group(4));
-        fetcherSourceExpression = optional(m.group(6));
-    }
-
-    private static final String optional(String input) {
-        return input == null ? "" : input.trim();
+        fetcherNamespace = parts[0];
+        fetcherName = parts[1];
+        fetcherOptions = options;
+        fetcherSourceExpression = source;
     }
 
     public String getFetcherNamespace() {

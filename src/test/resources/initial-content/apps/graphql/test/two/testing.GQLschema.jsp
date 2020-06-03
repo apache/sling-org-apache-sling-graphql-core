@@ -17,19 +17,17 @@
 * under the License.
 --%>
 
-<%--
-Generating the schemas in JSP might not be the best way
-but it works for these initial tests - we might create
-a "passthrough" script engine, or one that extracts the
-additional DataFetcher information that we need.
---%>
+# This directive maps fields to our Sling data fetchers
+directive @fetcher(
+    name : String,
+    options : String = "",
+    source : String = ""
+) on FIELD_DEFINITION
 
 type Query {
-  ## fetch:test/pipe
-  withTestingSelector : TestData
+  withTestingSelector : TestData @fetcher(name:"test/pipe")
 }
 
 type TestData {
-  ## fetch:test/pipe/farenheit
-  farenheit: Int
+  farenheit: Int @fetcher(name:"test/pipe" options:"farenheit")
 }

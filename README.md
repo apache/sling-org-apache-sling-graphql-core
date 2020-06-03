@@ -56,41 +56,38 @@ The default provider makes an internal Sling request with for the current Resour
 This allows the Sling script/servlet resolution mechanism and its script engines to be used to generate 
 schemas dynamically, taking request selectors into account.
 
-## DataFetcher selection with Schema annotations
+## DataFetcher selection with Schema Directives
 
-The GraphQL schemas used by this module can be enhanced with comments
+The GraphQL schemas used by this module can be enhanced using
+[schema directives](http://spec.graphql.org/June2018/#sec-Language.Directives)
 that select specific `DataFetcher` to return the appropriate data.
 
 A default `DataFetcher` is used for types and fields which have no such annotation.
 
-Comments starting with `## fetch` specify data fetchers using the following syntax:
+Here's a simple example, the test code has more:
 
-    ## fetch:<namespace>/<name>/<options> <source>
-
-Where `<namespace>` selects a source (OSGi service) of `DataFetcher`, `<name>` selects
-a specific fetcher from that source, `<options>` can optionally be used to adapt the 
-behavior of the fetcher according to its own specification and `<source>` can optionally
-be used to tell the fetcher which field or object to select in its input.
-    
-Here's an example of such an annotated schema.    
+    # This directive maps fields to our Sling data fetchers
+    directive @fetcher(
+        name : String,
+        options : String = "",
+        source : String = ""
+    ) on FIELD_DEFINITION
 
     type Query {
-        ## fetch:test/echo
-        currentResource : SlingResource
-        ## fetch:test/static
-        staticContent: Test
+      withTestingSelector : TestData @fetcher(name:"test/pipe")
     }
-    type SlingResource { 
-        path: String
-        resourceType: String
 
-        ## fetch:test/digest/md5 path
-        pathMD5: String
-    
-        ## fetch:test/digest/sha-256 path
-        pathSHA256: String
+    type TestData {
+      farenheit: Int @fetcher(name:"test/pipe" options:"farenheit")
+    }
 
-        ## fetch:test/digest/md5 resourceType
-        resourceTypeMD5: String
-     }
-    type Test { test: Boolean }
+For now, the names of those `DataFetcher`s are in the form
+
+    <namespace>/<name>
+
+Where `<namespace>` selects a source (OSGi service) of `DataFetcher` and `<name>`
+selects a specific fetcher from that source.
+
+The `<options>` and `<source>` arguments of the directive are used by some of those
+`DataFetcher` according to their own specification. See this module's tests
+for examples.

@@ -123,7 +123,7 @@ public class SchemaDescriptionsTest {
 
     @Test
     public void verifyTypesDescriptions() {
-        assertTypeDescription("Query", " A blank line without leading hash does NOT dissociate the comments from the type that follows. GraphQL Schema used for our tests annotated with our fetch: definitions");
+        assertTypeDescription("Query", "GraphQL Schema used for our tests");
         assertTypeDescription("SlingResource", "SlingResource, for our tests");
         assertTypeDescription("Test", "null");
     }
@@ -133,7 +133,7 @@ public class SchemaDescriptionsTest {
         assertFieldDescription("Query", "staticContent", "Test some static values");
         assertFieldDescription("SlingResource", "pathMD5", "null");
         assertFieldDescription("SlingResource", "pathSHA256", "SHA256 digest of the path");
-        assertFieldDescription("SlingResource", "failure", "# fetch:failure/fail Failure message - the above fetch: statement is included in the description as it's not separated by an empty comment.");
+        assertFieldDescription("SlingResource", "failure", "Failure message");
         assertFieldDescription("Test", "test", "null");
     }
 }

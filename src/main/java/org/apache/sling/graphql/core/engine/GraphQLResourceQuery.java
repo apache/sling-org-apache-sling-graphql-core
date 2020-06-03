@@ -22,9 +22,12 @@ package org.apache.sling.graphql.core.engine;
 import javax.script.ScriptException;
 
 import graphql.ExecutionInput;
-import graphql.language.Comment;
+import graphql.language.Argument;
+import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.ObjectTypeDefinition;
+import graphql.language.StringValue;
+
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.core.schema.DataFetcherDefinition;
@@ -48,6 +51,11 @@ import java.util.Map;
 
 /** Run a GraphQL query in the context of a Sling Resource */
 public class GraphQLResourceQuery {
+
+    public static final String FETCHER_DIRECTIVE = "fetcher";
+    public static final String FETCHER_NAME = "name";
+    public static final String FETCHER_OPTIONS = "options";
+    public static final String FETCHER_SOURCE = "source";
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -128,29 +136,25 @@ public class GraphQLResourceQuery {
         return builder.build();
     }
 
-    private DataFetcher<Object> getDataFetcher(FieldDefinition field, DataFetcherSelector fetchers,
-                                               Resource r) throws IOException {
-        List<Comment> comments = field.getComments();
-        for (Comment comment : comments) {
-
-            String commentStr = comment.getContent();
-            if (commentStr.startsWith("#")) {
-                commentStr = commentStr.substring(1).trim();
-
-                try {
-                    DataFetcherDefinition def = new DataFetcherDefinition(commentStr);
-                    DataFetcher<Object> fetcher = fetchers.getDataFetcherForType(def, r);
-                    if (fetcher != null) {
-                        return fetcher;
-                    } else {
-                        log.warn("No data fetcher registered for {}", def.toString());
-                    }
-                } catch (IllegalArgumentException iae) {
-                    throw new IOException("Invalid fetcher definition", iae);
-                }
-            }
+    private String getDirectiveArgumentValue(Directive d, String name) {
+        final Argument a = d.getArgument(name);
+        if(a != null && a.getValue() instanceof StringValue) {
+            return ((StringValue)a.getValue()).getValue();
         }
         return null;
     }
 
+    private DataFetcher<Object> getDataFetcher(FieldDefinition field, DataFetcherSelector fetchers, Resource r) throws IOException {
+        DataFetcher<Object> result = null;
+        final Directive d =field.getDirective(FETCHER_DIRECTIVE);
+        if(d != null) {
+            final DataFetcherDefinition def = new DataFetcherDefinition(
+                getDirectiveArgumentValue(d, FETCHER_NAME),
+                getDirectiveArgumentValue(d, FETCHER_OPTIONS),
+                getDirectiveArgumentValue(d, FETCHER_SOURCE)
+            );
+            result = fetchers.getDataFetcherForType(def, r);
+        }
+        return result;
+    }
 }
