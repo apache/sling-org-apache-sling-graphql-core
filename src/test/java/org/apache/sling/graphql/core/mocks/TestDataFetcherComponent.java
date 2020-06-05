@@ -19,26 +19,19 @@
 
 package org.apache.sling.graphql.core.mocks;
 
-import graphql.schema.DataFetcher;
+import org.apache.sling.graphql.api.SlingDataFetcher;
+import org.apache.sling.graphql.api.SlingDataFetcherEnvironment;
+import org.osgi.service.component.annotations.Component;
 
-import org.apache.sling.api.resource.Resource;
-import org.apache.sling.graphql.api.graphqljava.DataFetcherProvider;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.io.IOException;
-
-public class DigestDataFetcherProvider implements DataFetcherProvider {
-
-    public static final String NAME = "digest";
+@Component(service=SlingDataFetcher.class, property = { "name=test/pipe"})
+public class TestDataFetcherComponent implements SlingDataFetcher<Object> {
 
     @Override
-    public @Nullable DataFetcher<Object> createDataFetcher(@NotNull Resource r, @NotNull String name,
-            @Nullable String options, @Nullable String source) throws IOException {
-        if(NAME.equals(name)) {
-            return new DigestDataFetcher(r, options, source);
+	public Object get(SlingDataFetcherEnvironment env) throws Exception {
+        if ("farenheit".equals(env.getFetcherOptions())) {
+            return 451;
         } else {
-            return null;
+            return env.getCurrentResource();
         }
     }
 }

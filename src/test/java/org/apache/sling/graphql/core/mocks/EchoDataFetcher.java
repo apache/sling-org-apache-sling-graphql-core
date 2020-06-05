@@ -17,15 +17,26 @@
  * under the License.
  */
 
- /**
-  * This package contains APIs which are specific to the
-  * Sling GraphQL core implementation that's based on the
-  * com.graphql-java:graphql-java library.
-  *
-  * If we later want our API to be independent of that, we
-  * can deprecate this package in favor of generic implementations
-  * that would then be in the parent package.
-  */
-@Version("1.0.0")
-package org.apache.sling.graphql.api.graphqljava;
-import org.osgi.annotation.versioning.Version;
+package org.apache.sling.graphql.core.mocks;
+
+import org.apache.sling.graphql.api.SlingDataFetcher;
+import org.apache.sling.graphql.api.SlingDataFetcherEnvironment;
+
+public class EchoDataFetcher implements SlingDataFetcher<Object> {
+
+    private final Object data;
+
+    public EchoDataFetcher(Object data) {
+        this.data = data;
+    }
+
+    @Override
+    public Object get(SlingDataFetcherEnvironment e) throws Exception {
+        if("null".equals(e.getFetcherOptions())) {
+            return null;
+        } else if(data == null) {
+            return e.getCurrentResource();
+        }
+        return data;
+    }
+}

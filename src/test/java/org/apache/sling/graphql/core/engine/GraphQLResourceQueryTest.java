@@ -22,48 +22,65 @@ import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.io.IOException;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.UUID;
 
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.graphql.api.SchemaProvider;
-import org.apache.sling.graphql.api.graphqljava.DataFetcherProvider;
-import org.apache.sling.graphql.core.schema.DataFetcherSelector;
+import org.apache.sling.graphql.api.SlingDataFetcher;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.apache.sling.graphql.core.json.JsonSerializer;
 import org.apache.sling.graphql.core.mocks.DigestDataFetcher;
-import org.apache.sling.graphql.core.mocks.DigestDataFetcherProvider;
-import org.apache.sling.graphql.core.mocks.EchoDataFetcherProvider;
-import org.apache.sling.graphql.core.mocks.FailingDataFetcherProvider;
+import org.apache.sling.graphql.core.mocks.EchoDataFetcher;
+import org.apache.sling.graphql.core.mocks.FailingDataFetcher;
 import org.apache.sling.graphql.core.mocks.MockSchemaProvider;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.osgi.framework.ServiceRegistration;
 
 import graphql.ExecutionResult;
 
 public class GraphQLResourceQueryTest {
-    private SchemaProvider schemaProvider = new MockSchemaProvider("test-schema");
-    private DataFetcherSelector dataFetchersSelector;
+    private SchemaProvider schemaProvider;
+    private SlingDataFetcherSelector dataFetchersSelector;
     private Resource resource;
 
     @Rule
     public final OsgiContext context = new OsgiContext();
 
-    private void registerDataFetcherProvider(String namespace, DataFetcherProvider p) {
+    private void assertNestedException(Throwable t, Class<?> clazz, String messageContains) {
+        boolean found = false;
+        while(t != null) {
+            if(t.getClass().equals(clazz) && t.getMessage().contains(messageContains)) {
+                found = true;
+                break;
+            }
+            t = t.getCause();
+        }
+        if(!found) {
+            fail(String.format("Did not get %s exception with message containing '%s'", 
+                clazz.getName(), messageContains));
+        }
+    }
+
+    private ServiceRegistration<?> registerSlingDataFetcher(String name, SlingDataFetcher<?> f) {
         final Dictionary<String, Object> props = new Hashtable<>();
-        props.put(DataFetcherProvider.NAMESPACE_SERVICE_PROPERTY, namespace);
-        context.bundleContext().registerService(DataFetcherProvider.class, p, props);
+        props.put(SlingDataFetcher.NAME_SERVICE_PROPERTY, name);
+        return context.bundleContext().registerService(SlingDataFetcher.class, f, props);
     }
 
     @Before
     public void setup() {
+        schemaProvider = new MockSchemaProvider("test-schema");
         final String resourceType = "RT-" + UUID.randomUUID();
         final String path = "/some/path/" + UUID.randomUUID();
         resource = Mockito.mock(Resource.class);
@@ -73,15 +90,14 @@ public class GraphQLResourceQueryTest {
         final Dictionary<String, Object> staticData = new Hashtable<>();
         staticData.put("test", true);
 
-        // Use "echo" in two namespaces intentionally, to validate the correct selection
-        registerDataFetcherProvider("echoNS", new EchoDataFetcherProvider("echo"));
-        registerDataFetcherProvider("test", new FailingDataFetcherProvider("echo"));
-        registerDataFetcherProvider("failure", new FailingDataFetcherProvider("fail"));
-        registerDataFetcherProvider("test", new EchoDataFetcherProvider("static", staticData));
-        registerDataFetcherProvider("test", new EchoDataFetcherProvider("fortyTwo", 42));
-        registerDataFetcherProvider("test", new DigestDataFetcherProvider());
+        registerSlingDataFetcher("echoNS/echo", new EchoDataFetcher(null));
+        registerSlingDataFetcher("failure/fail", new FailingDataFetcher());
+        registerSlingDataFetcher("test/static", new EchoDataFetcher(staticData));
+        registerSlingDataFetcher("test/fortyTwo", new EchoDataFetcher(42));
+        registerSlingDataFetcher("test/digest", new DigestDataFetcher());
 
-        dataFetchersSelector = new DataFetcherSelector(context.bundleContext());
+        context.registerInjectActivateService(new SlingDataFetcherSelector());
+        dataFetchersSelector = context.getService(SlingDataFetcherSelector.class);
     }
 
     private String queryJSON(String stmt) throws Exception {
@@ -150,5 +166,30 @@ public class GraphQLResourceQueryTest {
         assertThat(json, hasJsonPath("$.data.currentResource"));
         assertThat(json, hasJsonPath("$.data.currentResource.path", equalTo(42)));
         assertThat(json, hasJsonPath("$.data.currentResource.fortyTwo", equalTo(42)));
+    }
+
+    @Test
+    public void duplicateProviderTest() throws Exception {
+        registerSlingDataFetcher("test/static", new EchoDataFetcher(42));
+        try {
+            queryJSON("{ currentResource { path } }", null);
+            fail("Expected query to fail");
+        } catch(Exception e) {
+            assertNestedException(e, IOException.class, "expected just one");
+        }
+    }
+
+    @Test
+    public void invalidFetcherNamesTest() throws Exception {
+        schemaProvider = new MockSchemaProvider("failing-schema");
+        final ServiceRegistration<?> reg = registerSlingDataFetcher("missingSlash", new EchoDataFetcher(42));
+        try {
+            queryJSON("{ currentResource { missingSlash } }", null);
+            fail("Expected query to fail");
+        } catch(Exception e) {
+            assertNestedException(e, IOException.class, "does not match");
+        } finally {
+            reg.unregister();
+        }
     }
 }

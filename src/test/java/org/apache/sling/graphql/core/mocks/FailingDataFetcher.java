@@ -17,10 +17,15 @@
  * under the License.
  */
 
- /**
-  * This package contains APIs which are independent of
-  * a specific implementation of the underlying graphQL engine.
-  */
-@Version("3.0.0")
-package org.apache.sling.graphql.api;
-import org.osgi.annotation.versioning.Version;
+package org.apache.sling.graphql.core.mocks;
+
+import org.apache.sling.graphql.api.SlingDataFetcher;
+import org.apache.sling.graphql.api.SlingDataFetcherEnvironment;
+
+public class FailingDataFetcher implements SlingDataFetcher<Object> {
+
+    @Override
+    public Object get(SlingDataFetcherEnvironment e) throws Exception {
+        throw new RuntimeException(getClass().getSimpleName());
+    }
+}

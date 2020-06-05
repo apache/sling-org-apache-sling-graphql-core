@@ -31,6 +31,7 @@ import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.hamcrest.CustomMatcher;
 import org.hamcrest.Matcher;
 import org.apache.sling.graphql.core.engine.GraphQLResourceQuery;
+import org.apache.sling.graphql.core.engine.SlingDataFetcherSelector;
 import org.apache.sling.graphql.core.json.JsonSerializer;
 import org.apache.sling.graphql.core.mocks.MockSchemaProvider;
 import org.junit.Before;
@@ -51,7 +52,7 @@ import net.minidev.json.JSONArray;
  */
 public class SchemaDescriptionsTest {
     private SchemaProvider schemaProvider = new MockSchemaProvider("test-schema");
-    private DataFetcherSelector dataFetchersSelector;
+    private SlingDataFetcherSelector dataFetchersSelector;
     private Resource resource;
     private String schemaJson;
 
@@ -97,7 +98,8 @@ public class SchemaDescriptionsTest {
         resource = Mockito.mock(Resource.class);
         Mockito.when(resource.getPath()).thenReturn(path);
         Mockito.when(resource.getResourceType()).thenReturn(resourceType);
-        dataFetchersSelector = new DataFetcherSelector(context.bundleContext());
+        context.registerInjectActivateService(new SlingDataFetcherSelector());
+        dataFetchersSelector = context.getService(SlingDataFetcherSelector.class);
         schemaJson = queryJSON(SCHEMA_QUERY);
     }
 

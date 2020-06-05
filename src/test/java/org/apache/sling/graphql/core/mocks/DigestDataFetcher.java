@@ -19,45 +19,15 @@
 
 package org.apache.sling.graphql.core.mocks;
 
-import graphql.schema.DataFetcher;
-import graphql.schema.DataFetchingEnvironment;
-
 import org.apache.sling.api.resource.Resource;
+import org.apache.sling.graphql.api.SlingDataFetcher;
+import org.apache.sling.graphql.api.SlingDataFetcherEnvironment;
 
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-public class DigestDataFetcher implements DataFetcher<Object> {
-
-    private final Resource r;
-    private final String algorithm;
-    private final String source;
-
-    DigestDataFetcher(Resource r, String options, String source) {
-        this.r = r;
-        this.algorithm = options;
-        this.source = source;
-    }
-
-    @Override
-    public Object get(DataFetchingEnvironment environment) {
-        String rawValue = null;
-        if ("path".equals(source)) {
-            rawValue = r.getPath();
-        } else if("resourceType".equals(source)) {
-            rawValue = r.getResourceType();
-        }
-
-        String digest = null;
-        try {
-            digest = computeDigest(algorithm, rawValue);
-        } catch (Exception e) {
-            throw new RuntimeException("Error computing digest:" + e, e);
-        }
-
-        return algorithm + "#" + source + "#" + digest;
-    }
+public class DigestDataFetcher implements SlingDataFetcher<Object> {
 
     public static String toHexString(byte[] data) {
         final StringBuilder sb = new StringBuilder();
@@ -67,9 +37,31 @@ public class DigestDataFetcher implements DataFetcher<Object> {
         return sb.toString();
     }
 
-    public static String computeDigest(String algorithm, String value) throws NoSuchAlgorithmException, UnsupportedEncodingException {
+    public static String computeDigest(String algorithm, String value)
+            throws NoSuchAlgorithmException, UnsupportedEncodingException {
         final MessageDigest md = MessageDigest.getInstance(algorithm);
         md.update(value.getBytes("UTF-8"));
         return toHexString(md.digest());
+    }
+
+    @Override
+    public Object get(SlingDataFetcherEnvironment env) throws Exception {
+        final Resource currentResource = env.getCurrentResource();
+        String rawValue = null;
+        if ("path".equals(env.getFetcherSource())) {
+            rawValue = currentResource.getPath();
+        } else if ("resourceType".equals(env.getFetcherSource())) {
+            rawValue = currentResource.getResourceType();
+        }
+
+        final String algorithm = env.getFetcherOptions();
+        String digest = null;
+        try {
+            digest = computeDigest(algorithm, rawValue);
+        } catch (Exception e) {
+            throw new RuntimeException("Error computing digest:" + e, e);
+        }
+
+        return algorithm + "#" + env.getFetcherSource() + "#" + digest;
     }
 }

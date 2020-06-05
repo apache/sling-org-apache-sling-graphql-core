@@ -31,10 +31,8 @@ import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.servlets.SlingAllMethodsServlet;
 import org.apache.sling.graphql.core.engine.GraphQLResourceQuery;
 import org.apache.sling.graphql.core.json.JsonSerializer;
-import org.apache.sling.graphql.core.schema.DataFetcherSelector;
+import org.apache.sling.graphql.core.engine.SlingDataFetcherSelector;
 import org.apache.sling.graphql.core.schema.RankedSchemaProviders;
-import org.osgi.framework.BundleContext;
-import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Reference;
@@ -97,13 +95,10 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
     @Reference
     private RankedSchemaProviders schemaProviders;
 
-    private DataFetcherSelector dataFetcherSelector;
-    private final JsonSerializer jsonSerializer = new JsonSerializer();
+    @Reference
+    private SlingDataFetcherSelector dataFetcherSelector;
 
-    @Activate
-    private void activate(final BundleContext ctx) {
-        dataFetcherSelector = new DataFetcherSelector(ctx);
-    }
+    private final JsonSerializer jsonSerializer = new JsonSerializer();
 
     @Override
     public void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {

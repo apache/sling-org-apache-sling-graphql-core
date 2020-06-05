@@ -26,7 +26,7 @@ import org.apache.commons.io.output.WriterOutputStream;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.graphql.core.json.JsonSerializer;
-import org.apache.sling.graphql.core.mocks.PipeDataFetcherProvider;
+import org.apache.sling.graphql.core.mocks.TestDataFetcherComponent;
 import org.apache.sling.servlethelpers.MockSlingHttpServletRequest;
 import org.apache.sling.servlethelpers.MockSlingHttpServletResponse;
 import org.apache.sling.testing.paxexam.TestSupport;
@@ -102,7 +102,7 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
     }
 
     protected Option pipeDataFetcher() {
-        return buildBundleWithBnd(PipeDataFetcherProvider.class);
+        return buildBundleWithBnd(TestDataFetcherComponent.class);
     }
 
     protected Option slingQuickstart() {

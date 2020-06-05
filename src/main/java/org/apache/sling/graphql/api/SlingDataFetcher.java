@@ -17,10 +17,20 @@
  * under the License.
  */
 
- /**
-  * This package contains APIs which are independent of
-  * a specific implementation of the underlying graphQL engine.
-  */
-@Version("3.0.0")
 package org.apache.sling.graphql.api;
-import org.osgi.annotation.versioning.Version;
+
+import aQute.bnd.annotation.ConsumerType;
+
+/** Retrieves data for a given GraphQL field. Services
+ *  must be registered with a NAME property with a unique
+ *  value that's matched with the corresponding @directive
+ *  in the GraphQL Schema. The name must match the 
+ *  {#link GraphQLResourceQuery.FETCHER_NAME_PATTERN} regular
+ *  expression.
+ */
+@ConsumerType
+public interface SlingDataFetcher<T> {
+    String NAME_SERVICE_PROPERTY = "name";
+
+    T get(SlingDataFetcherEnvironment e) throws Exception;
+}

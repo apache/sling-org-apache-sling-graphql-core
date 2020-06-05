@@ -23,7 +23,7 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
 
 import org.apache.sling.scripting.api.AbstractScriptEngineFactory;
-import org.apache.sling.graphql.core.schema.DataFetcherSelector;
+import org.apache.sling.graphql.core.engine.SlingDataFetcherSelector;
 import org.apache.sling.graphql.core.schema.RankedSchemaProviders;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
@@ -53,14 +53,14 @@ public class GraphQLScriptEngineFactory extends AbstractScriptEngineFactory {
     @Reference
     private RankedSchemaProviders schemaProviders;
 
-    private DataFetcherSelector dataFetcherSelector;
+    @Reference
+    private SlingDataFetcherSelector dataFetcherSelector;
 
     @Activate
     private void activate(final GraphQLScriptEngineFactoryConfiguration config, final BundleContext ctx) {
         setExtensions(config.extensions());
         setMimeTypes(config.mimeTypes());
         setNames(config.names());
-        dataFetcherSelector = new DataFetcherSelector(ctx);
     }
 
     @Override
@@ -82,7 +82,7 @@ public class GraphQLScriptEngineFactory extends AbstractScriptEngineFactory {
         return schemaProviders;
     }
 
-    DataFetcherSelector getdataFetcherSelector() {
+    SlingDataFetcherSelector getdataFetcherSelector() {
         return dataFetcherSelector;
     }
 

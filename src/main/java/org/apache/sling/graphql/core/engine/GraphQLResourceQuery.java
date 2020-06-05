@@ -30,8 +30,7 @@ import graphql.language.StringValue;
 
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.graphql.api.SchemaProvider;
-import org.apache.sling.graphql.core.schema.DataFetcherDefinition;
-import org.apache.sling.graphql.core.schema.DataFetcherSelector;
+import org.apache.sling.graphql.api.SlingDataFetcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +47,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /** Run a GraphQL query in the context of a Sling Resource */
 public class GraphQLResourceQuery {
@@ -56,10 +56,11 @@ public class GraphQLResourceQuery {
     public static final String FETCHER_NAME = "name";
     public static final String FETCHER_OPTIONS = "options";
     public static final String FETCHER_SOURCE = "source";
+    private static final Pattern FETCHER_NAME_PATTERN = Pattern.compile("\\w+(/\\w+)+");
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    public ExecutionResult executeQuery(SchemaProvider schemaProvider, DataFetcherSelector fetchersSelector,
+    public ExecutionResult executeQuery(SchemaProvider schemaProvider, SlingDataFetcherSelector fetchersSelector,
                                         Resource r,
                                         String [] requestSelectors,
                                         String query, Map<String, Object> variables) throws ScriptException {
@@ -105,14 +106,14 @@ public class GraphQLResourceQuery {
         }
     }
 
-    private GraphQLSchema buildSchema(String sdl, DataFetcherSelector fetchers, Resource r) throws IOException {
+    private GraphQLSchema buildSchema(String sdl, SlingDataFetcherSelector fetchers, Resource currentResource) throws IOException {
         TypeDefinitionRegistry typeRegistry = new SchemaParser().parse(sdl);
-        RuntimeWiring runtimeWiring = buildWiring(typeRegistry, fetchers, r);
+        RuntimeWiring runtimeWiring = buildWiring(typeRegistry, fetchers, currentResource);
         SchemaGenerator schemaGenerator = new SchemaGenerator();
         return schemaGenerator.makeExecutableSchema(typeRegistry, runtimeWiring);
     }
 
-    private RuntimeWiring buildWiring(TypeDefinitionRegistry typeRegistry, DataFetcherSelector fetchers, Resource r)
+    private RuntimeWiring buildWiring(TypeDefinitionRegistry typeRegistry, SlingDataFetcherSelector fetchers, Resource r)
         throws IOException {
         List<ObjectTypeDefinition> types = typeRegistry.getTypes(ObjectTypeDefinition.class);
         RuntimeWiring.Builder builder = RuntimeWiring.newRuntimeWiring();
@@ -120,7 +121,6 @@ public class GraphQLResourceQuery {
 
             builder.type(type.getName(), typeWiring -> {
                 for (FieldDefinition field : type.getFieldDefinitions()) {
-
                     try {
                         DataFetcher<Object> fetcher = getDataFetcher(field, fetchers, r);
                         if (fetcher != null) {
@@ -144,16 +144,29 @@ public class GraphQLResourceQuery {
         return null;
     }
 
-    private DataFetcher<Object> getDataFetcher(FieldDefinition field, DataFetcherSelector fetchers, Resource r) throws IOException {
+    static String validateFetcherName(String name) throws IOException {
+        if(name == null) {
+            throw new IOException(FETCHER_NAME + " cannot be null");
+        }
+        if(!FETCHER_NAME_PATTERN.matcher(name).matches()) {
+            throw new IOException(String.format("Invalid fetcher name %s, does not match %s", 
+                name, FETCHER_NAME_PATTERN));
+        }
+        return name;
+    }
+
+    private DataFetcher<Object> getDataFetcher(FieldDefinition field, 
+        SlingDataFetcherSelector fetchers, Resource currentResource) throws IOException {
         DataFetcher<Object> result = null;
         final Directive d =field.getDirective(FETCHER_DIRECTIVE);
         if(d != null) {
-            final DataFetcherDefinition def = new DataFetcherDefinition(
-                getDirectiveArgumentValue(d, FETCHER_NAME),
-                getDirectiveArgumentValue(d, FETCHER_OPTIONS),
-                getDirectiveArgumentValue(d, FETCHER_SOURCE)
-            );
-            result = fetchers.getDataFetcherForType(def, r);
+            final String name = validateFetcherName(getDirectiveArgumentValue(d, FETCHER_NAME));
+            final String options = getDirectiveArgumentValue(d, FETCHER_OPTIONS);
+            final String source = getDirectiveArgumentValue(d, FETCHER_SOURCE);
+            SlingDataFetcher<Object> f = fetchers.getSlingFetcher(name);
+            if(f != null) {
+                result = new SlingDataFetcherWrapper<>(f, currentResource, options, source);
+            }
         }
         return result;
     }
