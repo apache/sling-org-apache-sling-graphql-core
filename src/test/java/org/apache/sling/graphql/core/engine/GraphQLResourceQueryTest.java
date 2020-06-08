@@ -33,6 +33,7 @@ import java.util.Hashtable;
 import java.util.UUID;
 
 import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.api.SlingDataFetcher;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
@@ -41,6 +42,7 @@ import org.apache.sling.graphql.core.mocks.DigestDataFetcher;
 import org.apache.sling.graphql.core.mocks.EchoDataFetcher;
 import org.apache.sling.graphql.core.mocks.FailingDataFetcher;
 import org.apache.sling.graphql.core.mocks.MockSchemaProvider;
+import org.apache.sling.graphql.core.mocks.MockScriptServlet;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -96,6 +98,12 @@ public class GraphQLResourceQueryTest {
         registerSlingDataFetcher("test/fortyTwo", new EchoDataFetcher(42));
         registerSlingDataFetcher("test/digest", new DigestDataFetcher());
 
+        final MockScriptServlet mss = new MockScriptServlet();
+        final ServletResolver servletResolver = Mockito.mock(ServletResolver.class);
+        Mockito.when(servletResolver.resolveServlet(Mockito.any(Resource.class), Mockito.any(String.class))).thenReturn(mss);
+        context.bundleContext().registerService(ServletResolver.class, servletResolver, null);
+
+        context.registerInjectActivateService(new ScriptedDataFetcherProvider());
         context.registerInjectActivateService(new SlingDataFetcherSelector());
         dataFetchersSelector = context.getService(SlingDataFetcherSelector.class);
     }
@@ -191,5 +199,14 @@ public class GraphQLResourceQueryTest {
         } finally {
             reg.unregister();
         }
+    }
+
+    @Test
+    public void scriptedFetcherProviderTest() throws Exception {
+        final String json = queryJSON("{ currentResource { path } scriptedFetcher (testing: \"1, 2, 3\") { boolValue resourcePath testingArgument } }", null);
+        assertThat(json, hasJsonPath("$.data.currentResource.path", equalTo(resource.getPath())));
+        assertThat(json, hasJsonPath("$.data.scriptedFetcher.boolValue", equalTo(true)));
+        assertThat(json, hasJsonPath("$.data.scriptedFetcher.resourcePath", equalTo(resource.getPath())));
+        assertThat(json, hasJsonPath("$.data.scriptedFetcher.testingArgument", equalTo("1, 2, 3")));
     }
 }

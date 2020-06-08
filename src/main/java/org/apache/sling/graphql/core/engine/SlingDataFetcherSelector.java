@@ -27,6 +27,7 @@ import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 
 import java.io.IOException;
 
@@ -37,6 +38,9 @@ import java.io.IOException;
 public class SlingDataFetcherSelector {
 
     private BundleContext bundleContext;
+
+    @Reference
+    private ScriptedDataFetcherProvider scriptedDataFetcherProvider;
 
     @Activate
     public void activate(BundleContext ctx) {
@@ -66,8 +70,15 @@ public class SlingDataFetcherSelector {
         return result;
     }
 
+    /** @return a SlingDataFetcher, or null if none available. First tries to get an
+     *  OSGi SlingDataFetcher service, and if not found tries to find a scripted SlingDataFetcher.
+     */
     @Nullable
     public SlingDataFetcher<Object> getSlingFetcher(@NotNull String name) throws IOException {
-        return getOsgiServiceFetcher(name);
+        SlingDataFetcher<Object> result = getOsgiServiceFetcher(name);
+        if(result == null) {
+            result = scriptedDataFetcherProvider.getDataFetcher(name);
+        }
+        return result;
     }
 }

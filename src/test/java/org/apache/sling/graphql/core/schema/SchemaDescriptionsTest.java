@@ -26,11 +26,13 @@ import static org.junit.Assert.assertTrue;
 import java.util.UUID;
 
 import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.hamcrest.CustomMatcher;
 import org.hamcrest.Matcher;
 import org.apache.sling.graphql.core.engine.GraphQLResourceQuery;
+import org.apache.sling.graphql.core.engine.ScriptedDataFetcherProvider;
 import org.apache.sling.graphql.core.engine.SlingDataFetcherSelector;
 import org.apache.sling.graphql.core.json.JsonSerializer;
 import org.apache.sling.graphql.core.mocks.MockSchemaProvider;
@@ -98,6 +100,9 @@ public class SchemaDescriptionsTest {
         resource = Mockito.mock(Resource.class);
         Mockito.when(resource.getPath()).thenReturn(path);
         Mockito.when(resource.getResourceType()).thenReturn(resourceType);
+        final ServletResolver servletResolver = Mockito.mock(ServletResolver.class);
+        context.bundleContext().registerService(ServletResolver.class, servletResolver, null);
+        context.registerInjectActivateService(new ScriptedDataFetcherProvider());
         context.registerInjectActivateService(new SlingDataFetcherSelector());
         dataFetchersSelector = context.getService(SlingDataFetcherSelector.class);
         schemaJson = queryJSON(SCHEMA_QUERY);

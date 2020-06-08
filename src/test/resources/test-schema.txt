@@ -28,6 +28,8 @@ type Query {
 
     # Test some static values
     staticContent: Test @fetcher(name:"test/static")
+
+    scriptedFetcher (testing : String) : Test @fetcher(name:"scripted/example")
 }
 
 # This should be omitted from the SlingResource type description
@@ -52,5 +54,8 @@ type SlingResource {
 }
 
 type Test { 
-    test: Boolean 
+    test: Boolean
+    boolValue: Boolean
+    resourcePath: String
+    testingArgument: String
 }
