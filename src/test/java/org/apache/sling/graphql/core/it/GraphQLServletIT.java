@@ -111,6 +111,16 @@ public class GraphQLServletIT extends GraphQLCoreTestSupport {
     }
 
     @Test
+    public void testScriptedDataFetcher() throws Exception {
+        final String query = "{ currentResource { path } scriptedFetcher (testing: \"1,2,3\") { boolValue resourcePath testingArgument } }";
+        final String json = getContent("/content/graphql/two.scripted.gql", "query", query);
+        assertThat(json, hasJsonPath("$.data.currentResource.path", equalTo("/content/graphql/two")));
+        assertThat(json, hasJsonPath("$.data.scriptedFetcher.boolValue", equalTo(true)));
+        assertThat(json, hasJsonPath("$.data.scriptedFetcher.resourcePath", equalTo("From the test script: /content/graphql/two")));
+        assertThat(json, hasJsonPath("$.data.scriptedFetcher.testingArgument", equalTo("1,2,3")));
+    }
+
+    @Test
     public void testMissingQuery() throws Exception {
         executeRequest("GET", "/graphql/two.gql", null, 400);
     }

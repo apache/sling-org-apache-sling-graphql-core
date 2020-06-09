@@ -98,6 +98,8 @@ public class GraphQLResourceQueryTest {
         registerSlingDataFetcher("test/fortyTwo", new EchoDataFetcher(42));
         registerSlingDataFetcher("test/digest", new DigestDataFetcher());
 
+        // Our MockScriptServlet to simulates a script for unit tests, for the
+        // integration tests we use a real script
         final MockScriptServlet mss = new MockScriptServlet();
         final ServletResolver servletResolver = Mockito.mock(ServletResolver.class);
         Mockito.when(servletResolver.resolveServlet(Mockito.any(Resource.class), Mockito.any(String.class))).thenReturn(mss);

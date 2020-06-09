@@ -26,6 +26,7 @@ import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.core.mocks.ReplacingSchemaProvider;
 import org.apache.sling.resource.presence.ResourcePresence;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Configuration;
@@ -87,5 +88,16 @@ public class ServerSideQueryIT extends GraphQLCoreTestSupport {
         new ReplacingSchemaProvider("scriptedSchemaResource", "REPLACED").register(bundleContext, defaultSchemaProvider, 1);
         new ReplacingSchemaProvider("scriptedSchemaResource", "NOT_THIS_ONE").register(bundleContext, defaultSchemaProvider, Integer.MAX_VALUE);
         assertDefaultContent(".REPLACED", "REPLACED");
+    }
+
+    @Test
+    @Ignore("Uses the wrong schema, schema selector not working?")
+    public void testScriptedDataFetcher() throws Exception {
+        final String json = getContent("/graphql/one.scripted.json");
+        assertThat(json, hasJsonPath("$.data.currentResource.resourceType", equalTo("graphql/test/one")));
+        assertThat(json, hasJsonPath("$.data.scriptedFetcher.boolValue", equalTo(true)));
+        assertThat(json, hasJsonPath("$.data.scriptedFetcher.resourcePath", equalTo("From the test script: /content/graphql/one")));
+        assertThat(json, hasJsonPath("$.data.scriptedFetcher.testingArgument", equalTo("1,2,42")));
+        assertThat(json, hasJsonPath("$.data.scriptedFetcher.anotherValue", equalTo(451)));
     }
 }
