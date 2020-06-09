@@ -23,6 +23,9 @@ package org.apache.sling.graphql.core.scripting;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import javax.script.AbstractScriptEngine;
 import javax.script.Bindings;
@@ -60,8 +63,9 @@ public class GraphQLScriptEngine extends AbstractScriptEngine {
 
             final Resource resource = (Resource) context.getBindings(ScriptContext.ENGINE_SCOPE)
                     .get(SlingBindings.RESOURCE);
+            final String [] selectors = getRequestSelectors(resource);
             final ExecutionResult result = q.executeQuery(factory.getSchemaProviders(), factory.getdataFetcherSelector(),
-                    resource, null, IOUtils.toString(reader), null);
+                    resource, selectors, IOUtils.toString(reader), null);
             final PrintWriter out = (PrintWriter) context.getBindings(ScriptContext.ENGINE_SCOPE).get(SlingBindings.OUT);
             jsonSerializer.sendJSON(out, result);
         } catch(Exception e) {
@@ -78,5 +82,21 @@ public class GraphQLScriptEngine extends AbstractScriptEngine {
     @Override
     public ScriptEngineFactory getFactory() {
         return factory;
+    }
+
+    /** We don't get selectors directly but we can get them
+     *  by interpreting the Resource metadata: the resolution path
+     *  info provides the part of the path that wasn't used to resolve
+     *  the resource, which is the selectors + extension if it
+     *  starts with a dot
+     */
+    private String [] getRequestSelectors(Resource r) {
+        final List<String> result = new ArrayList<>();
+        final String pathInfo = r.getResourceMetadata().getResolutionPathInfo();
+        if(pathInfo != null && pathInfo.startsWith(".")) {
+            final String [] parts = pathInfo.split("\\.");
+            Arrays.stream(parts).limit(parts.length - 1).forEach(it -> result.add(it));
+        }
+        return result.toArray(new String[] {});
     }
 }

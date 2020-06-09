@@ -91,7 +91,6 @@ public class ServerSideQueryIT extends GraphQLCoreTestSupport {
     }
 
     @Test
-    @Ignore("Uses the wrong schema, schema selector not working?")
     public void testScriptedDataFetcher() throws Exception {
         final String json = getContent("/graphql/one.scripted.json");
         assertThat(json, hasJsonPath("$.data.currentResource.resourceType", equalTo("graphql/test/one")));
