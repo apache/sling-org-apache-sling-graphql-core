@@ -13,12 +13,13 @@ using client or server-side queries and optionally being bound to the current Sl
 
 Server-side queries are implemented as a Sling Script Engine.
 
-The current version uses the [graphql-java](https://github.com/graphql-java/graphql-java) library, which
-is exposed by the `org.apache.sling.graphql.api.graphqljava` interfaces. We might later remove this dependency
-by creating a facade that abstracts these things, if needed.
+The current version uses the [graphql-java](https://github.com/graphql-java/graphql-java) library but that's 
+only used internally. The corresponding OSGi bundles must be active in your Sling instance but there's no
+need to use their APIs directly.
 
 The [GraphQL sample website](https://github.com/apache/sling-samples/tree/master/org.apache.sling.graphql.samples.website)
-provides usage examples.
+provides usage examples and demonstrates using GraphQL queries (and Handlebars templates) on both the server and
+client sides.
  
 ## Supported GraphQL endpoint styles
 
@@ -31,7 +32,7 @@ This module enables the following GraphQL "styles"
     idea at this point but it's built into the design so doesn't require more efforts to support. That style supports both
     server-side "**prepared GraphQL queries**" and the more traditional client-supplied queries.
     
-The GraphQL requests can hit a Sling resource in all cases, there's no need for path-mounted servlets which are [not desirable](https://sling.apache.org/documentation/the-sling-engine/servlets.html#caveats-when-binding-servlets-by-path-1).
+The GraphQL requests hit a Sling resource in all cases, there's no need for path-mounted servlets which are [not desirable](https://sling.apache.org/documentation/the-sling-engine/servlets.html#caveats-when-binding-servlets-by-path-1).
 
 ## Resource-specific GraphQL schemas
 
@@ -56,6 +57,9 @@ The default provider makes an internal Sling request with for the current Resour
 This allows the Sling script/servlet resolution mechanism and its script engines to be used to generate 
 schemas dynamically, taking request selectors into account.
 
+Unless you have specific needs not covered by this mechanism, there's no need to implement your
+own `SchemaProvider` services.
+
 ## SlingDataFetcher selection with Schema Directives
 
 The GraphQL schemas used by this module can be enhanced using
@@ -63,7 +67,7 @@ The GraphQL schemas used by this module can be enhanced using
 (see also the [Apollo docs](https://www.apollographql.com/docs/graphql-tools/schema-directives/) for how those work)
 that select specific `SlingDataFetcher` services to return the appropriate data.
 
-A default data fetcher is used for types and fields which have no such annotation.
+A default data fetcher is used for types and fields which have no such directive.
 
 Here's a simple example, the test code has more:
 
@@ -86,7 +90,7 @@ The names of those `SlingDataFetcher` services are in the form
 
     <namespace>/<name>
 
-In these names, The `sling` namespace is reserved for `SlingDataFetcher` services
+The `sling/` namespace is reserved for `SlingDataFetcher` services
 which hava Java package names that start with `org.apache.sling`.
 
 `SlingDataFetcher` services can also be provided by scripts. This is experimental for
