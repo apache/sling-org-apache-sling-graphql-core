@@ -37,6 +37,16 @@ import java.io.IOException;
 @Component(service=SlingDataFetcherSelector.class)
 public class SlingDataFetcherSelector {
 
+    /** Fetchers which have a name starting with this prefix must be
+     *  under the {#link RESERVED_PACKAGE_PREFIX} package.
+     */
+    public static final String RESERVED_NAME_PREFIX = "sling/";
+
+    /** Package name prefix for fetchers which have names starting
+     *  with the {#link RESERVED_NAME_PREFIX}.
+     */
+    public static final String RESERVED_PACKAGE_PREFIX = "org.apache.sling.";
+
     private BundleContext bundleContext;
 
     @Reference
@@ -66,8 +76,22 @@ public class SlingDataFetcherSelector {
                 throw new IOException(String.format("Got %d services for %s, expected just one", refs.length, filter));
             }
             result = (SlingDataFetcher<Object>)bundleContext.getService(refs[0]);
+            validateResult(name, result);
         }
         return result;
+    }
+
+    private void validateResult(String name, SlingDataFetcher<?> fetcher) throws IOException {
+        if(name.startsWith(RESERVED_NAME_PREFIX)) {
+            final String className = fetcher.getClass().getName();
+            if(!fetcher.getClass().getName().startsWith(RESERVED_PACKAGE_PREFIX)) {
+                throw new IOException(
+                    String.format(
+                        "Invalid SlingDataFetcher %s:"
+                        + " fetcher names starting with '%s' are reserved for Apache Sling Java packages", 
+                        className, RESERVED_NAME_PREFIX));
+            }
+        }
     }
 
     /** @return a SlingDataFetcher, or null if none available. First tries to get an

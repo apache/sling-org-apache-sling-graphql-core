@@ -35,7 +35,6 @@ import java.util.UUID;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.graphql.api.SchemaProvider;
-import org.apache.sling.graphql.api.SlingDataFetcher;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.apache.sling.graphql.core.json.JsonSerializer;
 import org.apache.sling.graphql.core.mocks.DigestDataFetcher;
@@ -43,6 +42,7 @@ import org.apache.sling.graphql.core.mocks.EchoDataFetcher;
 import org.apache.sling.graphql.core.mocks.FailingDataFetcher;
 import org.apache.sling.graphql.core.mocks.MockSchemaProvider;
 import org.apache.sling.graphql.core.mocks.MockScriptServlet;
+import org.apache.sling.graphql.core.mocks.TestUtil;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -59,27 +59,6 @@ public class GraphQLResourceQueryTest {
     @Rule
     public final OsgiContext context = new OsgiContext();
 
-    private void assertNestedException(Throwable t, Class<?> clazz, String messageContains) {
-        boolean found = false;
-        while(t != null) {
-            if(t.getClass().equals(clazz) && t.getMessage().contains(messageContains)) {
-                found = true;
-                break;
-            }
-            t = t.getCause();
-        }
-        if(!found) {
-            fail(String.format("Did not get %s exception with message containing '%s'", 
-                clazz.getName(), messageContains));
-        }
-    }
-
-    private ServiceRegistration<?> registerSlingDataFetcher(String name, SlingDataFetcher<?> f) {
-        final Dictionary<String, Object> props = new Hashtable<>();
-        props.put(SlingDataFetcher.NAME_SERVICE_PROPERTY, name);
-        return context.bundleContext().registerService(SlingDataFetcher.class, f, props);
-    }
-
     @Before
     public void setup() {
         schemaProvider = new MockSchemaProvider("test-schema");
@@ -92,11 +71,11 @@ public class GraphQLResourceQueryTest {
         final Dictionary<String, Object> staticData = new Hashtable<>();
         staticData.put("test", true);
 
-        registerSlingDataFetcher("echoNS/echo", new EchoDataFetcher(null));
-        registerSlingDataFetcher("failure/fail", new FailingDataFetcher());
-        registerSlingDataFetcher("test/static", new EchoDataFetcher(staticData));
-        registerSlingDataFetcher("test/fortyTwo", new EchoDataFetcher(42));
-        registerSlingDataFetcher("test/digest", new DigestDataFetcher());
+        TestUtil.registerSlingDataFetcher(context.bundleContext(), "echoNS/echo", new EchoDataFetcher(null));
+        TestUtil.registerSlingDataFetcher(context.bundleContext(), "failure/fail", new FailingDataFetcher());
+        TestUtil.registerSlingDataFetcher(context.bundleContext(), "test/static", new EchoDataFetcher(staticData));
+        TestUtil.registerSlingDataFetcher(context.bundleContext(), "test/fortyTwo", new EchoDataFetcher(42));
+        TestUtil.registerSlingDataFetcher(context.bundleContext(), "sling/digest", new DigestDataFetcher());
 
         // Our MockScriptServlet to simulates a script for unit tests, for the
         // integration tests we use a real script
@@ -179,25 +158,14 @@ public class GraphQLResourceQueryTest {
     }
 
     @Test
-    public void duplicateProviderTest() throws Exception {
-        registerSlingDataFetcher("test/static", new EchoDataFetcher(42));
-        try {
-            queryJSON("{ currentResource { path } }", null);
-            fail("Expected query to fail");
-        } catch(Exception e) {
-            assertNestedException(e, IOException.class, "expected just one");
-        }
-    }
-
-    @Test
     public void invalidFetcherNamesTest() throws Exception {
         schemaProvider = new MockSchemaProvider("failing-schema");
-        final ServiceRegistration<?> reg = registerSlingDataFetcher("missingSlash", new EchoDataFetcher(42));
+        final ServiceRegistration<?> reg = TestUtil.registerSlingDataFetcher(context.bundleContext(), "missingSlash", new EchoDataFetcher(42));
         try {
             queryJSON("{ currentResource { missingSlash } }", null);
             fail("Expected query to fail");
         } catch(Exception e) {
-            assertNestedException(e, IOException.class, "does not match");
+            TestUtil.assertNestedException(e, IOException.class, "does not match");
         } finally {
             reg.unregister();
         }

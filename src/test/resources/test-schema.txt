@@ -39,13 +39,13 @@ type SlingResource {
     path: String
     resourceType: String
 
-    pathMD5: String @fetcher(name:"test/digest" options:"md5" source:"path")
+    pathMD5: String @fetcher(name:"sling/digest" options:"md5" source:"path")
 
     # SHA256 digest of the path
-    pathSHA256: String @fetcher(name:"test/digest" options:"sha-256" source:"path")
+    pathSHA256: String @fetcher(name:"sling/digest" options:"sha-256" source:"path")
 
     # MD5 digest of the resource type
-    resourceTypeMD5: String @fetcher(name:"test/digest" options:"md5" source:"resourceType")
+    resourceTypeMD5: String @fetcher(name:"sling/digest" options:"md5" source:"resourceType")
 
     nullValue: String @fetcher(name:"echoNS/echo" options:"null")
 

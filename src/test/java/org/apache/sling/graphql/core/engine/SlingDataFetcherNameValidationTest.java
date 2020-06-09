@@ -44,6 +44,8 @@ public class SlingDataFetcherNameValidationTest {
         result.add(new Object[] {"uno/1/x42", true});
         result.add(new Object[] {"uno_due/tre", true});
         result.add(new Object[] {"the:colon/bad", false});
+        result.add(new Object[] {"/startingslash", false});
+        result.add(new Object[] {"/starting/ending", false});
         return result;
     }
 

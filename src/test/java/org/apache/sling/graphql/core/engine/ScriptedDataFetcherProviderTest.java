@@ -44,7 +44,7 @@ public class ScriptedDataFetcherProviderTest {
 
     private ScriptedDataFetcherProvider provider;
     private static final String FETCHER_NAME = "this/fetcher";
-    private String scriptResult;
+
     private ServletResolver servletResolver;
     private Servlet servletOnly;
     private Servlet servletAndScript;
@@ -55,7 +55,6 @@ public class ScriptedDataFetcherProviderTest {
     @Before
     public void setup() {
         servletOnly = Mockito.mock(Servlet.class);
-        scriptResult = "SCRIPT_RESULT_" + UUID.randomUUID();
         servletAndScript = new MockScriptServlet();
         servletResolver = Mockito.mock(ServletResolver.class);
 
