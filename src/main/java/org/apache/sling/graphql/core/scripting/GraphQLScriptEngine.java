@@ -92,10 +92,12 @@ public class GraphQLScriptEngine extends AbstractScriptEngine {
      */
     private String [] getRequestSelectors(Resource r) {
         final List<String> result = new ArrayList<>();
-        final String pathInfo = r.getResourceMetadata().getResolutionPathInfo();
-        if(pathInfo != null && pathInfo.startsWith(".")) {
-            final String [] parts = pathInfo.split("\\.");
-            Arrays.stream(parts).limit(parts.length - 1).forEach(it -> result.add(it));
+        if(r != null) {
+            final String pathInfo = r.getResourceMetadata().getResolutionPathInfo();
+            if(pathInfo != null && pathInfo.startsWith(".")) {
+                final String [] parts = pathInfo.split("\\.");
+                Arrays.stream(parts).limit(parts.length - 1).forEach(it -> result.add(it));
+            }
         }
         return result.toArray(new String[] {});
     }
