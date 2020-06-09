@@ -20,11 +20,13 @@
 package org.apache.sling.graphql.api;
 
 import java.util.Map;
-
 import org.apache.sling.api.resource.Resource;
+import org.osgi.annotation.versioning.ProviderType;
 
 /** Provides contextual information to the {#link SlingDataFetcher} */
 @SuppressWarnings("TypeParameterUnusedInFormals")
+
+@ProviderType
 public interface SlingDataFetcherEnvironment {
     /** The parent object of the field that's being retrieved */
     Object getParentObject();

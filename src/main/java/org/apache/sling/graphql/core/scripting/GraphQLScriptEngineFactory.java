@@ -34,7 +34,6 @@ import org.osgi.service.metatype.annotations.Designate;
 
 @Component(
     service = ScriptEngineFactory.class,
-    immediate = true,
     property = {
         Constants.SERVICE_DESCRIPTION + "=Apache Sling Scripting GraphQL ScriptEngineFactory",
         Constants.SERVICE_VENDOR + "=The Apache Software Foundation"
