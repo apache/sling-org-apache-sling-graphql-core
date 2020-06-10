@@ -22,12 +22,12 @@ package org.apache.sling.graphql.core.schema;
 
 import java.io.IOException;
 
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.sling.api.resource.Resource;
-import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.engine.SlingRequestProcessor;
 import org.apache.sling.graphql.api.SchemaProvider;
-import org.apache.sling.servlethelpers.MockSlingHttpServletRequest;
-import org.apache.sling.servlethelpers.MockSlingHttpServletResponse;
+import org.apache.sling.servlethelpers.internalrequests.InternalRequest;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -41,48 +41,25 @@ public class DefaultSchemaProvider implements SchemaProvider {
 
     public static final int SERVICE_RANKING = Integer.MAX_VALUE - 100;
     public static final String SCHEMA_EXTENSION = ".GQLschema";
-
-    public static class SchemaProviderException extends IOException {
-        private static final long serialVersionUID = 1L;
-
-        public SchemaProviderException(String reason) {
-            super(reason);
-        }
-
-        public SchemaProviderException(String reason, Throwable cause) {
-            super(reason, cause);
-        }
-    }
+    public static final String DEFAULT_SCHEMA = "";
 
     @Reference
-    protected SlingRequestProcessor requestProcessor;
+    private SlingRequestProcessor requestProcessor;
 
     @Override
-    public String getSchema(Resource r, String [] selectors) throws SchemaProviderException {
-        final ResourceResolver resourceResolver = r.getResourceResolver();
-        final MockSlingHttpServletRequest request = new MockSlingHttpServletRequest(resourceResolver);
+    public String getSchema(Resource r, String [] selectors) throws IOException {
+        // TODO using a servletRequest should be more efficient but that doesn't
+        // seem to work so far - schema JSP is not executed in integration tests
+        final InternalRequest req = InternalRequest
+            .slingRequest(r.getResourceResolver(), requestProcessor, r.getPath())
+            .withSelectors(selectors)
+            .withExtension(SCHEMA_EXTENSION)
+            .execute(-1);
 
-        final StringBuilder sb = new StringBuilder();
-        sb.append(r.getPath());
-        if(selectors != null) {
-            for(String s : selectors) {
-                sb.append(".").append(s);
-            }
-        }
-        sb.append(SCHEMA_EXTENSION);
-        final String path = sb.toString();
-        request.setPathInfo(path);
-        final MockSlingHttpServletResponse response = new MockSlingHttpServletResponse();
-        final int status = response.getStatus();
-        if(status != 200) {
-            throw new SchemaProviderException("Request to " + path + " returns HTTP status " + status);
-        }
-
-        try {
-            requestProcessor.processRequest(request, response, resourceResolver);
-            return response.getOutputAsString();
-        } catch(Exception e) {
-            throw new SchemaProviderException("Schema request failed", e);
+        if(req.getResponse().getStatus() == HttpServletResponse.SC_OK) {
+            return req.getResponseAsString();
+        } else {
+            return DEFAULT_SCHEMA;
         }
     }
 }

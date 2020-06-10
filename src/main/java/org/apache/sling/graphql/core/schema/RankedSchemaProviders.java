@@ -57,8 +57,9 @@ public class RankedSchemaProviders implements SchemaProvider {
         }
 
         if(result == null) {
+            final String selectorsInfo = selectors == null ? null : " / " + Arrays.asList(selectors);
             throw new IOException(
-                "No schema found for " + r.getPath() + " / " + Arrays.asList(selectors)
+                "No schema found for " + r.getPath() + selectorsInfo
                 + ", SchemaProviders=" + providers);
         }
 
