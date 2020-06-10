@@ -53,7 +53,7 @@ public class GraphQLServletNoConfigIT extends GraphQLCoreTestSupport {
     @Test
     public void testServletDisabledByDefault() throws Exception {
         final String path = "/graphql/one";
-        executeRequest("GET", path + ".json", null, 200);
-        executeRequest("GET", path + ".gql", null, 404);
+        executeRequest("GET", path + ".json", null, null, null, 200);
+        executeRequest("GET", path + ".gql", null, null, null, 404);
     }
 }

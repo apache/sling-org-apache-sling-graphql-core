@@ -27,8 +27,8 @@ import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.graphql.core.json.JsonSerializer;
 import org.apache.sling.graphql.core.mocks.TestDataFetcherComponent;
-import org.apache.sling.servlethelpers.MockSlingHttpServletRequest;
 import org.apache.sling.servlethelpers.MockSlingHttpServletResponse;
+import org.apache.sling.servlethelpers.internalrequests.InternalRequest;
 import org.apache.sling.testing.paxexam.TestSupport;
 import org.junit.Before;
 import org.ops4j.pax.exam.Option;
@@ -55,6 +55,7 @@ import static org.ops4j.pax.exam.CoreOptions.streamBundle;
 import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.newConfiguration;
 
 import java.io.BufferedReader;
+import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -146,7 +147,7 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
         final long endTime = System.currentTimeMillis() + STARTUP_WAIT_SECONDS * 1000;
 
         while (System.currentTimeMillis() < endTime) {
-            final int status = executeRequest("GET", path, null, -1).getStatus();
+            final int status = executeRequest("GET", path, null, null, null, -1).getStatus();
             statuses.add(status);
             if (status == expectedStatus) {
                 return;
@@ -158,77 +159,30 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
     }
 
     protected MockSlingHttpServletResponse executeRequest(final String method, 
-        final String path, Map<String, Object> params, final int expectedStatus) throws Exception {
+        final String path, Map<String, Object> params, String contentType, 
+        Reader body, final int expectedStatus) throws Exception {
 
         // Admin resolver is fine for testing    
         @SuppressWarnings("deprecation")            
         final ResourceResolver resourceResolver = resourceResolverFactory.getAdministrativeResourceResolver(null);
 
-        assertNotNull("Expecting ResourceResolver", resourceResolver);
-        final MockSlingHttpServletRequest request = new MockSlingHttpServletRequest(resourceResolver) {
-            @Override
-            public String getMethod() {
-                return method;
-            }
-        };
-
-        request.setPathInfo(path);
-
-        if(params != null) {
-            request.setParameterMap(params);
-        }
-
-        final MockSlingHttpServletResponse response = new MockSlingHttpServletResponse();
-        requestProcessor.processRequest(request, response, resourceResolver);
-
-        if (expectedStatus > 0) {
-            assertEquals("Expected status " + expectedStatus + " for " + method
-                + " at " + path + " - content=" + response.getOutputAsString(), expectedStatus, response.getStatus());
-        }
-
-        return response;
-    }
-
-    protected MockSlingHttpServletResponse executePostRequest(final String path,
-        final String body, final String contentType, final int expectedStatus) throws Exception {
-
-        // Admin resolver is fine for testing    
-        @SuppressWarnings("deprecation")            
-        final ResourceResolver resourceResolver = resourceResolverFactory.getAdministrativeResourceResolver(null);
-        
-        assertNotNull("Expecting ResourceResolver", resourceResolver);
-        final MockSlingHttpServletRequest request = new MockSlingHttpServletRequest(resourceResolver) {
-            @Override
-            public String getMethod() {
-                return "POST";
-            }
-
-            @Override
-            public BufferedReader getReader() {
-                return new BufferedReader(new StringReader(body));
-            }
-        };
-
-        request.setContentType(contentType);
-        request.setPathInfo(path);
-
-        final MockSlingHttpServletResponse response = new MockSlingHttpServletResponse();
-        requestProcessor.processRequest(request, response, resourceResolver);
-
-        if (expectedStatus > 0) {
-            assertEquals("Expected status " + expectedStatus + " for POST "
-                + " at " + path + " - content=" + response.getOutputAsString(), expectedStatus, response.getStatus());
-        }
-
-        return response;
+        return (MockSlingHttpServletResponse)InternalRequest
+            .slingRequest(resourceResolver, requestProcessor, path)
+            .withRequestMethod(method)
+            .withParameters(params)
+            .withContentType(contentType)
+            .withBody(body)
+            .execute(expectedStatus)
+            .getResponse()
+            ;
     }
 
     protected String getContent(String path) throws Exception {
-        return executeRequest("GET", path, null, 200).getOutputAsString();
+        return executeRequest("GET", path, null, null, null, 200).getOutputAsString();
     }
 
     protected String getContent(String path, String ... params) throws Exception {
-        return executeRequest("GET", path, toMap(params), 200).getOutputAsString();
+        return executeRequest("GET", path, toMap(params), null, null, 200).getOutputAsString();
     }
 
     protected String getContentWithPost(String path, String query, Map<String, Object> variables) throws Exception {
@@ -241,7 +195,7 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
             body.put("variables", variables);
         }
 
-        return executePostRequest(path, toJSON(body) ,"application/json", 200).getOutputAsString();
+        return executeRequest("POST", path, null, "application/json", new StringReader(toJSON(body)), 200).getOutputAsString();
     }
 
     protected String toJSON(Object source) {

@@ -97,7 +97,7 @@ public class GraphQLServletIT extends GraphQLCoreTestSupport {
 
     @Test
     public void testOtherExtAndTestingSelector() throws Exception {
-        executeRequest("GET", "/graphql/two.otherExt", null, 404);
+        executeRequest("GET", "/graphql/two.otherExt", null, null, null, 404);
         final String json = getContent("/graphql/two.testing.otherExt", "query", "{ withTestingSelector { farenheit } }");
         assertThat(json, hasJsonPath("$.data.withTestingSelector.farenheit", equalTo(451)));
     }
@@ -122,7 +122,7 @@ public class GraphQLServletIT extends GraphQLCoreTestSupport {
 
     @Test
     public void testMissingQuery() throws Exception {
-        executeRequest("GET", "/graphql/two.gql", null, 400);
+        executeRequest("GET", "/graphql/two.gql", null, null, null, 400);
     }
 
     @Test
