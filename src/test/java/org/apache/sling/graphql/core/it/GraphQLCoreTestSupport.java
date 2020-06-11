@@ -39,8 +39,6 @@ import org.ops4j.pax.tinybundles.core.TinyBundle;
 import org.osgi.framework.Constants;
 import org.apache.sling.engine.SlingRequestProcessor;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 import static org.apache.sling.testing.paxexam.SlingOptions.slingQuickstartOakTar;
 import static org.apache.sling.testing.paxexam.SlingOptions.slingResourcePresence;
@@ -54,7 +52,6 @@ import static org.ops4j.pax.exam.CoreOptions.vmOption;
 import static org.ops4j.pax.exam.CoreOptions.streamBundle;
 import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.newConfiguration;
 
-import java.io.BufferedReader;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -166,13 +163,16 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
         @SuppressWarnings("deprecation")            
         final ResourceResolver resourceResolver = resourceResolverFactory.getAdministrativeResourceResolver(null);
 
+        final int [] statusParam = expectedStatus == -1 ? null : new int[] { expectedStatus };
+
         return (MockSlingHttpServletResponse)InternalRequest
             .slingRequest(resourceResolver, requestProcessor, path)
             .withRequestMethod(method)
             .withParameters(params)
             .withContentType(contentType)
             .withBody(body)
-            .execute(expectedStatus)
+            .execute()
+            .checkStatus(statusParam)
             .getResponse()
             ;
     }

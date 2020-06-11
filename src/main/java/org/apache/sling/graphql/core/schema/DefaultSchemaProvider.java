@@ -54,9 +54,9 @@ public class DefaultSchemaProvider implements SchemaProvider {
             .slingRequest(r.getResourceResolver(), requestProcessor, r.getPath())
             .withSelectors(selectors)
             .withExtension(SCHEMA_EXTENSION)
-            .execute(-1);
+            .execute();
 
-        if(req.getResponse().getStatus() == HttpServletResponse.SC_OK) {
+        if(req.getStatus() == HttpServletResponse.SC_OK) {
             return req.getResponseAsString();
         } else {
             return DEFAULT_SCHEMA;
