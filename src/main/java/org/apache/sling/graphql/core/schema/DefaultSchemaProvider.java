@@ -40,7 +40,7 @@ import org.osgi.service.component.annotations.Reference;
 public class DefaultSchemaProvider implements SchemaProvider {
 
     public static final int SERVICE_RANKING = Integer.MAX_VALUE - 100;
-    public static final String SCHEMA_EXTENSION = ".GQLschema";
+    public static final String SCHEMA_EXTENSION = "GQLschema";
     public static final String DEFAULT_SCHEMA = "";
 
     @Reference
