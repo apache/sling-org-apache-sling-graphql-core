@@ -28,9 +28,12 @@ import org.apache.sling.api.resource.Resource;
 import org.apache.sling.engine.SlingRequestProcessor;
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.servlethelpers.internalrequests.InternalRequest;
+import org.apache.sling.servlethelpers.internalrequests.SlingInternalRequest;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Provides a Resource-specific GraphQL Schema, as text */
 @Component(service = SchemaProvider.class, immediate = true, property = {
@@ -38,6 +41,8 @@ import org.osgi.service.component.annotations.Reference;
         Constants.SERVICE_DESCRIPTION + "=Apache Sling Scripting GraphQL SchemaProvider",
         Constants.SERVICE_VENDOR + "=The Apache Software Foundation" })
 public class DefaultSchemaProvider implements SchemaProvider {
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     public static final int SERVICE_RANKING = Integer.MAX_VALUE - 100;
     public static final String SCHEMA_EXTENSION = "GQLschema";
@@ -48,15 +53,18 @@ public class DefaultSchemaProvider implements SchemaProvider {
 
     @Override
     public String getSchema(Resource r, String [] selectors) throws IOException {
-        // TODO using a servletRequest should be more efficient but that doesn't
-        // seem to work so far - schema JSP is not executed in integration tests
-        final InternalRequest req = InternalRequest
-            .slingRequest(r.getResourceResolver(), requestProcessor, r.getPath())
+        // TODO using a servletRequest should be more efficient - not tested yet
+        final InternalRequest req =
+            new SlingInternalRequest(r.getResourceResolver(), requestProcessor, r.getPath())
+            .withResourceType(r.getResourceType())
+            .withResourceSuperType(r.getResourceSuperType())
             .withSelectors(selectors)
             .withExtension(SCHEMA_EXTENSION)
-            .execute();
+        ;
 
-        if(req.getStatus() == HttpServletResponse.SC_OK) {
+        log.debug("Getting GraphQL Schema for {}: {}", r.getPath(), req);
+
+        if(req.execute().getStatus() == HttpServletResponse.SC_OK) {
             return req.getResponseAsString();
         } else {
             return DEFAULT_SCHEMA;

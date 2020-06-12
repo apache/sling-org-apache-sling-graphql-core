@@ -28,7 +28,7 @@ import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.graphql.core.json.JsonSerializer;
 import org.apache.sling.graphql.core.mocks.TestDataFetcherComponent;
 import org.apache.sling.servlethelpers.MockSlingHttpServletResponse;
-import org.apache.sling.servlethelpers.internalrequests.InternalRequest;
+import org.apache.sling.servlethelpers.internalrequests.SlingInternalRequest;
 import org.apache.sling.testing.paxexam.TestSupport;
 import org.junit.Before;
 import org.ops4j.pax.exam.Option;
@@ -165,8 +165,8 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
 
         final int [] statusParam = expectedStatus == -1 ? null : new int[] { expectedStatus };
 
-        return (MockSlingHttpServletResponse)InternalRequest
-            .slingRequest(resourceResolver, requestProcessor, path)
+        return (MockSlingHttpServletResponse)
+            new SlingInternalRequest(resourceResolver, requestProcessor, path)
             .withRequestMethod(method)
             .withParameters(params)
             .withContentType(contentType)

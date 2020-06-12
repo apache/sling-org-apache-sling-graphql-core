@@ -86,22 +86,26 @@ public class GraphQLResourceQuery {
         } catch(Exception e) {
             final ScriptException up = new ScriptException("Schema provider failed");
             up.initCause(e);
+            log.info("Schema provider Exception", up);
             throw up;
         }
         log.info("Resource {} maps to GQL schema {}", r.getPath(), schemaDef);
         try {
             final GraphQLSchema schema = buildSchema(schemaDef, fetchersSelector, r);
             final GraphQL graphQL = GraphQL.newGraphQL(schema).build();
+            log.debug("Executing query\n[{}]\nat [{}] with variables [{}]", query, r.getPath(), variables);
             ExecutionInput ei = ExecutionInput.newExecutionInput()
                 .query(query)
                 .variables(variables)
                 .build();
             final ExecutionResult result = graphQL.execute(ei);
+            log.debug("ExecutionResult.isDataPresent={}", result.isDataPresent());
             return result;
         } catch(Exception e) {
             final ScriptException up = new ScriptException(
                 String.format("Query failed for Resource %s: schema=%s, query=%s", r.getPath(), schemaDef, query));
             up.initCause(e);
+            log.info("GraphQL Query Exception", up);
             throw up;                
         }
     }
