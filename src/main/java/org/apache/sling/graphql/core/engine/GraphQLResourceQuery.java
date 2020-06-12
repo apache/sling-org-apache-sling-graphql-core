@@ -89,7 +89,7 @@ public class GraphQLResourceQuery {
             log.info("Schema provider Exception", up);
             throw up;
         }
-        log.info("Resource {} maps to GQL schema {}", r.getPath(), schemaDef);
+        log.debug("Resource {} maps to GQL schema {}", r.getPath(), schemaDef);
         try {
             final GraphQLSchema schema = buildSchema(schemaDef, fetchersSelector, r);
             final GraphQL graphQL = GraphQL.newGraphQL(schema).build();
