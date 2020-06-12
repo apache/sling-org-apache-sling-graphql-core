@@ -25,10 +25,10 @@ import java.io.IOException;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.sling.api.resource.Resource;
-import org.apache.sling.engine.SlingRequestProcessor;
+import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.servlethelpers.internalrequests.InternalRequest;
-import org.apache.sling.servlethelpers.internalrequests.SlingInternalRequest;
+import org.apache.sling.servlethelpers.internalrequests.ServletInternalRequest;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -49,15 +49,12 @@ public class DefaultSchemaProvider implements SchemaProvider {
     public static final String DEFAULT_SCHEMA = "";
 
     @Reference
-    private SlingRequestProcessor requestProcessor;
+    private ServletResolver servletResolver;
 
     @Override
     public String getSchema(Resource r, String [] selectors) throws IOException {
-        // TODO using a servletRequest should be more efficient - not tested yet
         final InternalRequest req =
-            new SlingInternalRequest(r.getResourceResolver(), requestProcessor, r.getPath())
-            .withResourceType(r.getResourceType())
-            .withResourceSuperType(r.getResourceSuperType())
+            new ServletInternalRequest(servletResolver, r)
             .withSelectors(selectors)
             .withExtension(SCHEMA_EXTENSION)
         ;

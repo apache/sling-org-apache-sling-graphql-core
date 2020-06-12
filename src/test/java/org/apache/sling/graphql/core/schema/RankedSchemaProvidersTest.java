@@ -25,7 +25,7 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 
 import org.apache.sling.api.resource.Resource;
-import org.apache.sling.engine.SlingRequestProcessor;
+import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Before;
@@ -44,8 +44,8 @@ public class RankedSchemaProvidersTest {
 
     @Before
     public void setup() {
-        final SlingRequestProcessor rp = Mockito.mock(SlingRequestProcessor.class);
-        context.bundleContext().registerService(SlingRequestProcessor.class, rp, null);
+        final ServletResolver sr = Mockito.mock(ServletResolver.class);
+        context.bundleContext().registerService(ServletResolver.class, sr, null);
         context.registerInjectActivateService(new DefaultSchemaProvider(), Constants.SERVICE_RANKING,
                 DefaultSchemaProvider.SERVICE_RANKING);
         context.registerInjectActivateService(new RankedSchemaProviders());
