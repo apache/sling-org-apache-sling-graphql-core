@@ -29,7 +29,7 @@
   </parent>
 
   <artifactId>org.apache.sling.graphql.core</artifactId>
-  <version>0.0.2</version>
+  <version>0.0.3-SNAPSHOT</version>
 
   <name>Apache Sling GraphQL Core</name>
   <description>Support for GraphQL queries</description>
