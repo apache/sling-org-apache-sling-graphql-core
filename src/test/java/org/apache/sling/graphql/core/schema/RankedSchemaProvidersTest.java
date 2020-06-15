@@ -25,6 +25,7 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 
 import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
@@ -38,6 +39,7 @@ import org.osgi.framework.ServiceRegistration;
 public class RankedSchemaProvidersTest {
     private final String DEFAULT_SCHEMA_PROVIDER_OUTPUT = "";
     private final int DEFAULT_SERVICE_RANKING = DefaultSchemaProvider.SERVICE_RANKING;
+    private ResourceResolver resourceResolver;
 
     @Rule
     public final OsgiContext context = new OsgiContext();
@@ -49,11 +51,14 @@ public class RankedSchemaProvidersTest {
         context.registerInjectActivateService(new DefaultSchemaProvider(), Constants.SERVICE_RANKING,
                 DefaultSchemaProvider.SERVICE_RANKING);
         context.registerInjectActivateService(new RankedSchemaProviders());
+        resourceResolver = Mockito.mock(ResourceResolver.class);
     }
 
     private void assertProvider(String info, String expected) throws IOException {
         final RankedSchemaProviders sp = context.getService(RankedSchemaProviders.class);
         final Resource r = Mockito.mock(Resource.class);
+        Mockito.when(r.getResourceResolver()).thenReturn(resourceResolver);
+        Mockito.when(r.getPath()).thenReturn("/421");
         assertEquals(info, expected, sp.getSchema(r, null));
     }
 
