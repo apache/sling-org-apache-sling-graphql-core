@@ -54,6 +54,8 @@ import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.newConfiguration;
 
 import java.io.Reader;
 import java.io.StringReader;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -141,9 +143,9 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
         final int expectedStatus = 200;
         final List<Integer> statuses = new ArrayList<>();
         final String path = "/.json";
-        final long endTime = System.currentTimeMillis() + STARTUP_WAIT_SECONDS * 1000;
+        final Instant endTime = Instant.now().plus(Duration.ofSeconds(STARTUP_WAIT_SECONDS));
 
-        while (System.currentTimeMillis() < endTime) {
+        while(Instant.now().isBefore(endTime)) {
             final int status = executeRequest("GET", path, null, null, null, -1).getStatus();
             statuses.add(status);
             if (status == expectedStatus) {
