@@ -44,6 +44,13 @@
     <pax.vm.options>-Xmx512M</pax.vm.options>
   </properties>
 
+  <scm>
+      <connection>scm:git:https://gitbox.apache.org/repos/asf/sling-org-apache-sling-graphql-core.git</connection>
+      <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/sling-org-apache-sling-graphql-core.git</developerConnection>
+      <url>https://gitbox.apache.org/repos/asf?p=sling-org-apache-sling-graphql-core.git</url>
+    <tag>HEAD</tag>
+  </scm>
+
   <build>
     <plugins>
       <plugin>
