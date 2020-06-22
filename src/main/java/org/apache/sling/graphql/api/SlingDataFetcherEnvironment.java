@@ -21,6 +21,7 @@ package org.apache.sling.graphql.api;
 
 import java.util.Map;
 import org.apache.sling.api.resource.Resource;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /** Provides contextual information to the {#link SlingDataFetcher} */
@@ -29,23 +30,30 @@ import org.osgi.annotation.versioning.ProviderType;
 @ProviderType
 public interface SlingDataFetcherEnvironment {
     /** The parent object of the field that's being retrieved */
+    @Nullable
     Object getParentObject();
 
     /** @return the arguments passed to the GraphQL query */
+    @Nullable
     Map<String, Object> getArguments();
 
     /** @return a single argument, passed to the GraphQL query */
+    @Nullable
     <T> T getArgument(String name);
 
     /** @return a single argument, passed to the GraphQL query */
+    @Nullable
     <T> T getArgument(String name, T defaultValue);
 
     /** Get the current Sling resource */
+    @Nullable
     Resource getCurrentResource();
 
     /** Options, if set by the schema directive */
+    @Nullable
     String getFetcherOptions();
 
     /** Source, if set by the schema directive */
+    @Nullable
     String getFetcherSource();
 }

@@ -19,17 +19,20 @@
 
 package org.apache.sling.graphql.api;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ConsumerType;
 
 /**
  * Retrieves data for a given GraphQL field. Services must be registered with a
  * NAME property with a unique value that's matched with the
  * corresponding @directive in the GraphQL Schema. The name must match the
- * {#link GraphQLResourceQuery.FETCHER_NAME_PATTERN} regular expression.
+ * {@link GraphQLResourceQuery.FETCHER_NAME_PATTERN} regular expression.
  */
 @ConsumerType
 public interface SlingDataFetcher<T> {
     String NAME_SERVICE_PROPERTY = "name";
 
-    T get(SlingDataFetcherEnvironment e) throws Exception;
+    @Nullable
+    T get(@NotNull SlingDataFetcherEnvironment e) throws Exception;
 }
