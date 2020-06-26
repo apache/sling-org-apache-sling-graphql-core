@@ -34,6 +34,7 @@ import org.apache.sling.graphql.core.mocks.FailingDataFetcher;
 import org.apache.sling.graphql.core.mocks.MockSchemaProvider;
 import org.apache.sling.graphql.core.mocks.MockScriptServlet;
 import org.apache.sling.graphql.core.mocks.TestUtil;
+import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
 import org.junit.Before;
 import org.junit.Rule;
 import org.mockito.Mockito;
@@ -43,6 +44,7 @@ import graphql.ExecutionResult;
 public abstract class ResourceQueryTestBase {
     protected SchemaProvider schemaProvider;
     protected SlingDataFetcherSelector dataFetchersSelector;
+    protected SlingScalarsProvider scalarsProvider = new SlingScalarsProvider();
     protected Resource resource;
 
     @Rule
@@ -50,21 +52,14 @@ public abstract class ResourceQueryTestBase {
 
     @Before
     public void setup() {
-        schemaProvider = new MockSchemaProvider("test-schema");
+        schemaProvider = new MockSchemaProvider(getTestSchemaName());
         final String resourceType = "RT-" + UUID.randomUUID();
         final String path = "/some/path/" + UUID.randomUUID();
         resource = Mockito.mock(Resource.class);
         Mockito.when(resource.getPath()).thenReturn(path);
         Mockito.when(resource.getResourceType()).thenReturn(resourceType);
 
-        final Dictionary<String, Object> staticData = new Hashtable<>();
-        staticData.put("test", true);
-
-        TestUtil.registerSlingDataFetcher(context.bundleContext(), "echoNS/echo", new EchoDataFetcher(null));
-        TestUtil.registerSlingDataFetcher(context.bundleContext(), "failure/fail", new FailingDataFetcher());
-        TestUtil.registerSlingDataFetcher(context.bundleContext(), "test/static", new EchoDataFetcher(staticData));
-        TestUtil.registerSlingDataFetcher(context.bundleContext(), "test/fortyTwo", new EchoDataFetcher(42));
-        TestUtil.registerSlingDataFetcher(context.bundleContext(), "sling/digest", new DigestDataFetcher());
+        setupDataFetchers();
 
         // Our MockScriptServlet to simulates a script for unit tests, for the
         // integration tests we use a real script
@@ -84,8 +79,15 @@ public abstract class ResourceQueryTestBase {
 
     protected String queryJSON(String stmt, String [] selectors) throws Exception {
         final ExecutionResult result = new GraphQLResourceQuery().executeQuery(schemaProvider,
-            dataFetchersSelector, resource, selectors, stmt, null);
+            dataFetchersSelector, scalarsProvider, resource, selectors, stmt, null);
         assertTrue("Expecting no errors: " + result.getErrors(), result.getErrors().isEmpty());
         return new JsonSerializer().toJSON(result);
+    }
+
+    protected void setupDataFetchers() {
+    }
+
+    protected String getTestSchemaName() {
+        return "test-schema";
     }
 }

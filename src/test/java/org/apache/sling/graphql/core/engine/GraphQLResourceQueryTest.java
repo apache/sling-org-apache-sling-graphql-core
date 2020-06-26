@@ -27,14 +27,30 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.io.IOException;
+import java.util.Dictionary;
+import java.util.Hashtable;
+
 import org.apache.sling.graphql.core.mocks.DigestDataFetcher;
 import org.apache.sling.graphql.core.mocks.EchoDataFetcher;
+import org.apache.sling.graphql.core.mocks.FailingDataFetcher;
 import org.apache.sling.graphql.core.mocks.MockSchemaProvider;
 import org.apache.sling.graphql.core.mocks.TestUtil;
 import org.junit.Test;
 import org.osgi.framework.ServiceRegistration;
 
 public class GraphQLResourceQueryTest extends ResourceQueryTestBase {
+    
+    protected void setupDataFetchers() {
+        final Dictionary<String, Object> staticData = new Hashtable<>();
+        staticData.put("test", true);
+
+        TestUtil.registerSlingDataFetcher(context.bundleContext(), "echoNS/echo", new EchoDataFetcher(null));
+        TestUtil.registerSlingDataFetcher(context.bundleContext(), "failure/fail", new FailingDataFetcher());
+        TestUtil.registerSlingDataFetcher(context.bundleContext(), "test/static", new EchoDataFetcher(staticData));
+        TestUtil.registerSlingDataFetcher(context.bundleContext(), "test/fortyTwo", new EchoDataFetcher(42));
+        TestUtil.registerSlingDataFetcher(context.bundleContext(), "sling/digest", new DigestDataFetcher());
+    }
+    
     @Test
     public void basicTest() throws Exception {
         final String json = queryJSON("{ currentResource { path resourceType } }");
@@ -76,7 +92,7 @@ public class GraphQLResourceQueryTest extends ResourceQueryTestBase {
     public void dataFetcherFailureTest() throws Exception {
         try {
             final String stmt = "{ currentResource { failure } }";
-            new GraphQLResourceQuery().executeQuery(schemaProvider, dataFetchersSelector, resource, null, stmt, null);
+            new GraphQLResourceQuery().executeQuery(schemaProvider, dataFetchersSelector, scalarsProvider, resource, null, stmt, null);
         } catch(RuntimeException rex) {
             assertThat(rex.getMessage(), equalTo("FailureDataFetcher"));
         }

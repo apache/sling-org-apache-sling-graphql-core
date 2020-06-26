@@ -31,6 +31,7 @@ import graphql.language.StringValue;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.api.SlingDataFetcher;
+import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +43,7 @@ import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
+import graphql.schema.GraphQLScalarType;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -60,7 +62,9 @@ public class GraphQLResourceQuery {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    public ExecutionResult executeQuery(SchemaProvider schemaProvider, SlingDataFetcherSelector fetchersSelector,
+    public ExecutionResult executeQuery(SchemaProvider schemaProvider, 
+                                        SlingDataFetcherSelector fetchersSelector,
+                                        SlingScalarsProvider scalarsProvider,
                                         Resource r,
                                         String [] requestSelectors,
                                         String query, Map<String, Object> variables) throws ScriptException {
@@ -91,7 +95,7 @@ public class GraphQLResourceQuery {
         }
         log.debug("Resource {} maps to GQL schema {}", r.getPath(), schemaDef);
         try {
-            final GraphQLSchema schema = buildSchema(schemaDef, fetchersSelector, r);
+            final GraphQLSchema schema = buildSchema(schemaDef, fetchersSelector, scalarsProvider, r);
             final GraphQL graphQL = GraphQL.newGraphQL(schema).build();
             log.debug("Executing query\n[{}]\nat [{}] with variables [{}]", query, r.getPath(), variables);
             ExecutionInput ei = ExecutionInput.newExecutionInput()
@@ -110,14 +114,15 @@ public class GraphQLResourceQuery {
         }
     }
 
-    private GraphQLSchema buildSchema(String sdl, SlingDataFetcherSelector fetchers, Resource currentResource) throws IOException {
+    private GraphQLSchema buildSchema(String sdl, SlingDataFetcherSelector fetchers, SlingScalarsProvider scalarsProvider, Resource currentResource) throws IOException {
         TypeDefinitionRegistry typeRegistry = new SchemaParser().parse(sdl);
-        RuntimeWiring runtimeWiring = buildWiring(typeRegistry, fetchers, currentResource);
+        Iterable<GraphQLScalarType> scalars = scalarsProvider.getScalars(typeRegistry.scalars());
+        RuntimeWiring runtimeWiring = buildWiring(typeRegistry, fetchers, scalars, currentResource);
         SchemaGenerator schemaGenerator = new SchemaGenerator();
         return schemaGenerator.makeExecutableSchema(typeRegistry, runtimeWiring);
     }
 
-    private RuntimeWiring buildWiring(TypeDefinitionRegistry typeRegistry, SlingDataFetcherSelector fetchers, Resource r)
+    private RuntimeWiring buildWiring(TypeDefinitionRegistry typeRegistry, SlingDataFetcherSelector fetchers, Iterable<GraphQLScalarType> scalars, Resource r)
         throws IOException {
         List<ObjectTypeDefinition> types = typeRegistry.getTypes(ObjectTypeDefinition.class);
         RuntimeWiring.Builder builder = RuntimeWiring.newRuntimeWiring();
@@ -137,6 +142,7 @@ public class GraphQLResourceQuery {
                 return typeWiring;
             });
         }
+        scalars.forEach(builder::scalar);
         return builder.build();
     }
 

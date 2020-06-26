@@ -36,6 +36,7 @@ import org.apache.sling.graphql.core.engine.ScriptedDataFetcherProvider;
 import org.apache.sling.graphql.core.engine.SlingDataFetcherSelector;
 import org.apache.sling.graphql.core.json.JsonSerializer;
 import org.apache.sling.graphql.core.mocks.MockSchemaProvider;
+import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -55,6 +56,7 @@ import net.minidev.json.JSONArray;
 public class SchemaDescriptionsTest {
     private SchemaProvider schemaProvider = new MockSchemaProvider("test-schema");
     private SlingDataFetcherSelector dataFetchersSelector;
+    private SlingScalarsProvider scalarsProvider;
     private Resource resource;
     private String schemaJson;
 
@@ -105,12 +107,14 @@ public class SchemaDescriptionsTest {
         context.registerInjectActivateService(new ScriptedDataFetcherProvider());
         context.registerInjectActivateService(new SlingDataFetcherSelector());
         dataFetchersSelector = context.getService(SlingDataFetcherSelector.class);
+        context.registerInjectActivateService(new SlingScalarsProvider());
+        scalarsProvider = context.getService(SlingScalarsProvider.class);
         schemaJson = queryJSON(SCHEMA_QUERY);
     }
 
     private String queryJSON(String stmt) throws Exception {
         final ExecutionResult result = new GraphQLResourceQuery().executeQuery(schemaProvider,
-            dataFetchersSelector, resource, null, stmt, null);
+            dataFetchersSelector, scalarsProvider, resource, null, stmt, null);
         assertTrue("Expecting no errors: " + result.getErrors(), result.getErrors().isEmpty());
         return new JsonSerializer().toJSON(result);
     }

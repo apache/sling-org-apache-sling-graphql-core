@@ -21,16 +21,38 @@ package org.apache.sling.graphql.core.engine;
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 
 import static org.junit.Assert.assertThat;
+
+import javax.script.ScriptException;
+
 import static org.hamcrest.Matchers.equalTo;
+
+import org.apache.sling.graphql.core.mocks.AddressDataFetcher;
+import org.apache.sling.graphql.core.mocks.TestUtil;
 import org.junit.Test;
 
 public class CustomScalarsTest extends ResourceQueryTestBase {
+    protected String getTestSchemaName() {
+        return "scalars-schema";
+    }
+
+    protected void setupDataFetchers() {
+        TestUtil.registerSlingDataFetcher(context.bundleContext(), "scalars/address", new AddressDataFetcher());
+    }
+
     @Test
-    public void TODOdoesNotTestScalarsSoFar() throws Exception {
-        final String json = queryJSON("{ currentResource { path resourceType } }");
-        assertThat(json, hasJsonPath("$.data.currentResource"));
-        assertThat(json, hasJsonPath("$.data.currentResource.path", equalTo(resource.getPath())));
-        assertThat(json, hasJsonPath("$.data.currentResource.resourceType", equalTo(resource.getResourceType())));
+    public void urlScalar() throws Exception {
+        final String url = "http://www.perdu.com";
+        final String query = String.format("{ address (url: \"%s\") { url hostname } }", url);
+        final String json = queryJSON(query);
+        assertThat(json, hasJsonPath("$.data.address.hostname", equalTo("WWW.PERDU.COM")));
+        assertThat(json, hasJsonPath("$.data.address.url", equalTo("URLCoercing says:" + url)));
+    }
+
+    @Test(expected = ScriptException.class)
+    public void urlSyntaxError() throws Exception {
+        final String url = "This is not an URL!";
+        final String query = String.format("{ address (url: \"%s\") { url hostname } }", url);
+        queryJSON(query);
     }
 
 }
