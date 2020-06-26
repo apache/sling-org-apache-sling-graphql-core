@@ -22,12 +22,13 @@ import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 
 import static org.junit.Assert.assertThat;
 
-import javax.script.ScriptException;
-
 import static org.hamcrest.Matchers.equalTo;
 
+import org.apache.sling.graphql.api.ScalarConversionException;
 import org.apache.sling.graphql.core.mocks.AddressDataFetcher;
 import org.apache.sling.graphql.core.mocks.TestUtil;
+import org.apache.sling.graphql.core.mocks.URLScalarConverter;
+import org.apache.sling.graphql.core.mocks.UppercaseScalarConverter;
 import org.junit.Test;
 
 public class CustomScalarsTest extends ResourceQueryTestBase {
@@ -35,8 +36,10 @@ public class CustomScalarsTest extends ResourceQueryTestBase {
         return "scalars-schema";
     }
 
-    protected void setupDataFetchers() {
+    protected void setupAdditionalServices() {
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "scalars/address", new AddressDataFetcher());
+        TestUtil.registerSlingScalarConverter(context.bundleContext(), "URL", new URLScalarConverter());
+        TestUtil.registerSlingScalarConverter(context.bundleContext(), "UppercaseString", new UppercaseScalarConverter());
     }
 
     @Test
@@ -45,14 +48,18 @@ public class CustomScalarsTest extends ResourceQueryTestBase {
         final String query = String.format("{ address (url: \"%s\") { url hostname } }", url);
         final String json = queryJSON(query);
         assertThat(json, hasJsonPath("$.data.address.hostname", equalTo("WWW.PERDU.COM")));
-        assertThat(json, hasJsonPath("$.data.address.url", equalTo("URLCoercing says:" + url)));
+        assertThat(json, hasJsonPath("$.data.address.url", equalTo("URLScalarConverter says:" + url)));
     }
 
-    @Test(expected = ScriptException.class)
+    @Test
     public void urlSyntaxError() throws Exception {
         final String url = "This is not an URL!";
         final String query = String.format("{ address (url: \"%s\") { url hostname } }", url);
-        queryJSON(query);
+        try {
+            queryJSON(query);
+        } catch(Exception e) {
+            TestUtil.assertNestedException(e, ScalarConversionException.class, URLScalarConverter.class.getSimpleName() + ":Invalid URL:" + url);
+        }
     }
 
 }

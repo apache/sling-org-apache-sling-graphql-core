@@ -44,7 +44,7 @@ import graphql.ExecutionResult;
 public abstract class ResourceQueryTestBase {
     protected SchemaProvider schemaProvider;
     protected SlingDataFetcherSelector dataFetchersSelector;
-    protected SlingScalarsProvider scalarsProvider = new SlingScalarsProvider();
+    protected SlingScalarsProvider scalarsProvider;
     protected Resource resource;
 
     @Rule
@@ -59,7 +59,7 @@ public abstract class ResourceQueryTestBase {
         Mockito.when(resource.getPath()).thenReturn(path);
         Mockito.when(resource.getResourceType()).thenReturn(resourceType);
 
-        setupDataFetchers();
+        setupAdditionalServices();
 
         // Our MockScriptServlet to simulates a script for unit tests, for the
         // integration tests we use a real script
@@ -71,6 +71,8 @@ public abstract class ResourceQueryTestBase {
         context.registerInjectActivateService(new ScriptedDataFetcherProvider());
         context.registerInjectActivateService(new SlingDataFetcherSelector());
         dataFetchersSelector = context.getService(SlingDataFetcherSelector.class);
+        context.registerInjectActivateService(new SlingScalarsProvider());
+        scalarsProvider = context.getService(SlingScalarsProvider.class);
     }
 
     protected String queryJSON(String stmt) throws Exception {
@@ -84,7 +86,7 @@ public abstract class ResourceQueryTestBase {
         return new JsonSerializer().toJSON(result);
     }
 
-    protected void setupDataFetchers() {
+    protected void setupAdditionalServices() {
     }
 
     protected String getTestSchemaName() {

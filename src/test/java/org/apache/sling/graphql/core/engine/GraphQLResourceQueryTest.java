@@ -40,7 +40,7 @@ import org.osgi.framework.ServiceRegistration;
 
 public class GraphQLResourceQueryTest extends ResourceQueryTestBase {
     
-    protected void setupDataFetchers() {
+    protected void setupAdditionalServices() {
         final Dictionary<String, Object> staticData = new Hashtable<>();
         staticData.put("test", true);
 

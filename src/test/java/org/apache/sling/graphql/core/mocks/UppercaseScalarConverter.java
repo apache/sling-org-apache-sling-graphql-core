@@ -17,10 +17,21 @@
  * under the License.
  */
 
- /**
-  * This package contains APIs which are independent of
-  * a specific implementation of the underlying graphQL engine.
-  */
-@Version("3.1.0")
-package org.apache.sling.graphql.api;
-import org.osgi.annotation.versioning.Version;
+package org.apache.sling.graphql.core.mocks;
+
+import org.apache.sling.graphql.api.ScalarConversionException;
+import org.apache.sling.graphql.api.SlingScalarConverter;
+import org.jetbrains.annotations.Nullable;
+
+public class UppercaseScalarConverter implements SlingScalarConverter<String, String> {
+
+    @Override
+    public @Nullable String parseValue(@Nullable String input) throws ScalarConversionException {
+        throw new ScalarConversionException("This converter is meant for output only");
+    }
+
+    @Override
+    public @Nullable String serialize(@Nullable String value) throws ScalarConversionException {
+        return value == null ? null : value.toUpperCase();
+    }
+}
