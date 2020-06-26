@@ -25,6 +25,9 @@ need to use their APIs directly.
 The [GraphQL sample website](https://github.com/apache/sling-samples/tree/master/org.apache.sling.graphql.samples.website)
 provides usage examples and demonstrates using GraphQL queries (and Handlebars templates) on both the server and
 client sides.
+
+> As I write this, work is ongoing at [SLING-9550](https://issues.apache.org/jira/browse/SLING-9550) to implement custom 
+> GraphQL Scalars
  
 ## Supported GraphQL endpoint styles
 
