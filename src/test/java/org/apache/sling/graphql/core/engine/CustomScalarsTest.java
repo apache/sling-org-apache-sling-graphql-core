@@ -21,7 +21,7 @@ package org.apache.sling.graphql.core.engine;
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 
 import static org.junit.Assert.assertThat;
-
+import static org.junit.Assert.fail;
 import static org.hamcrest.Matchers.equalTo;
 
 import org.apache.sling.graphql.api.ScalarConversionException;
@@ -57,6 +57,7 @@ public class CustomScalarsTest extends ResourceQueryTestBase {
         final String query = String.format("{ address (url: \"%s\") { url hostname } }", url);
         try {
             queryJSON(query);
+            fail("Expecting a parsing exception for URL=" + url);
         } catch(Exception e) {
             TestUtil.assertNestedException(e, ScalarConversionException.class, URLScalarConverter.class.getSimpleName() + ":Invalid URL:" + url);
         }
