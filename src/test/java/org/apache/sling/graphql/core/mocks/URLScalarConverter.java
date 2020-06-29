@@ -41,4 +41,14 @@ public class URLScalarConverter implements SlingScalarConverter<URL, String> {
         final String testPrefix = getClass().getSimpleName() + " says:";
         return testPrefix + (value == null ? null : value.toExternalForm());
     }
+
+    @Override
+    public String getName() {
+        return null;
+    }
+
+    @Override
+    public String getDescription() {
+        return null;
+    }
 }

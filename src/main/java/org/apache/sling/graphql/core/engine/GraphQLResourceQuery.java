@@ -116,7 +116,7 @@ public class GraphQLResourceQuery {
 
     private GraphQLSchema buildSchema(String sdl, SlingDataFetcherSelector fetchers, SlingScalarsProvider scalarsProvider, Resource currentResource) throws IOException {
         TypeDefinitionRegistry typeRegistry = new SchemaParser().parse(sdl);
-        Iterable<GraphQLScalarType> scalars = scalarsProvider.getCustomScalars(typeRegistry.scalars());
+        Iterable<GraphQLScalarType> scalars = scalarsProvider.getCustomScalars();
         RuntimeWiring runtimeWiring = buildWiring(typeRegistry, fetchers, scalars, currentResource);
         SchemaGenerator schemaGenerator = new SchemaGenerator();
         return schemaGenerator.makeExecutableSchema(typeRegistry, runtimeWiring);

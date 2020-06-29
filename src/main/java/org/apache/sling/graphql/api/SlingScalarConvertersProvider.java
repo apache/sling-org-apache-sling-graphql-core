@@ -19,38 +19,19 @@
 
 package org.apache.sling.graphql.api;
 
-import org.jetbrains.annotations.Nullable;
+import java.util.List;
+
 import org.osgi.annotation.versioning.ConsumerType;
 
 /**
- * A service that parses and serializes a custom GraphQL Scalar by 
- * converting between an eXternal type X an an inTernal one T.
- * 
- * Instances of this service must have a {@link SlingScalarConverter.NAME}
- * service property which is the name of the scalar type.
+ * A service that provides a list of SlingScalarConverter's available
+ * for the current schema
  */
 @ConsumerType
-public interface SlingScalarConverter<T, X> {
-    
-    String NAME_SERVICE_PROPERTY = "name";
-
-    /** Parse an external value (a query argument for example) into its internal representation */
-    @Nullable 
-    T parseValue(@Nullable X input) throws ScalarConversionException;
-
-    /** Serialize an internal value (provided by a {@link SlingDataFetcher} into its
-     *  external representation.
-     */
-    @Nullable
-    X serialize(@Nullable T value) throws ScalarConversionException;
+public interface SlingScalarConvertersProvider {
 
     /**
-     * Return converter name
+     * Get list of converters
      */
-    String getName();
-
-    /**
-     * Return converter description
-     */
-    String getDescription();
+    List<SlingScalarConverter> getScalarConverters();
 }

@@ -34,4 +34,14 @@ public class UppercaseScalarConverter implements SlingScalarConverter<String, St
     public @Nullable String serialize(@Nullable String value) throws ScalarConversionException {
         return value == null ? null : value.toUpperCase();
     }
+
+    @Override
+    public String getName() {
+        return null;
+    }
+
+    @Override
+    public String getDescription() {
+        return null;
+    }
 }

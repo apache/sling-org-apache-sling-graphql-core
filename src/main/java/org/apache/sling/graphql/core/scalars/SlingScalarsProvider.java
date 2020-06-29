@@ -20,12 +20,14 @@
 
 package org.apache.sling.graphql.core.scalars;
 
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import javax.script.ScriptException;
 
 import org.apache.sling.graphql.api.SlingScalarConverter;
+import org.apache.sling.graphql.api.SlingScalarConvertersProvider;
 import org.apache.sling.graphql.core.engine.SlingGraphQLException;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
@@ -33,6 +35,7 @@ import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 
 import graphql.language.ScalarTypeDefinition;
 import graphql.schema.GraphQLScalarType;
@@ -46,55 +49,17 @@ import graphql.schema.idl.ScalarInfo;
     Constants.SERVICE_VENDOR + "=The Apache Software Foundation" })
 public class SlingScalarsProvider {
 
-    private BundleContext bundleContext;
-    
-    @Activate
-    public void activate(BundleContext ctx) {
-        bundleContext = ctx;
-    }
+    @Reference
+    private SlingScalarConvertersProvider slingScalarConvertersProvider;
 
-    @SuppressWarnings("unchecked")
-    private GraphQLScalarType getScalar(String name) {
-
-        // Ignore standard scalars
-        if(ScalarInfo.STANDARD_SCALAR_DEFINITIONS.containsKey(name)) {
-            return null;
-        }
-
-        SlingScalarConverter<Object, Object> converter = null;
-        final String filter = String.format("(%s=%s)", SlingScalarConverter.NAME_SERVICE_PROPERTY, name);
-        ServiceReference<?>[] refs= null;
-        try {
-            refs = bundleContext.getServiceReferences(SlingScalarConverter.class.getName(), filter);
-        } catch(InvalidSyntaxException ise) {
-            throw new SlingGraphQLException("Invalid OSGi filter syntax:" + filter);
-        }
-        if(refs != null) {
-            // SlingScalarConverter services must have a unique name for now
-            // (we might use a namespacing @directive in the schema to allow multiple ones with the same name)
-            if(refs.length > 1) {
-                throw new SlingGraphQLException(String.format("Got %d services for %s, expected just one", refs.length, filter));
-            }
-            converter = (SlingScalarConverter<Object, Object>)bundleContext.getService(refs[0]);
-        }
-
-        if(converter == null) {
-            throw new SlingGraphQLException("SlingScalarConverter with name '" + name + "' not found");
-        }
-
-        return GraphQLScalarType.newScalar()
-            .name(name)
-            .description(converter.toString())
-            .coercing(new SlingCoercingWrapper(converter))
-            .build();
-    }
-
-    public Iterable<GraphQLScalarType> getCustomScalars(Map<String,ScalarTypeDefinition> schemaScalars) {
-        // Using just the names for now, not sure why we'd need the ScalarTypeDefinitions
-        return schemaScalars.keySet().stream()
-            .map(this::getScalar)
-            .filter(it -> it != null)
-            .collect(Collectors.toList());
+    public List<GraphQLScalarType> getCustomScalars() {
+        return slingScalarConvertersProvider.getScalarConverters().stream()
+                .map(converter -> GraphQLScalarType.newScalar()
+                        .name(converter.getName())
+                        .description(converter.getDescription())
+                        .coercing(new SlingCoercingWrapper(converter))
+                        .build())
+                .collect(Collectors.toList());
     }
 
 }
