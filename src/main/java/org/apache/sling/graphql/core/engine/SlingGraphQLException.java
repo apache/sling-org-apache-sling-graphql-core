@@ -17,10 +17,16 @@
  * under the License.
  */
 
- /**
-  * This package contains APIs which are independent of
-  * a specific implementation of the underlying graphQL engine.
-  */
-@Version("3.1.0")
-package org.apache.sling.graphql.api;
-import org.osgi.annotation.versioning.Version;
+package org.apache.sling.graphql.core.engine;
+
+public class SlingGraphQLException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
+
+    public SlingGraphQLException(String reason, Throwable cause) {
+        super(reason, cause);
+    }
+
+    public SlingGraphQLException(String reason) {
+        super(reason);
+    }
+}

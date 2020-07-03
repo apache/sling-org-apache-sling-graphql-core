@@ -25,6 +25,7 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 
 import org.apache.sling.graphql.api.SlingDataFetcher;
+import org.apache.sling.graphql.api.SlingScalarConverter;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 
@@ -33,6 +34,12 @@ public class TestUtil {
         final Dictionary<String, Object> props = new Hashtable<>();
         props.put(SlingDataFetcher.NAME_SERVICE_PROPERTY, name);
         return bc.registerService(SlingDataFetcher.class, f, props);
+    }
+
+    public static ServiceRegistration<?> registerSlingScalarConverter(BundleContext bc, String name, SlingScalarConverter<?,?> c) {
+        final Dictionary<String, Object> props = new Hashtable<>();
+        props.put(SlingScalarConverter.NAME_SERVICE_PROPERTY, name);
+        return bc.registerService(SlingScalarConverter.class, c, props);
     }
 
     public static void assertNestedException(Throwable t, Class<?> clazz, String messageContains) {

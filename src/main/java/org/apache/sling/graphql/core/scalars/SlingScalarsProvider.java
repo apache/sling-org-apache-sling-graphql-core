@@ -20,20 +20,23 @@
 
 package org.apache.sling.graphql.core.scalars;
 
-import java.net.URL;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import javax.script.ScriptException;
+
+import org.apache.sling.graphql.api.SlingScalarConverter;
+import org.apache.sling.graphql.core.engine.SlingGraphQLException;
+import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
+import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.framework.ServiceReference;
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 
 import graphql.language.ScalarTypeDefinition;
-import graphql.language.StringValue;
-import graphql.schema.Coercing;
-import graphql.schema.CoercingParseLiteralException;
-import graphql.schema.CoercingParseValueException;
-import graphql.schema.CoercingSerializeException;
 import graphql.schema.GraphQLScalarType;
+import graphql.schema.idl.ScalarInfo;
 
 /**
  * Provides GraphQL Scalars (leaf data types) for query execution
@@ -43,78 +46,50 @@ import graphql.schema.GraphQLScalarType;
     Constants.SERVICE_VENDOR + "=The Apache Software Foundation" })
 public class SlingScalarsProvider {
 
-    static class URLCoercing implements Coercing<URL, String> {
-        static final String NAME = "URL";
-
-        @Override
-        public String serialize(Object dataFetcherResult) throws CoercingSerializeException {
-            if(dataFetcherResult instanceof URL) {
-                return getClass().getSimpleName() + " says:" + ((URL)dataFetcherResult).toExternalForm(); 
-            }
-            throw new CoercingSerializeException("Unexpected serialize input " + dataFetcherResult);
-        }
-
-        @Override
-        public URL parseValue(Object input) throws CoercingParseValueException {
-            try {
-                return new URL(String.valueOf(input));
-            } catch(Exception e) {
-                throw new CoercingParseValueException("URL parsing failed ", e);
-            }
-        }
-
-        @Override
-        public URL parseLiteral(Object input) throws CoercingParseLiteralException {
-            if(input instanceof StringValue) {
-                return parseValue(((StringValue)input).getValue());
-
-            }
-            throw new CoercingSerializeException("Unexpected parse input " + input);
-        }
-
+    private BundleContext bundleContext;
+    
+    @Activate
+    public void activate(BundleContext ctx) {
+        bundleContext = ctx;
     }
 
-    static class UppercaseStringCoercing implements Coercing<String, String> {
-        static final String NAME = "UppercaseString";
-
-        @Override
-        public String serialize(Object dataFetcherResult) throws CoercingSerializeException {
-            return String.valueOf(dataFetcherResult).toUpperCase();
-        }
-
-        @Override
-        public String parseValue(Object input) throws CoercingParseValueException {
-            throw new CoercingParseValueException("Parsing not implemented");
-        }
-
-        @Override
-        public String parseLiteral(Object input) throws CoercingParseLiteralException {
-            throw new CoercingParseValueException("Parsing not implemented");
-        }
-
-    }
-
+    @SuppressWarnings("unchecked")
     private GraphQLScalarType getScalar(String name) {
-        if(URLCoercing.NAME.equals(name)) {
-            return GraphQLScalarType.newScalar()
-                .name(URLCoercing.NAME)
-                .description("TODO should be an OSGi service - hardcoded for initial tests")
-                .coercing(new URLCoercing())
-                .build()
-            ;
+
+        // Ignore standard scalars
+        if(ScalarInfo.STANDARD_SCALAR_DEFINITIONS.containsKey(name)) {
+            return null;
         }
-        if(UppercaseStringCoercing.NAME.equals(name)) {
-            return GraphQLScalarType.newScalar()
-                .name(UppercaseStringCoercing.NAME)
-                .description("TODO should be an OSGi service - hardcoded for initial tests")
-                .coercing(new UppercaseStringCoercing())
-                .build()
-            ;
+
+        SlingScalarConverter<Object, Object> converter = null;
+        final String filter = String.format("(%s=%s)", SlingScalarConverter.NAME_SERVICE_PROPERTY, name);
+        ServiceReference<?>[] refs= null;
+        try {
+            refs = bundleContext.getServiceReferences(SlingScalarConverter.class.getName(), filter);
+        } catch(InvalidSyntaxException ise) {
+            throw new SlingGraphQLException("Invalid OSGi filter syntax:" + filter);
         }
-        return null;
+        if(refs != null) {
+            // SlingScalarConverter services must have a unique name for now
+            // (we might use a namespacing @directive in the schema to allow multiple ones with the same name)
+            if(refs.length > 1) {
+                throw new SlingGraphQLException(String.format("Got %d services for %s, expected just one", refs.length, filter));
+            }
+            converter = (SlingScalarConverter<Object, Object>)bundleContext.getService(refs[0]);
+        }
+
+        if(converter == null) {
+            throw new SlingGraphQLException("SlingScalarConverter with name '" + name + "' not found");
+        }
+
+        return GraphQLScalarType.newScalar()
+            .name(name)
+            .description(converter.toString())
+            .coercing(new SlingCoercingWrapper(converter))
+            .build();
     }
 
-    public Iterable<GraphQLScalarType> getScalars(Map<String,ScalarTypeDefinition> schemaScalars) {
+    public Iterable<GraphQLScalarType> getCustomScalars(Map<String,ScalarTypeDefinition> schemaScalars) {
         // Using just the names for now, not sure why we'd need the ScalarTypeDefinitions
         return schemaScalars.keySet().stream()
             .map(this::getScalar)

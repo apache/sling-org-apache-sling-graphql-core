@@ -17,10 +17,27 @@
  * under the License.
  */
 
- /**
-  * This package contains APIs which are independent of
-  * a specific implementation of the underlying graphQL engine.
-  */
-@Version("3.1.0")
 package org.apache.sling.graphql.api;
-import org.osgi.annotation.versioning.Version;
+
+import javax.script.ScriptException;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+/**
+ * Exception thrown by Scalar converters
+ */
+public class ScalarConversionException extends ScriptException {
+    private static final long serialVersionUID = 1L;
+
+    public ScalarConversionException(@NotNull String reason, @Nullable Throwable cause) {
+        super(reason);
+        if(cause != null) {
+            initCause(cause);
+        }
+    }
+
+    public ScalarConversionException(@NotNull String reason) {
+        super(reason);
+    }
+}
