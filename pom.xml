@@ -296,4 +296,24 @@
     </dependency>
   </dependencies>
 
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <reportSets>
+          <reportSet>
+            <reports>
+              <report>javadoc</report>
+            </reports>
+          </reportSet>
+        </reportSets>
+        <configuration>
+          <stylesheet>maven</stylesheet>
+          <excludePackageNames>*.core:*.impl:*.internal:${site.javadoc.exclude}</excludePackageNames>
+        </configuration>
+      </plugin>
+    </plugins>
+  </reporting>
+
 </project>

@@ -29,7 +29,8 @@ import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType
 public interface SlingDataFetcherEnvironment {
-    /** The parent object of the field that's being retrieved */
+
+    /** @return the parent object of the field that's being retrieved */
     @Nullable
     Object getParentObject();
 
@@ -37,23 +38,30 @@ public interface SlingDataFetcherEnvironment {
     @Nullable
     Map<String, Object> getArguments();
 
-    /** @return a single argument, passed to the GraphQL query */
+    /**
+     * @param <T> the argument type
+     * @param name the name of the argument to return
+     * @return a single argument, passed to the GraphQL query */
     @Nullable
     <T> T getArgument(String name);
 
-    /** @return a single argument, passed to the GraphQL query */
+    /**
+     * @param <T> the argument type
+     * @param name the name of the argument to return
+     * @param defaultValue the default value to return
+     * @return a single argument, passed to the GraphQL query */
     @Nullable
     <T> T getArgument(String name, T defaultValue);
 
-    /** Get the current Sling resource */
+    /** @return the current Sling resource */
     @Nullable
     Resource getCurrentResource();
 
-    /** Options, if set by the schema directive */
+    /** @return the options, if set by the schema directive */
     @Nullable
     String getFetcherOptions();
 
-    /** Source, if set by the schema directive */
+    /** @return the source, if set by the schema directive */
     @Nullable
     String getFetcherSource();
 }

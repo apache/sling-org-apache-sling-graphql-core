@@ -26,8 +26,7 @@ import org.osgi.annotation.versioning.ConsumerType;
 /**
  * Retrieves data for a given GraphQL field. Services must be registered with a
  * NAME property with a unique value that's matched with the
- * corresponding @directive in the GraphQL Schema. The name must match the
- * {@link GraphQLResourceQuery.FETCHER_NAME_PATTERN} regular expression.
+ * corresponding @directive in the GraphQL Schema.
  */
 @ConsumerType
 public interface SlingDataFetcher<T> {

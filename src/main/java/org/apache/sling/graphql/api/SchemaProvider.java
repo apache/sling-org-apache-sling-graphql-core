@@ -36,6 +36,7 @@ public interface SchemaProvider {
      *  @return a GraphQL schema that can be annotated to define the data fetchers to use, see
      *      this module's documentation. Can return null if a schema cannot be provided, in which
      *      case a different provider should be used.
+     *  @throws java.io.IOException if the schema cannot be retrieved
      */
     @Nullable
     String getSchema(@NotNull Resource r, @Nullable String [] selectors) throws IOException;
