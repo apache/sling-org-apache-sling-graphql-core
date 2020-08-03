@@ -101,10 +101,35 @@ The names of those `SlingDataFetcher` services are in the form
 The `sling/` namespace is reserved for `SlingDataFetcher` services
 which hava Java package names that start with `org.apache.sling`.
 
-`SlingDataFetcher` services can also be provided by scripts. This is experimental for
-now, see the tests for more info.
-
 The `<options>` and `<source>` arguments of the directive can be used by the
 `SlingDataFetcher` services to influence their behavior.
+
+### Scripted SlingDataFetchers
+
+Besides Java, `SlingDataFetcher` scripts can be written in any scripting language that supported by the Sling instance's configuration.
+
+Here's an example from the test code.
+
+The schema contains the following statement:
+
+    scriptedFetcher (testing : String) : Test @fetcher(name:"scripted/example")
+
+And here's the data fetcher code:
+
+    var result = { 
+        boolValue: true,
+        resourcePath: "From the test script: " + resource.path,
+        testingArgument: environment.getArgument("testing"),
+        anotherValue: 450 + 1
+    };
+
+    result;
+    
+The data fetcher provider then looks for a script that handles the `graphql/fetchers/scripted/example` resource type with a `fetcher`script name. `graphql/fetchers`is a prefix (hardcoded for now) and `scripted/example` comes from the above schema's `@fetcher` directive.
+
+In that test, the `/graphql/fetchers/scripted/example/fetcher.js` shown above resolves with those requirements, it is executed to retrieve the requested data. That execution happens with a context consisting of the current `SlingDataFetcherEnvironment` under the `environment` key, and the current Sling Resource under the `resource` key, both used in this test script.
+    
+
+
 
 
