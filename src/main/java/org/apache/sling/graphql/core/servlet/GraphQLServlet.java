@@ -132,8 +132,6 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
             jsonSerializer.sendJSON(response.getWriter(), result);
         } catch(Exception ex) {
             throw new IOException(ex);
-        } finally {
-            response.getWriter().flush();
         }
     }
 
