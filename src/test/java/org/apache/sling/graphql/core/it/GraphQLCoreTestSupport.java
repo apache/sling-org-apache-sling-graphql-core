@@ -23,6 +23,7 @@ import javax.inject.Inject;
 import com.cedarsoftware.util.io.JsonWriter;
 
 import org.apache.commons.io.output.WriterOutputStream;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.graphql.core.json.JsonSerializer;
@@ -35,6 +36,7 @@ import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.ProbeBuilder;
 import org.ops4j.pax.exam.TestProbeBuilder;
 import org.ops4j.pax.exam.options.ModifiableCompositeOption;
+import org.ops4j.pax.exam.options.extra.VMOption;
 import org.ops4j.pax.tinybundles.core.TinyBundle;
 import org.osgi.framework.Constants;
 import org.apache.sling.engine.SlingRequestProcessor;
@@ -47,6 +49,7 @@ import static org.apache.sling.testing.paxexam.SlingOptions.slingScriptingJsp;
 import static org.ops4j.pax.exam.CoreOptions.composite;
 import static org.ops4j.pax.exam.CoreOptions.junitBundles;
 import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
+import static org.ops4j.pax.exam.CoreOptions.vmOptions;
 import static org.ops4j.pax.exam.CoreOptions.when;
 import static org.ops4j.pax.exam.CoreOptions.vmOption;
 import static org.ops4j.pax.exam.CoreOptions.streamBundle;
@@ -74,10 +77,14 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
 
     public ModifiableCompositeOption baseConfiguration() {
         final String vmOpt = System.getProperty("pax.vm.options");
+        VMOption vmOption = null;
+        if (StringUtils.isNotEmpty(vmOpt)) {
+            vmOption = new VMOption(vmOpt);
+        }
 
         return composite(
-            when(vmOpt != null).useOptions(
-                vmOption(vmOpt)
+            when(vmOption != null).useOptions(
+                vmOption
             ),
             super.baseConfiguration(),
             slingQuickstart(),
@@ -89,6 +96,10 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
                 .asOption(),
             mavenBundle().groupId("org.apache.sling").artifactId("org.apache.sling.servlet-helpers").versionAsInProject(),
             mavenBundle().groupId("com.cedarsoftware").artifactId("json-io").versionAsInProject(),
+            mavenBundle().groupId("javax.cache").artifactId("cache-api").versionAsInProject(),
+            mavenBundle().groupId("com.typesafe").artifactId("config").versionAsInProject(),
+            mavenBundle().groupId("com.github.ben-manes.caffeine").artifactId("caffeine").versionAsInProject(),
+            mavenBundle().groupId("com.github.ben-manes.caffeine").artifactId("jcache").versionAsInProject(),
             slingResourcePresence(),
             jsonPath(),
             junitBundles()

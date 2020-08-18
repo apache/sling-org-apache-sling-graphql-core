@@ -21,22 +21,32 @@
 package org.apache.sling.graphql.core.servlet;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.servlet.Servlet;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.servlets.SlingAllMethodsServlet;
+import org.apache.sling.graphql.core.cache.GraphQLCacheProvider;
 import org.apache.sling.graphql.core.engine.GraphQLResourceQuery;
+import org.apache.sling.graphql.core.engine.SlingDataFetcherSelector;
 import org.apache.sling.graphql.core.json.JsonSerializer;
 import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
-import org.apache.sling.graphql.core.engine.SlingDataFetcherSelector;
 import org.apache.sling.graphql.core.schema.RankedSchemaProviders;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.component.annotations.ReferencePolicyOption;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
@@ -67,6 +77,11 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
     private static final long serialVersionUID = 1L;
 
     public static final String P_QUERY = "query";
+
+    private static final String SUFFIX_PERSISTED = "/persisted";
+    private static final Pattern PATTERN_GET_PERSISTED_QUERY = Pattern.compile("^" + SUFFIX_PERSISTED + "/([a-f0-9]{64})$");
+
+    private Config config;
 
     @ObjectClassDefinition(
         name = "Apache Sling GraphQL Servlet",
@@ -102,34 +117,94 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
     @Reference
     private SlingScalarsProvider scalarsProvider;
 
+    @Reference(
+            cardinality = ReferenceCardinality.OPTIONAL,
+            policy = ReferencePolicy.STATIC,
+            policyOption = ReferencePolicyOption.GREEDY
+    )
+    private GraphQLCacheProvider cacheProvider;
+
     private final JsonSerializer jsonSerializer = new JsonSerializer();
 
     @Override
     public void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
-        execute(request.getResource(), request, response);
+        String suffix = request.getRequestPathInfo().getSuffix();
+        if (suffix != null && suffix.startsWith(SUFFIX_PERSISTED)) {
+            if (cacheProvider == null) {
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "This servlet does not support persisted queries.");
+                return;
+            }
+            Matcher matcher = PATTERN_GET_PERSISTED_QUERY.matcher(suffix);
+            if (matcher.matches()) {
+                String queryHash = matcher.group(1);
+                if (StringUtils.isNotEmpty(queryHash)) {
+                    String query = cacheProvider.getQuery(queryHash, request.getResource().getResourceType(),
+                            request.getRequestPathInfo().getSelectorString());
+                    if (query != null) {
+                        execute(query, request, response);
+                    } else {
+                        response.sendError(HttpServletResponse.SC_NOT_FOUND, "Cannot find persisted query " + queryHash);
+                    }
+                    return;
+                }
+            } else {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+        } else {
+            execute(request.getResource(), request, response);
+        }
     }
 
     @Override
     public void doPost(SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
-        execute(request.getResource(), request, response);
+        String suffix = request.getRequestPathInfo().getSuffix();
+        if (suffix != null && suffix.equals(SUFFIX_PERSISTED)) {
+            if (cacheProvider == null) {
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "This servlet does not support persisted queries.");
+                return;
+            }
+            String query = IOUtils.toString(request.getInputStream(), StandardCharsets.UTF_8);
+            cacheProvider.cacheQuery(query, request.getResource().getResourceType(), request.getRequestPathInfo().getSelectorString());
+            response.setStatus(HttpServletResponse.SC_CREATED);
+        } else {
+            execute(request.getResource(), request, response);
+        }
     }
 
     private void execute(Resource resource, SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
-
-        final RequestParser parser = new RequestParser(request);
-        final String query = parser.getQuery();
-        if (query == null || query.trim().length() == 0) {
+        final QueryParser.Result result = QueryParser.fromRequest(request);
+        if (result == null) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        final String query = result.getQuery();
+        if (query.trim().length() == 0) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing request parameter:" + P_QUERY);
             return;
         }
 
         try {
             final GraphQLResourceQuery q = new GraphQLResourceQuery();
-            final ExecutionResult result = q.executeQuery(schemaProviders, dataFetcherSelector, scalarsProvider,
-                resource, request.getRequestPathInfo().getSelectors(), query, parser.getVariables());
-            jsonSerializer.sendJSON(response.getWriter(), result);
+            final ExecutionResult executionResult = q.executeQuery(schemaProviders, dataFetcherSelector, scalarsProvider,
+                resource, request.getRequestPathInfo().getSelectors(), query, result.getVariables());
+            jsonSerializer.sendJSON(response.getWriter(), executionResult);
+        } catch(Exception ex) {
+            throw new IOException(ex);
+        }
+    }
+
+    private void execute(@NotNull String persistedQuery, SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        try {
+            final QueryParser.Result result = QueryParser.fromJSON(persistedQuery);
+            final GraphQLResourceQuery q = new GraphQLResourceQuery();
+            final ExecutionResult executionResult = q.executeQuery(schemaProviders, dataFetcherSelector, scalarsProvider,
+                    request.getResource(), request.getRequestPathInfo().getSelectors(), result.getQuery(), result.getVariables());
+            jsonSerializer.sendJSON(response.getWriter(), executionResult);
         } catch(Exception ex) {
             throw new IOException(ex);
         }
