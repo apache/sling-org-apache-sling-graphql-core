@@ -29,6 +29,8 @@ import javax.cache.configuration.MutableConfiguration;
 import javax.cache.spi.CachingProvider;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.graphql.api.cache.GraphQLCacheProvider;
+import org.apache.sling.graphql.core.engine.SlingGraphQLException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.framework.BundleContext;
@@ -43,9 +45,9 @@ import org.slf4j.LoggerFactory;
 @Component(
         immediate = true
 )
-public class GraphQLCacheProvider {
+public class GraphQLCacheProviderImpl implements GraphQLCacheProvider {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(GraphQLCacheProvider.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(GraphQLCacheProviderImpl.class);
 
     @Reference
     private CachingProvider cachingProvider;
@@ -54,19 +56,24 @@ public class GraphQLCacheProvider {
 
     private ServiceRegistration<GraphQLCacheProvider> registration;
 
+    @Override
     @Nullable
     public String getQuery(@NotNull String hash, @NotNull String resourceType, @Nullable String selectorString) {
         return persistedQueriesCache.get(getCacheKey(hash, resourceType, selectorString));
     }
 
-    public void cacheQuery(@NotNull String query, @NotNull String resourceType, @Nullable String selectorString) {
-        String key = getCacheKey("123", resourceType, selectorString);
+    @Override
+    @NotNull
+    public String cacheQuery(@NotNull String query, @NotNull String resourceType, @Nullable String selectorString) {
+        String hash = getHash(query);
+        String key = getCacheKey(hash, resourceType, selectorString);
         persistedQueriesCache.put(key, query);
+        return hash;
     }
 
 
     @Activate
-    public void activate(BundleContext bundleContext) {
+    private void activate(BundleContext bundleContext) {
         if (cachingProvider != null) {
             try {
                 CacheManager cacheManager = cachingProvider.getCacheManager();
@@ -82,7 +89,7 @@ public class GraphQLCacheProvider {
     }
 
     @Deactivate
-    public void deactivate(BundleContext bundleContext) {
+    private void deactivate() {
         if (registration != null) {
             registration.unregister();
         }
@@ -99,16 +106,21 @@ public class GraphQLCacheProvider {
         return key.toString();
     }
 
-    @NotNull String getHash(@NotNull String query) throws NoSuchAlgorithmException {
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        byte[] hash = digest.digest(query.getBytes(StandardCharsets.UTF_8));
+    @NotNull String getHash(@NotNull String query) {
         StringBuilder buffer = new StringBuilder();
-        for (int i = 0; i < hash.length; i++) {
-            String hex = Integer.toHexString(0xff & hash[i]);
-            if (hex.length() == 1) {
-                buffer.append('0');
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(query.getBytes(StandardCharsets.UTF_8));
+
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) {
+                    buffer.append('0');
+                }
+                buffer.append(hex);
             }
-            buffer.append(hex);
+        } catch (NoSuchAlgorithmException e) {
+            throw new SlingGraphQLException("Failed hashing query - " + e.getMessage());
         }
         return buffer.toString();
     }

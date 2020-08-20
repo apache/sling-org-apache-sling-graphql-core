@@ -34,7 +34,7 @@ import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.servlets.SlingAllMethodsServlet;
-import org.apache.sling.graphql.core.cache.GraphQLCacheProvider;
+import org.apache.sling.graphql.api.cache.GraphQLCacheProvider;
 import org.apache.sling.graphql.core.engine.GraphQLResourceQuery;
 import org.apache.sling.graphql.core.engine.SlingDataFetcherSelector;
 import org.apache.sling.graphql.core.json.JsonSerializer;
@@ -80,8 +80,6 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
 
     private static final String SUFFIX_PERSISTED = "/persisted";
     private static final Pattern PATTERN_GET_PERSISTED_QUERY = Pattern.compile("^" + SUFFIX_PERSISTED + "/([a-f0-9]{64})$");
-
-    private Config config;
 
     @ObjectClassDefinition(
         name = "Apache Sling GraphQL Servlet",
@@ -145,11 +143,9 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
                     } else {
                         response.sendError(HttpServletResponse.SC_NOT_FOUND, "Cannot find persisted query " + queryHash);
                     }
-                    return;
                 }
             } else {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST);
-                return;
             }
         } else {
             execute(request.getResource(), request, response);
@@ -165,7 +161,9 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
                 return;
             }
             String query = IOUtils.toString(request.getInputStream(), StandardCharsets.UTF_8);
-            cacheProvider.cacheQuery(query, request.getResource().getResourceType(), request.getRequestPathInfo().getSelectorString());
+            String hash = cacheProvider.cacheQuery(query, request.getResource().getResourceType(),
+                    request.getRequestPathInfo().getSelectorString());
+            response.addHeader("Location", getLocationHeaderValue(request, hash));
             response.setStatus(HttpServletResponse.SC_CREATED);
         } else {
             execute(request.getResource(), request, response);
@@ -209,5 +207,19 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
             throw new IOException(ex);
         }
     }
+
+    @NotNull
+    private String getLocationHeaderValue(@NotNull SlingHttpServletRequest request, @NotNull String hash) {
+        StringBuilder location = new StringBuilder();
+        location.append(request.getScheme()).append("://");
+        location.append(request.getServerName());
+        int localPort = request.getLocalPort();
+        if (localPort != 80 && localPort != 443) {
+            location.append(":").append(localPort);
+        }
+        location.append(request.getContextPath()).append(request.getPathInfo()).append("/").append(hash);
+        return location.toString();
+    }
+
 
 }

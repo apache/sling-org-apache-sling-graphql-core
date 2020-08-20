@@ -20,13 +20,13 @@ package org.apache.sling.graphql.core.cache;
 
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
-public class GraphQLCacheProviderTest {
+public class GraphQLCacheProviderImplTest {
 
     @Test
     public void getHash() throws Exception {
-        GraphQLCacheProvider provider = new GraphQLCacheProvider();
+        GraphQLCacheProviderImpl provider = new GraphQLCacheProviderImpl();
         assertEquals("b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9", provider.getHash("hello world"));
     }
 }
