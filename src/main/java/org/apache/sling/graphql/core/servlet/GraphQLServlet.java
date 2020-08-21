@@ -41,6 +41,7 @@ import org.apache.sling.graphql.core.json.JsonSerializer;
 import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
 import org.apache.sling.graphql.core.schema.RankedSchemaProviders;
 import org.jetbrains.annotations.NotNull;
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Reference;
@@ -48,6 +49,7 @@ import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
 import org.osgi.service.component.annotations.ReferencePolicyOption;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.AttributeType;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
@@ -104,6 +106,15 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
             name = "Extensions",
             description="Standard Sling servlet property")
         String[] sling_servlet_extensions() default "gql";
+
+        @AttributeDefinition(
+                name = "Persisted Queries Cache-Control max-age",
+                description = "The maximum amount of time a persisted query resource is considered fresh (in seconds). A negative value " +
+                        "will be interpreted as 0.",
+                min = "0",
+                type = AttributeType.INTEGER
+        )
+        int cache$_$control_max$_$age() default 60;
     }
 
     @Reference
@@ -122,7 +133,16 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
     )
     private GraphQLCacheProvider cacheProvider;
 
+    private final Config config;
+    private final int cacheControlMaxAge;
+
     private final JsonSerializer jsonSerializer = new JsonSerializer();
+
+    @Activate
+    public GraphQLServlet(Config config) {
+        this.config = config;
+        cacheControlMaxAge = config.cache$_$control_max$_$age() >= 0 ? config.cache$_$control_max$_$age() : 0;
+    }
 
     @Override
     public void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
@@ -139,6 +159,12 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
                     String query = cacheProvider.getQuery(queryHash, request.getResource().getResourceType(),
                             request.getRequestPathInfo().getSelectorString());
                     if (query != null) {
+                        boolean isAuthenticated = request.getHeaders("Authorization").hasMoreElements();
+                        StringBuilder cacheControlValue = new StringBuilder("max-age=").append(cacheControlMaxAge);
+                        if (isAuthenticated) {
+                            cacheControlValue.append(",private");
+                        }
+                        response.addHeader("Cache-Control", cacheControlValue.toString());
                         execute(query, request, response);
                     } else {
                         response.sendError(HttpServletResponse.SC_NOT_FOUND, "Cannot find persisted query " + queryHash);
@@ -160,7 +186,7 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
                 response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "This servlet does not support persisted queries.");
                 return;
             }
-            String query = IOUtils.toString(request.getInputStream(), StandardCharsets.UTF_8);
+            String query = IOUtils.toString(request.getReader());
             String hash = cacheProvider.cacheQuery(query, request.getResource().getResourceType(),
                     request.getRequestPathInfo().getSelectorString());
             response.addHeader("Location", getLocationHeaderValue(request, hash));
@@ -213,7 +239,7 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
         StringBuilder location = new StringBuilder();
         location.append(request.getScheme()).append("://");
         location.append(request.getServerName());
-        int localPort = request.getLocalPort();
+        int localPort = request.getServerPort();
         if (localPort != 80 && localPort != 443) {
             location.append(":").append(localPort);
         }

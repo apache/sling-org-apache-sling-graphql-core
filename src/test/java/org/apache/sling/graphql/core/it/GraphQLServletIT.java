@@ -18,14 +18,15 @@
  */
 package org.apache.sling.graphql.core.it;
 
-import javax.inject.Inject;
+import java.io.StringReader;
 
-import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
-import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasNoJsonPath;
+import javax.inject.Inject;
 
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.core.mocks.ReplacingSchemaProvider;
 import org.apache.sling.resource.presence.ResourcePresence;
+import org.apache.sling.servlethelpers.MockSlingHttpServletResponse;
+import org.apache.sling.servlethelpers.internalrequests.SlingInternalRequest;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Configuration;
@@ -36,8 +37,11 @@ import org.ops4j.pax.exam.spi.reactors.PerClass;
 import org.ops4j.pax.exam.util.Filter;
 import org.osgi.framework.BundleContext;
 
-import static org.junit.Assert.assertThat;
+import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
+import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasNoJsonPath;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.factoryConfiguration;
 
 @RunWith(PaxExam.class)
@@ -94,6 +98,19 @@ public class GraphQLServletIT extends GraphQLCoreTestSupport {
         assertThat(json, hasJsonPath("$.data.currentResource.name", equalTo("two")));
         assertThat(json, hasNoJsonPath("$.data.currentResource.path"));
     }
+
+    @Test
+    public void testPersistedQueries() throws Exception {
+        String queryHash = "a16982712f6ecdeba5d950d42e3c13df0fc26d008c497f6bf012701b57e02a51";
+        MockSlingHttpServletResponse response = persistQuery("/graphql/two.gql", "{ currentResource { resourceType name } }", null);
+        assertEquals("http://localhost/graphql/two.gql/persisted/" + queryHash, response.getHeader("Location"));
+
+        response = executeRequest("GET", "/graphql/two.gql/persisted/" + queryHash, null, "application/json", new StringReader(""),200);
+        assertEquals("max-age=60", response.getHeader("Cache-Control"));
+
+        // need another test for a request with an Authorization header
+    }
+
 
     @Test
     public void testOtherExtAndTestingSelector() throws Exception {

@@ -49,9 +49,7 @@ import static org.apache.sling.testing.paxexam.SlingOptions.slingScriptingJsp;
 import static org.ops4j.pax.exam.CoreOptions.composite;
 import static org.ops4j.pax.exam.CoreOptions.junitBundles;
 import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
-import static org.ops4j.pax.exam.CoreOptions.vmOptions;
 import static org.ops4j.pax.exam.CoreOptions.when;
-import static org.ops4j.pax.exam.CoreOptions.vmOption;
 import static org.ops4j.pax.exam.CoreOptions.streamBundle;
 import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.newConfiguration;
 
@@ -70,7 +68,7 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
     private final static int STARTUP_WAIT_SECONDS = 30;
 
     @Inject
-    private ResourceResolverFactory resourceResolverFactory;
+    protected ResourceResolverFactory resourceResolverFactory;
 
     @Inject
     protected SlingRequestProcessor requestProcessor;
@@ -209,6 +207,19 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
         }
 
         return executeRequest("POST", path, null, "application/json", new StringReader(toJSON(body)), 200).getOutputAsString();
+    }
+
+    protected MockSlingHttpServletResponse persistQuery(String path, String query, Map<String, Object> variables) throws Exception {
+        Map<String, Object> body = new HashMap<>();
+        if (query != null) {
+            String queryEncoded = query.replace("\n", "\\n");
+            body.put("query", queryEncoded);
+        }
+        if (variables != null) {
+            body.put("variables", variables);
+        }
+
+        return executeRequest("POST", path + "/persisted", null, "application/json", new StringReader(toJSON(body)), 201);
     }
 
     protected String toJSON(Object source) {
