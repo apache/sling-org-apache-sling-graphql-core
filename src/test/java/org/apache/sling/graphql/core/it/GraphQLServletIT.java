@@ -26,7 +26,6 @@ import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.core.mocks.ReplacingSchemaProvider;
 import org.apache.sling.resource.presence.ResourcePresence;
 import org.apache.sling.servlethelpers.MockSlingHttpServletResponse;
-import org.apache.sling.servlethelpers.internalrequests.SlingInternalRequest;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Configuration;

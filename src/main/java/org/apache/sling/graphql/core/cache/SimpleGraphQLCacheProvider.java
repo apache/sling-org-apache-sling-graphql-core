@@ -21,79 +21,92 @@ package org.apache.sling.graphql.core.cache;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Hashtable;
-
-import javax.cache.Cache;
-import javax.cache.CacheManager;
-import javax.cache.configuration.MutableConfiguration;
-import javax.cache.spi.CachingProvider;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.graphql.api.cache.GraphQLCacheProvider;
 import org.apache.sling.graphql.core.engine.SlingGraphQLException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Deactivate;
-import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.AttributeType;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(
-        immediate = true
-)
-public class GraphQLCacheProviderImpl implements GraphQLCacheProvider {
+@Component()
+@Designate(ocd = SimpleGraphQLCacheProvider.Config.class)
+public class SimpleGraphQLCacheProvider implements GraphQLCacheProvider {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(GraphQLCacheProviderImpl.class);
+    @ObjectClassDefinition(
+            name = "Apache Sling GraphQL Simple Cache Provider",
+            description = "The Apache Sling GraphQL Simple Cache Provider provides an in-memory size bound cache for persisted GraphQL " +
+                    "queries."
+    )
+    public @interface Config {
 
-    @Reference
-    private CachingProvider cachingProvider;
+        @AttributeDefinition(
+                name = "Capacity",
+                description = "The number of persisted queries to cache.",
+                type = AttributeType.INTEGER,
+                min = "0"
+        )
+        int capacity() default DEFAULT_CACHE_SIZE;
+    }
 
-    private Cache<String, String> persistedQueriesCache;
+    private static final int DEFAULT_CACHE_SIZE = 1024;
+    private static final Logger LOGGER = LoggerFactory.getLogger(SimpleGraphQLCacheProvider.class);
 
-    private ServiceRegistration<GraphQLCacheProvider> registration;
+    private InMemoryLRUCache persistedQueriesCache;
+    private ReadWriteLock readWriteLock;
+    private Lock readLock;
+    private Lock writeLock;
+
+    @Activate
+    public SimpleGraphQLCacheProvider(Config config) {
+        readWriteLock = new ReentrantReadWriteLock();
+        readLock = readWriteLock.readLock();
+        writeLock = readWriteLock.writeLock();
+        int cacheSize = config.capacity();
+        if (cacheSize < 0) {
+            cacheSize = 0;
+            LOGGER.debug("Cache capacity set to {}. Defaulting to 0.", config.capacity());
+        }
+        persistedQueriesCache = new InMemoryLRUCache(cacheSize);
+        LOGGER.debug("Initialized the in-memory cache for a maximum of {} queries.", config.capacity());
+    }
+
 
     @Override
     @Nullable
     public String getQuery(@NotNull String hash, @NotNull String resourceType, @Nullable String selectorString) {
-        return persistedQueriesCache.get(getCacheKey(hash, resourceType, selectorString));
+        readLock.lock();
+        try {
+            return persistedQueriesCache.get(getCacheKey(hash, resourceType, selectorString));
+        } finally {
+            readLock.unlock();
+        }
     }
 
     @Override
     @NotNull
     public String cacheQuery(@NotNull String query, @NotNull String resourceType, @Nullable String selectorString) {
-        String hash = getHash(query);
-        String key = getCacheKey(hash, resourceType, selectorString);
-        persistedQueriesCache.put(key, query);
-        return hash;
-    }
-
-
-    @Activate
-    private void activate(BundleContext bundleContext) {
-        if (cachingProvider != null) {
-            try {
-                CacheManager cacheManager = cachingProvider.getCacheManager();
-                persistedQueriesCache = cacheManager
-                        .createCache(bundleContext.getBundle().getSymbolicName() + "_persistedQueries", new MutableConfiguration<>());
-                registration = bundleContext.registerService(GraphQLCacheProvider.class, this, new Hashtable<>());
-            } catch (Exception e) {
-                LOGGER.error("Unable to configure a cache for persisted queries.", e);
-            }
-        } else {
-            LOGGER.error("Cannot activate the " + GraphQLCacheProvider.class.getName() + " without a cachingProvider.");
+        writeLock.lock();
+        try {
+            String hash = getHash(query);
+            String key = getCacheKey(hash, resourceType, selectorString);
+            persistedQueriesCache.put(key, query);
+            return hash;
+        } finally {
+            writeLock.unlock();
         }
-    }
-
-    @Deactivate
-    private void deactivate() {
-        if (registration != null) {
-            registration.unregister();
-        }
-        cachingProvider.close();
     }
 
     @NotNull
@@ -123,6 +136,20 @@ public class GraphQLCacheProviderImpl implements GraphQLCacheProvider {
             throw new SlingGraphQLException("Failed hashing query - " + e.getMessage());
         }
         return buffer.toString();
+    }
+
+    private static class InMemoryLRUCache extends LinkedHashMap<String, String> {
+
+        private final int capacity;
+
+        public InMemoryLRUCache(int capacity) {
+            this.capacity = capacity;
+        }
+
+        @Override
+        protected boolean removeEldestEntry(Map.Entry eldest) {
+            return size() > capacity;
+        }
     }
 
 }

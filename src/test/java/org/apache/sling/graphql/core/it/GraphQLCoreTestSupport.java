@@ -94,10 +94,6 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
                 .asOption(),
             mavenBundle().groupId("org.apache.sling").artifactId("org.apache.sling.servlet-helpers").versionAsInProject(),
             mavenBundle().groupId("com.cedarsoftware").artifactId("json-io").versionAsInProject(),
-            mavenBundle().groupId("javax.cache").artifactId("cache-api").versionAsInProject(),
-            mavenBundle().groupId("com.typesafe").artifactId("config").versionAsInProject(),
-            mavenBundle().groupId("com.github.ben-manes.caffeine").artifactId("caffeine").versionAsInProject(),
-            mavenBundle().groupId("com.github.ben-manes.caffeine").artifactId("jcache").versionAsInProject(),
             slingResourcePresence(),
             jsonPath(),
             junitBundles()

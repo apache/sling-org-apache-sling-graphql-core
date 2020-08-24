@@ -18,15 +18,28 @@
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 package org.apache.sling.graphql.core.cache;
 
+import java.lang.annotation.Annotation;
+
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class GraphQLCacheProviderImplTest {
+public class SimpleGraphQLCacheProviderTest {
 
     @Test
-    public void getHash() throws Exception {
-        GraphQLCacheProviderImpl provider = new GraphQLCacheProviderImpl();
+    public void getHash() {
+        SimpleGraphQLCacheProvider provider = new SimpleGraphQLCacheProvider(new SimpleGraphQLCacheProvider.Config() {
+            @Override
+            public Class<? extends Annotation> annotationType() {
+                return null;
+            }
+
+            @Override
+            public int capacity() {
+                return 0;
+            }
+        });
+
         assertEquals("b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9", provider.getHash("hello world"));
     }
 }

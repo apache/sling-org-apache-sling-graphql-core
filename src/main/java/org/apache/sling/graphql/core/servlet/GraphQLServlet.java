@@ -21,7 +21,6 @@
 package org.apache.sling.graphql.core.servlet;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
