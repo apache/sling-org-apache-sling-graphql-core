@@ -54,24 +54,31 @@ public class SimpleGraphQLCacheProvider implements GraphQLCacheProvider {
 
         @AttributeDefinition(
                 name = "Capacity",
-                description = "The number of persisted queries to cache.",
+                description = "The number of persisted queries to cache. If the capacity is set to a number greater than 0, then this " +
+                        "parameter will have priority over maxSize.",
                 type = AttributeType.INTEGER,
                 min = "0"
         )
         int capacity() default DEFAULT_CACHE_SIZE;
+
+        @AttributeDefinition(
+                name = "Max Values in Bytes",
+                description = "The maximum amount of memory the values stored in the cache can use."
+        )
+        int maxSize() default 104857600;
+
     }
 
     private static final int DEFAULT_CACHE_SIZE = 1024;
     private static final Logger LOGGER = LoggerFactory.getLogger(SimpleGraphQLCacheProvider.class);
 
     private InMemoryLRUCache persistedQueriesCache;
-    private ReadWriteLock readWriteLock;
     private Lock readLock;
     private Lock writeLock;
 
     @Activate
-    public SimpleGraphQLCacheProvider(Config config) {
-        readWriteLock = new ReentrantReadWriteLock();
+    private void activate(Config config) {
+        ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
         readLock = readWriteLock.readLock();
         writeLock = readWriteLock.writeLock();
         int cacheSize = config.capacity();
@@ -79,7 +86,12 @@ public class SimpleGraphQLCacheProvider implements GraphQLCacheProvider {
             cacheSize = 0;
             LOGGER.debug("Cache capacity set to {}. Defaulting to 0.", config.capacity());
         }
-        persistedQueriesCache = new InMemoryLRUCache(cacheSize);
+        int maxSize = config.maxSize();
+        if (maxSize < 0) {
+            maxSize = 0;
+            LOGGER.debug("Cache size set to {}. Defaulting to 0.", config.maxSize());
+        }
+        persistedQueriesCache = new InMemoryLRUCache(cacheSize, maxSize);
         LOGGER.debug("Initialized the in-memory cache for a maximum of {} queries.", config.capacity());
     }
 
@@ -141,14 +153,40 @@ public class SimpleGraphQLCacheProvider implements GraphQLCacheProvider {
     private static class InMemoryLRUCache extends LinkedHashMap<String, String> {
 
         private final int capacity;
+        private final int maxSizeInBytes;
+        private int currentSizeInBytes;
 
-        public InMemoryLRUCache(int capacity) {
-            this.capacity = capacity;
+        public InMemoryLRUCache(int capacity, int maxSizeInBytes) {
+            this.capacity = Math.max(capacity, 0);
+            this.maxSizeInBytes = Math.max(maxSizeInBytes, 0);
+            this.currentSizeInBytes = 0;
         }
 
         @Override
         protected boolean removeEldestEntry(Map.Entry eldest) {
-            return size() > capacity;
+            boolean willRemove;
+            if (capacity > 0) {
+                willRemove = size() > capacity;
+            } else {
+                willRemove = currentSizeInBytes > maxSizeInBytes;
+            }
+            if (willRemove) {
+                String head = values().iterator().next();
+                if (StringUtils.isNotEmpty(head)) {
+                    currentSizeInBytes -=  getApproximateStringSizeInBytes(head);
+                }
+            }
+            return willRemove;
+        }
+
+        @Override
+        public String put(String key, String value) {
+            currentSizeInBytes += getApproximateStringSizeInBytes(value);
+            return super.put(key, value);
+        }
+
+        int getApproximateStringSizeInBytes(@NotNull String string) {
+            return 8 * (((string.length() * 2) + 45) / 8);
         }
     }
 
