@@ -129,7 +129,10 @@ public class GraphQLServletIT extends GraphQLCoreTestSupport {
 
         response = executeRequest("GET", "/graphql/two.gql/persisted/" + queryHash, null, "application/json", new StringReader(""),200);
         assertEquals("max-age=60", response.getHeader("Cache-Control"));
-
+        final String json = response.getOutputAsString();
+        assertThat(json, hasJsonPath("$.data.currentResource.resourceType", equalTo("graphql/test/two")));
+        assertThat(json, hasJsonPath("$.data.currentResource.name", equalTo("two")));
+        assertThat(json, hasNoJsonPath("$.data.currentResource.path"));
     }
 
     @Test
@@ -147,8 +150,6 @@ public class GraphQLServletIT extends GraphQLCoreTestSupport {
         HttpClientContext context = HttpClientContext.create();
         context.setCredentialsProvider(credsProvider);
         context.setAuthCache(authCache);
-
-
 
         Map<String, Object> queryMap = new HashMap<>();
         queryMap.put("query", "{ currentResource { resourceType name } }");
