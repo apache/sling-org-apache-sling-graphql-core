@@ -23,10 +23,12 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.graphql.api.cache.GraphQLCacheProvider;
 import org.apache.sling.graphql.core.engine.SlingGraphQLException;
@@ -59,17 +61,16 @@ public class SimpleGraphQLCacheProvider implements GraphQLCacheProvider {
                 type = AttributeType.INTEGER,
                 min = "0"
         )
-        int capacity() default DEFAULT_CACHE_SIZE;
+        int capacity() default 0;
 
         @AttributeDefinition(
                 name = "Max Values in Bytes",
                 description = "The maximum amount of memory the values stored in the cache can use."
         )
-        int maxSize() default 104857600;
+        long maxSize() default 10 * FileUtils.ONE_MB;
 
     }
 
-    private static final int DEFAULT_CACHE_SIZE = 1024;
     private static final Logger LOGGER = LoggerFactory.getLogger(SimpleGraphQLCacheProvider.class);
 
     private InMemoryLRUCache persistedQueriesCache;
@@ -86,13 +87,13 @@ public class SimpleGraphQLCacheProvider implements GraphQLCacheProvider {
             cacheSize = 0;
             LOGGER.debug("Cache capacity set to {}. Defaulting to 0.", config.capacity());
         }
-        int maxSize = config.maxSize();
+        long maxSize = config.maxSize();
         if (maxSize < 0) {
             maxSize = 0;
             LOGGER.debug("Cache size set to {}. Defaulting to 0.", config.maxSize());
         }
         persistedQueriesCache = new InMemoryLRUCache(cacheSize, maxSize);
-        LOGGER.debug("Initialized the in-memory cache for a maximum of {} queries.", config.capacity());
+        LOGGER.debug("In-memory cache initialized: cacheSize={}, maxSize={}.", cacheSize, maxSize);
     }
 
 
@@ -150,30 +151,31 @@ public class SimpleGraphQLCacheProvider implements GraphQLCacheProvider {
         return buffer.toString();
     }
 
+    /**
+     * This implementation provides a simple LRU eviction based on either the number of entries or the memory used by the stored values.
+     * Synchronization has to happen externally.
+     */
     private static class InMemoryLRUCache extends LinkedHashMap<String, String> {
 
         private final int capacity;
-        private final int maxSizeInBytes;
-        private int currentSizeInBytes;
+        private final long maxSizeInBytes;
+        private long currentSizeInBytes;
 
-        public InMemoryLRUCache(int capacity, int maxSizeInBytes) {
+        public InMemoryLRUCache(int capacity, long maxSizeInBytes) {
             this.capacity = Math.max(capacity, 0);
             this.maxSizeInBytes = Math.max(maxSizeInBytes, 0);
             this.currentSizeInBytes = 0;
         }
 
         @Override
-        protected boolean removeEldestEntry(Map.Entry eldest) {
-            boolean willRemove;
+        protected boolean removeEldestEntry(Map.Entry<String, String> eldest) {
+            boolean willRemove = false;
             if (capacity > 0) {
                 willRemove = size() > capacity;
-            } else {
+            } else if (maxSizeInBytes > 0) {
                 willRemove = currentSizeInBytes > maxSizeInBytes;
-            }
-            if (willRemove) {
-                String head = values().iterator().next();
-                if (StringUtils.isNotEmpty(head)) {
-                    currentSizeInBytes -=  getApproximateStringSizeInBytes(head);
+                if (willRemove) {
+                    currentSizeInBytes -=  getApproximateStringSizeInBytes(eldest.getValue());
                 }
             }
             return willRemove;
@@ -188,6 +190,20 @@ public class SimpleGraphQLCacheProvider implements GraphQLCacheProvider {
         int getApproximateStringSizeInBytes(@NotNull String string) {
             return 8 * (((string.length() * 2) + 45) / 8);
         }
-    }
 
+        @Override
+        public boolean equals(Object obj) {
+            if (obj instanceof InMemoryLRUCache) {
+                InMemoryLRUCache other = (InMemoryLRUCache) obj;
+                return Objects.equals(capacity, other.capacity) && Objects.equals(maxSizeInBytes, other.maxSizeInBytes) &&
+                        Objects.equals(currentSizeInBytes, other.currentSizeInBytes) && super.equals(obj);
+            }
+            return false;
+        }
+
+        @Override
+        public int hashCode() {
+            return super.hashCode() + capacity + ((int) (maxSizeInBytes + currentSizeInBytes));
+        }
+    }
 }

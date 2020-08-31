@@ -24,6 +24,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 public class SimpleGraphQLCacheProviderTest {
@@ -35,6 +36,7 @@ public class SimpleGraphQLCacheProviderTest {
     public void getHash() {
         context.registerInjectActivateService(new SimpleGraphQLCacheProvider());
         SimpleGraphQLCacheProvider provider = (SimpleGraphQLCacheProvider) context.getService(GraphQLCacheProvider.class);
+        assertNotNull(provider);
         assertEquals("b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9", provider.getHash("hello world"));
     }
 
@@ -42,6 +44,7 @@ public class SimpleGraphQLCacheProviderTest {
     public void testMemoryLimits() {
         context.registerInjectActivateService(new SimpleGraphQLCacheProvider(), "capacity", 0, "maxSize", 40);
         SimpleGraphQLCacheProvider provider = (SimpleGraphQLCacheProvider) context.getService(GraphQLCacheProvider.class);
+        assertNotNull(provider);
 
         String aHash = provider.cacheQuery("a", "a/b/c", null);
         assertEquals("a", provider.getQuery(aHash, "a/b/c", null));
@@ -60,6 +63,7 @@ public class SimpleGraphQLCacheProviderTest {
     public void testCapacityLimits() {
         context.registerInjectActivateService(new SimpleGraphQLCacheProvider(), "capacity", 3, "maxSize", 0);
         SimpleGraphQLCacheProvider provider = (SimpleGraphQLCacheProvider) context.getService(GraphQLCacheProvider.class);
+        assertNotNull(provider);
 
         String aHash = provider.cacheQuery("a", "a/b/c", null);
         assertEquals("a", provider.getQuery(aHash, "a/b/c", null));
@@ -86,6 +90,7 @@ public class SimpleGraphQLCacheProviderTest {
     public void testCapacityHasPriorityOverMemory() {
         context.registerInjectActivateService(new SimpleGraphQLCacheProvider(), "capacity", 2, "maxSize", 40);
         SimpleGraphQLCacheProvider provider = (SimpleGraphQLCacheProvider) context.getService(GraphQLCacheProvider.class);
+        assertNotNull(provider);
 
         String aHash = provider.cacheQuery("a", "a/b/c", null);
         assertEquals("a", provider.getQuery(aHash, "a/b/c", null));
