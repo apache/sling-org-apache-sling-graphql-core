@@ -42,6 +42,100 @@ This module enables the following GraphQL "styles"
     
 The GraphQL requests hit a Sling resource in all cases, there's no need for path-mounted servlets which are [not desirable](https://sling.apache.org/documentation/the-sling-engine/servlets.html#caveats-when-binding-servlets-by-path-1).
 
+### Persisted queries API
+No matter how you decide to create your Sling GraphQL endpoints, you have the option to allow GraphQL clients to use persisted queries.
+Since most user agents have a character limit for GET requests and POST requests are not cacheable, a persisted query allows the best of
+both worlds.
+
+#### How does it work?
+1. An instance of the GraphQL servlet has to be configured; by default, the servlet will enable the persisted queries API on the
+ `/persisted` request suffix; the value is configurable, via the `persistedQueries.suffix` parameter of the factory configuration.
+2. A client prepares a persisted query in advance by `POST`ing the query text to the endpoint where the GraphQL servlet is bound, plus the
+ `/persisted` suffix.
+3. The servlet will respond with a `201 Created` status; the response's `Location` header will then instruct the client where it can then
+ execute the persisted query, via a `GET` request.
+4. The responses for a `GET` requests to a persisted query will contain appropriate HTTP Cache headers, allowing front-end HTTP caches
+ (e.g. CDNs) to cache the JSON responses. 
+5. There's no guarantee on how long a persisted query is stored. A client that gets a `404` on a persisted query must be prepared to
+ re`POST` the query, in order to store the prepared query again.
+    
+Here are a few examples:
+
+1. Storing a query
+    ```bash
+    curl -v 'http://localhost:8080/graphql.json/persisted' \
+      -H 'Content-Type: application/json' \
+      --data-binary '{"query":"{\n  navigation {\n    search\n    sections {\n      path\n      name\n    }\n  }\n  article(withText: \"virtual\") {\n    path\n    title\n    seeAlso {\n      path\n      title\n      tags\n    }\n  }\n}\n","variables":null}' \
+      --compressed
+    > POST /graphql.json/persisted HTTP/1.1
+    > Host: localhost:8080
+    > User-Agent: curl/7.64.1
+    > Accept: */*
+    > Accept-Encoding: deflate, gzip
+    > Content-Type: application/json
+    > Content-Length: 236
+    >
+    * upload completely sent off: 236 out of 236 bytes
+    < HTTP/1.1 201 Created
+    < Date: Mon, 31 Aug 2020 16:33:48 GMT
+    < X-Content-Type-Options: nosniff
+    < X-Frame-Options: SAMEORIGIN
+    < Location: http://localhost:8080/graphql.json/persisted/e1ce2e205e1dfb3969627c6f417860cadab696e0e87b1c44de1438848661b62f
+    < Content-Length: 0
+    ```
+2. Running a persisted query
+```bash
+curl -v http://localhost:8080/graphql.json/persisted/e1ce2e205e1dfb3969627c6f417860cadab696e0e87b1c44de1438848661b62f
+> GET /graphql.json/persisted/e1ce2e205e1dfb3969627c6f417860cadab696e0e87b1c44de1438848661b62f HTTP/1.1
+> Host: localhost:8080
+> User-Agent: curl/7.64.1
+> Accept: */*
+>
+< HTTP/1.1 200 OK
+< Date: Mon, 31 Aug 2020 16:35:18 GMT
+< X-Content-Type-Options: nosniff
+< X-Frame-Options: SAMEORIGIN
+< Cache-Control: max-age=60
+< Content-Type: application/json;charset=utf-8
+< Transfer-Encoding: chunked
+<
+
+{
+  "data": {
+    "navigation": {
+      "search": "/content/search",
+      "sections": [
+        {
+          "path": "/content/articles/travel",
+          "name": "Travel"
+        },
+        {
+          "path": "/content/articles/music",
+          "name": "Music"
+        }
+      ]
+    }
+    "article": [
+      {
+        "path": "/content/articles/travel/precious-kunze-on-the-bandwidth-of-virtual-nobis-id-aka-usb",
+        "title": "Travel - Precious Kunze on the bandwidth of virtual 'nobis id' (aka USB)",
+        "seeAlso": [
+          {
+            "path": "/content/articles/travel/solon-davis-on-the-card-of-primary-reiciendis-omnis-aka-sql",
+            "title": "Travel - Solon Davis on the card of primary 'reiciendis omnis' (aka SQL)",
+            "tags": [
+              "bandwidth",
+              "protocol"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+
 ## Resource-specific GraphQL schemas
 
 Schemas are provided by `SchemaProvider` services:

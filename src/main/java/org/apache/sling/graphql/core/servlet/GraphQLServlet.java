@@ -44,9 +44,6 @@ import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.component.annotations.ReferenceCardinality;
-import org.osgi.service.component.annotations.ReferencePolicy;
-import org.osgi.service.component.annotations.ReferencePolicyOption;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.AttributeType;
 import org.osgi.service.metatype.annotations.Designate;
@@ -79,9 +76,6 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
 
     public static final String P_QUERY = "query";
 
-    private static final String SUFFIX_PERSISTED = "/persisted";
-    private static final Pattern PATTERN_GET_PERSISTED_QUERY = Pattern.compile("^" + SUFFIX_PERSISTED + "/([a-f0-9]{64})$");
-
     @ObjectClassDefinition(
         name = "Apache Sling GraphQL Servlet",
         description = "Servlet that implements GraphQL endpoints")
@@ -107,6 +101,12 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
         String[] sling_servlet_extensions() default "gql";
 
         @AttributeDefinition(
+                name = "Persisted queries suffix",
+                description = "The request suffix under which the HTTP API for persisted queries should be made available."
+        )
+        String persistedQueries_suffix() default "/persisted";
+
+        @AttributeDefinition(
                 name = "Persisted Queries Cache-Control max-age",
                 description = "The maximum amount of time a persisted query resource is considered fresh (in seconds). A negative value " +
                         "will be interpreted as 0.",
@@ -125,52 +125,55 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
     @Reference
     private SlingScalarsProvider scalarsProvider;
 
-    @Reference(
-            cardinality = ReferenceCardinality.OPTIONAL,
-            policy = ReferencePolicy.STATIC,
-            policyOption = ReferencePolicyOption.GREEDY
-    )
+    @Reference
     private GraphQLCacheProvider cacheProvider;
 
-    private final Config config;
-    private final int cacheControlMaxAge;
-
+    private String suffixPersisted;
+    private Pattern patternGetPersistedQuery;
+    private int cacheControlMaxAge;
     private final JsonSerializer jsonSerializer = new JsonSerializer();
 
     @Activate
-    public GraphQLServlet(Config config) {
-        this.config = config;
+    private void activate(Config config) {
         cacheControlMaxAge = config.cache$_$control_max$_$age() >= 0 ? config.cache$_$control_max$_$age() : 0;
+        String suffix = config.persistedQueries_suffix();
+        if (StringUtils.isNotEmpty(suffix) && suffix.startsWith("/")) {
+            suffixPersisted = suffix;
+            patternGetPersistedQuery = Pattern.compile("^" + suffixPersisted + "/([a-f0-9]{64})$");
+        } else {
+            suffixPersisted = null;
+            patternGetPersistedQuery = null;
+        }
     }
 
     @Override
     public void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
         String suffix = request.getRequestPathInfo().getSuffix();
-        if (suffix != null && suffix.startsWith(SUFFIX_PERSISTED)) {
-            if (cacheProvider == null) {
-                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "This servlet does not support persisted queries.");
-                return;
-            }
-            Matcher matcher = PATTERN_GET_PERSISTED_QUERY.matcher(suffix);
-            if (matcher.matches()) {
-                String queryHash = matcher.group(1);
-                if (StringUtils.isNotEmpty(queryHash)) {
-                    String query = cacheProvider.getQuery(queryHash, request.getResource().getResourceType(),
-                            request.getRequestPathInfo().getSelectorString());
-                    if (query != null) {
-                        boolean isAuthenticated = request.getHeaders("Authorization").hasMoreElements();
-                        StringBuilder cacheControlValue = new StringBuilder("max-age=").append(cacheControlMaxAge);
-                        if (isAuthenticated) {
-                            cacheControlValue.append(",private");
+        if (suffix != null) {
+            if (StringUtils.isNotEmpty(suffixPersisted) && suffix.startsWith(suffixPersisted)) {
+                Matcher matcher = patternGetPersistedQuery.matcher(suffix);
+                if (matcher.matches()) {
+                    String queryHash = matcher.group(1);
+                    if (StringUtils.isNotEmpty(queryHash)) {
+                        String query = cacheProvider.getQuery(queryHash, request.getResource().getResourceType(),
+                                request.getRequestPathInfo().getSelectorString());
+                        if (query != null) {
+                            boolean isAuthenticated = request.getHeaders("Authorization").hasMoreElements();
+                            StringBuilder cacheControlValue = new StringBuilder("max-age=").append(cacheControlMaxAge);
+                            if (isAuthenticated) {
+                                cacheControlValue.append(",private");
+                            }
+                            response.addHeader("Cache-Control", cacheControlValue.toString());
+                            execute(query, request, response);
+                        } else {
+                            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Cannot find persisted query " + queryHash);
                         }
-                        response.addHeader("Cache-Control", cacheControlValue.toString());
-                        execute(query, request, response);
-                    } else {
-                        response.sendError(HttpServletResponse.SC_NOT_FOUND, "Cannot find persisted query " + queryHash);
                     }
+                } else {
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unexpected hash.");
                 }
             } else {
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Persisted queries are disabled.");
             }
         } else {
             execute(request.getResource(), request, response);
@@ -180,16 +183,16 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
     @Override
     public void doPost(SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
         String suffix = request.getRequestPathInfo().getSuffix();
-        if (suffix != null && suffix.equals(SUFFIX_PERSISTED)) {
-            if (cacheProvider == null) {
-                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "This servlet does not support persisted queries.");
-                return;
+        if (suffix != null) {
+            if (StringUtils.isNotEmpty(suffixPersisted) && suffix.equals(suffixPersisted)) {
+                String query = IOUtils.toString(request.getReader());
+                String hash = cacheProvider.cacheQuery(query, request.getResource().getResourceType(),
+                        request.getRequestPathInfo().getSelectorString());
+                response.addHeader("Location", getLocationHeaderValue(request, hash));
+                response.setStatus(HttpServletResponse.SC_CREATED);
+            } else {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST);
             }
-            String query = IOUtils.toString(request.getReader());
-            String hash = cacheProvider.cacheQuery(query, request.getResource().getResourceType(),
-                    request.getRequestPathInfo().getSelectorString());
-            response.addHeader("Location", getLocationHeaderValue(request, hash));
-            response.setStatus(HttpServletResponse.SC_CREATED);
         } else {
             execute(request.getResource(), request, response);
         }
