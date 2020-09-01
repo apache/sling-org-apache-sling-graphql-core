@@ -18,14 +18,36 @@
  */
 package org.apache.sling.graphql.core.it;
 
+import java.io.StringReader;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 import javax.inject.Inject;
 
-import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
-import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasNoJsonPath;
-
+import org.apache.commons.io.IOUtils;
+import org.apache.http.Header;
+import org.apache.http.HttpHeaders;
+import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.AuthCache;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.entity.ContentType;
+import org.apache.http.impl.auth.BasicScheme;
+import org.apache.http.impl.client.BasicAuthCache;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.core.mocks.ReplacingSchemaProvider;
 import org.apache.sling.resource.presence.ResourcePresence;
+import org.apache.sling.servlethelpers.MockSlingHttpServletResponse;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Configuration;
@@ -36,8 +58,12 @@ import org.ops4j.pax.exam.spi.reactors.PerClass;
 import org.ops4j.pax.exam.util.Filter;
 import org.osgi.framework.BundleContext;
 
-import static org.junit.Assert.assertThat;
+import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
+import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasNoJsonPath;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.factoryConfiguration;
 
 @RunWith(PaxExam.class)
@@ -94,6 +120,63 @@ public class GraphQLServletIT extends GraphQLCoreTestSupport {
         assertThat(json, hasJsonPath("$.data.currentResource.name", equalTo("two")));
         assertThat(json, hasNoJsonPath("$.data.currentResource.path"));
     }
+
+    @Test
+    public void testPersistedQueriesBasic() throws Exception {
+        String queryHash = "a16982712f6ecdeba5d950d42e3c13df0fc26d008c497f6bf012701b57e02a51";
+        MockSlingHttpServletResponse response = persistQuery("/graphql/two.gql", "{ currentResource { resourceType name } }", null);
+        assertEquals("http://localhost/graphql/two.gql/persisted/" + queryHash, response.getHeader("Location"));
+
+        response = executeRequest("GET", "/graphql/two.gql/persisted/" + queryHash, null, "application/json", new StringReader(""),200);
+        assertEquals("max-age=60", response.getHeader("Cache-Control"));
+        final String json = response.getOutputAsString();
+        assertThat(json, hasJsonPath("$.data.currentResource.resourceType", equalTo("graphql/test/two")));
+        assertThat(json, hasJsonPath("$.data.currentResource.name", equalTo("two")));
+        assertThat(json, hasNoJsonPath("$.data.currentResource.path"));
+    }
+
+    @Test
+    public void testPersistedQueriesWithAuthorization() throws Exception {
+        HttpHost targetHost = new HttpHost("localhost", httpPort(), "http");
+        CredentialsProvider credsProvider = new BasicCredentialsProvider();
+        credsProvider.setCredentials(
+                new AuthScope(targetHost.getHostName(), targetHost.getPort()),
+                new UsernamePasswordCredentials("admin", "admin")
+        );
+        AuthCache authCache = new BasicAuthCache();
+        BasicScheme basicAuth = new BasicScheme();
+        authCache.put(targetHost, basicAuth);
+
+        HttpClientContext context = HttpClientContext.create();
+        context.setCredentialsProvider(credsProvider);
+        context.setAuthCache(authCache);
+
+        Map<String, Object> queryMap = new HashMap<>();
+        queryMap.put("query", "{ currentResource { resourceType name } }");
+        queryMap.put("variables", Collections.emptyMap());
+        String json = toJSON(queryMap);
+        try (CloseableHttpClient client = HttpClients.createDefault()) {
+
+            HttpPost post = new HttpPost("http://localhost:" + httpPort() + "/graphql/two.gql/persisted");
+            post.setEntity(new ByteArrayEntity(json.getBytes(), ContentType.APPLICATION_JSON));
+
+            try (CloseableHttpResponse postResponse = client.execute(targetHost, post, context)) {
+                Header locationHeader = postResponse.getFirstHeader(HttpHeaders.LOCATION);
+                assertNotNull(locationHeader);
+                String location = locationHeader.getValue();
+                HttpGet get = new HttpGet(location);
+                try (CloseableHttpResponse getResponse = client.execute(targetHost, get, context)){
+                    Header cacheControl = getResponse.getFirstHeader("Cache-Control");
+                    assertEquals("max-age=60,private", cacheControl.getValue());
+                    String getJson = IOUtils.toString(getResponse.getEntity().getContent());
+                    assertThat(getJson, hasJsonPath("$.data.currentResource.resourceType", equalTo("graphql/test/two")));
+                    assertThat(getJson, hasJsonPath("$.data.currentResource.name", equalTo("two")));
+                    assertThat(getJson, hasNoJsonPath("$.data.currentResource.path"));
+                }
+            }
+        }
+    }
+
 
     @Test
     public void testOtherExtAndTestingSelector() throws Exception {

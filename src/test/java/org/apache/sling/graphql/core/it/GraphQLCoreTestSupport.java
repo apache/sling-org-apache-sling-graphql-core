@@ -23,6 +23,7 @@ import javax.inject.Inject;
 import com.cedarsoftware.util.io.JsonWriter;
 
 import org.apache.commons.io.output.WriterOutputStream;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.graphql.core.json.JsonSerializer;
@@ -35,6 +36,7 @@ import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.ProbeBuilder;
 import org.ops4j.pax.exam.TestProbeBuilder;
 import org.ops4j.pax.exam.options.ModifiableCompositeOption;
+import org.ops4j.pax.exam.options.extra.VMOption;
 import org.ops4j.pax.tinybundles.core.TinyBundle;
 import org.osgi.framework.Constants;
 import org.apache.sling.engine.SlingRequestProcessor;
@@ -48,7 +50,6 @@ import static org.ops4j.pax.exam.CoreOptions.composite;
 import static org.ops4j.pax.exam.CoreOptions.junitBundles;
 import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
 import static org.ops4j.pax.exam.CoreOptions.when;
-import static org.ops4j.pax.exam.CoreOptions.vmOption;
 import static org.ops4j.pax.exam.CoreOptions.streamBundle;
 import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.newConfiguration;
 
@@ -67,17 +68,21 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
     private final static int STARTUP_WAIT_SECONDS = 30;
 
     @Inject
-    private ResourceResolverFactory resourceResolverFactory;
+    protected ResourceResolverFactory resourceResolverFactory;
 
     @Inject
     protected SlingRequestProcessor requestProcessor;
 
     public ModifiableCompositeOption baseConfiguration() {
         final String vmOpt = System.getProperty("pax.vm.options");
+        VMOption vmOption = null;
+        if (StringUtils.isNotEmpty(vmOpt)) {
+            vmOption = new VMOption(vmOpt);
+        }
 
         return composite(
-            when(vmOpt != null).useOptions(
-                vmOption(vmOpt)
+            when(vmOption != null).useOptions(
+                vmOption
             ),
             super.baseConfiguration(),
             slingQuickstart(),
@@ -198,6 +203,19 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
         }
 
         return executeRequest("POST", path, null, "application/json", new StringReader(toJSON(body)), 200).getOutputAsString();
+    }
+
+    protected MockSlingHttpServletResponse persistQuery(String path, String query, Map<String, Object> variables) throws Exception {
+        Map<String, Object> body = new HashMap<>();
+        if (query != null) {
+            String queryEncoded = query.replace("\n", "\\n");
+            body.put("query", queryEncoded);
+        }
+        if (variables != null) {
+            body.put("variables", variables);
+        }
+
+        return executeRequest("POST", path + "/persisted", null, "application/json", new StringReader(toJSON(body)), 201);
     }
 
     protected String toJSON(Object source) {
