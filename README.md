@@ -147,8 +147,22 @@ the parameter becoming too large for HTTP services and intermediates.
  (e.g. CDNs) to cache the JSON responses. 
 5. There's no guarantee on how long a persisted query is stored. A client that gets a `404` on a persisted query must be prepared to
  re`POST` the query, in order to store the prepared query again.
+
+#### Persisted Query Hash
+
+The hash that's part of the `persisted` URL is computed on the POSTed GraphQL query by the active `GraphQLCacheProvider` service. By 
+default this is the `SimpleGraphQLCacheProvider` which computes it as follows:
+
+    MessageDigest digest = MessageDigest.getInstance("SHA-256");
+    byte[] hash = digest.digest(query.getBytes(StandardCharsets.UTF_8));
     
-Here are a few examples:
+And encodes it in hex to build the persisted query's path.
+
+This means that, if desired, an optimistic client can compute the hash itself and try a GET to the `persisted/<hash>` URL without doing
+a POST first. If the query is already cache this saves the POST request, and if not the client gets a 404 status and has to POST the
+query first.
+
+#### Example HTTP interactions with persisted queries enabled
 
 1. Storing a query
     ```bash
