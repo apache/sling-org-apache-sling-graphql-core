@@ -27,6 +27,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
@@ -92,7 +93,8 @@ public class GraphQLResourceQueryTest extends ResourceQueryTestBase {
     public void dataFetcherFailureTest() throws Exception {
         try {
             final String stmt = "{ currentResource { failure } }";
-            new GraphQLResourceQuery().executeQuery(schemaProvider, dataFetchersSelector, scalarsProvider, resource, null, stmt, null);
+            GraphQLResourceQuery.executeQuery(schemaProvider, dataFetchersSelector, scalarsProvider, resource, new String[] {}, stmt,
+                    Collections.emptyMap());
         } catch(RuntimeException rex) {
             assertThat(rex.getMessage(), equalTo("FailureDataFetcher"));
         }
@@ -113,7 +115,7 @@ public class GraphQLResourceQueryTest extends ResourceQueryTestBase {
         schemaProvider = new MockSchemaProvider("failing-schema");
         final ServiceRegistration<?> reg = TestUtil.registerSlingDataFetcher(context.bundleContext(), "missingSlash", new EchoDataFetcher(42));
         try {
-            queryJSON("{ currentResource { missingSlash } }", null);
+            queryJSON("{ currentResource { missingSlash } }", new String[] {});
             fail("Expected query to fail");
         } catch(Exception e) {
             TestUtil.assertNestedException(e, IOException.class, "does not match");
@@ -124,7 +126,8 @@ public class GraphQLResourceQueryTest extends ResourceQueryTestBase {
 
     @Test
     public void scriptedFetcherProviderTest() throws Exception {
-        final String json = queryJSON("{ currentResource { path } scriptedFetcher (testing: \"1, 2, 3\") { boolValue resourcePath testingArgument } }", null);
+        final String json = queryJSON("{ currentResource { path } scriptedFetcher (testing: \"1, 2, 3\") { boolValue resourcePath " +
+                "testingArgument } }", new String[] {});
         assertThat(json, hasJsonPath("$.data.currentResource.path", equalTo(resource.getPath())));
         assertThat(json, hasJsonPath("$.data.scriptedFetcher.boolValue", equalTo(true)));
         assertThat(json, hasJsonPath("$.data.scriptedFetcher.resourcePath", equalTo(resource.getPath())));

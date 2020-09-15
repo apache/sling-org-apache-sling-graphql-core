@@ -25,6 +25,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import javax.script.AbstractScriptEngine;
@@ -59,13 +60,12 @@ public class GraphQLScriptEngine extends AbstractScriptEngine {
     @Override
     public Object eval(Reader reader, ScriptContext context) throws ScriptException {
         try {
-            final GraphQLResourceQuery q = new GraphQLResourceQuery();
 
             final Resource resource = (Resource) context.getBindings(ScriptContext.ENGINE_SCOPE)
                     .get(SlingBindings.RESOURCE);
             final String [] selectors = getRequestSelectors(resource);
-            final ExecutionResult result = q.executeQuery(factory.getSchemaProviders(), factory.getdataFetcherSelector(),
-                    factory.getScalarsProvider(), resource, selectors, IOUtils.toString(reader), null);
+            final ExecutionResult result = GraphQLResourceQuery.executeQuery(factory.getSchemaProviders(), factory.getdataFetcherSelector(),
+                    factory.getScalarsProvider(), resource, selectors, IOUtils.toString(reader), Collections.emptyMap());
             final PrintWriter out = (PrintWriter) context.getBindings(ScriptContext.ENGINE_SCOPE).get(SlingBindings.OUT);
             jsonSerializer.sendJSON(out, result);
         } catch(Exception e) {

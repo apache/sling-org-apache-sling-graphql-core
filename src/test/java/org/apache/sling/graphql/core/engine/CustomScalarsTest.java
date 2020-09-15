@@ -52,7 +52,7 @@ public class CustomScalarsTest extends ResourceQueryTestBase {
     }
 
     @Test
-    public void urlSyntaxError() throws Exception {
+    public void urlSyntaxError() {
         final String url = "This is not an URL!";
         final String query = String.format("{ address (url: \"%s\") { url hostname } }", url);
         try {

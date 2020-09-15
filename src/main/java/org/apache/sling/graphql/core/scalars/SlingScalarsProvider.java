@@ -57,7 +57,7 @@ public class SlingScalarsProvider {
     private GraphQLScalarType getScalar(String name) {
 
         // Ignore standard scalars
-        if(ScalarInfo.STANDARD_SCALAR_DEFINITIONS.containsKey(name)) {
+        if(ScalarInfo.isGraphqlSpecifiedScalar(name)) {
             return null;
         }
 
