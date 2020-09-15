@@ -183,13 +183,13 @@ query first.
     < Date: Mon, 31 Aug 2020 16:33:48 GMT
     < X-Content-Type-Options: nosniff
     < X-Frame-Options: SAMEORIGIN
-    < Location: http://localhost:8080/graphql.json/persisted/e1ce2e205e1dfb3969627c6f417860cadab696e0e87b1c44de1438848661b62f
+    < Location: http://localhost:8080/graphql.json/persisted/e1ce2e205e1dfb3969627c6f417860cadab696e0e87b1c44de1438848661b62f.json
     < Content-Length: 0
     ```
 2. Running a persisted query
 ```bash
-curl -v http://localhost:8080/graphql.json/persisted/e1ce2e205e1dfb3969627c6f417860cadab696e0e87b1c44de1438848661b62f
-> GET /graphql.json/persisted/e1ce2e205e1dfb3969627c6f417860cadab696e0e87b1c44de1438848661b62f HTTP/1.1
+curl -v http://localhost:8080/graphql.json/persisted/e1ce2e205e1dfb3969627c6f417860cadab696e0e87b1c44de1438848661b62f.json
+> GET /graphql.json/persisted/e1ce2e205e1dfb3969627c6f417860cadab696e0e87b1c44de1438848661b62f.json HTTP/1.1
 > Host: localhost:8080
 > User-Agent: curl/7.64.1
 > Accept: */*

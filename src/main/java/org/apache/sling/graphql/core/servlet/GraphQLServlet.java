@@ -135,11 +135,24 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
 
     @Activate
     private void activate(Config config) {
+        String[] extensions = config.sling_servlet_extensions();
+        StringBuilder extensionsPattern = new StringBuilder();
+        for (String extension : extensions) {
+            if (extensionsPattern.length() > 0) {
+                extensionsPattern.append("|");
+            }
+            extensionsPattern.append(extension);
+        }
+        if (extensionsPattern.length() > 0) {
+            extensionsPattern.insert(0, "(");
+            extensionsPattern.append(")");
+        }
         cacheControlMaxAge = config.cache$_$control_max$_$age() >= 0 ? config.cache$_$control_max$_$age() : 0;
         String suffix = config.persistedQueries_suffix();
         if (StringUtils.isNotEmpty(suffix) && suffix.startsWith("/")) {
             suffixPersisted = suffix;
-            patternGetPersistedQuery = Pattern.compile("^" + suffixPersisted + "/([a-f0-9]{64})$");
+            patternGetPersistedQuery = Pattern.compile("^" + suffixPersisted + "/([a-f0-9]{64})" + (extensionsPattern.length() > 0 ?
+                    "\\." + extensionsPattern.toString()  + "$" : "$"));
         } else {
             suffixPersisted = null;
             patternGetPersistedQuery = null;
@@ -154,20 +167,27 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
                 Matcher matcher = patternGetPersistedQuery.matcher(suffix);
                 if (matcher.matches()) {
                     String queryHash = matcher.group(1);
-                    if (StringUtils.isNotEmpty(queryHash)) {
-                        String query = cacheProvider.getQuery(queryHash, request.getResource().getResourceType(),
-                                request.getRequestPathInfo().getSelectorString());
-                        if (query != null) {
-                            boolean isAuthenticated = request.getHeaders("Authorization").hasMoreElements();
-                            StringBuilder cacheControlValue = new StringBuilder("max-age=").append(cacheControlMaxAge);
-                            if (isAuthenticated) {
-                                cacheControlValue.append(",private");
+                    String extension = matcher.group(2);
+                    String requestExtension = request.getRequestPathInfo().getExtension();
+                    if (requestExtension != null && requestExtension.equals(extension)) {
+                        if (StringUtils.isNotEmpty(queryHash)) {
+                            String query = cacheProvider.getQuery(queryHash, request.getResource().getResourceType(),
+                                    request.getRequestPathInfo().getSelectorString());
+                            if (query != null) {
+                                boolean isAuthenticated = request.getHeaders("Authorization").hasMoreElements();
+                                StringBuilder cacheControlValue = new StringBuilder("max-age=").append(cacheControlMaxAge);
+                                if (isAuthenticated) {
+                                    cacheControlValue.append(",private");
+                                }
+                                response.addHeader("Cache-Control", cacheControlValue.toString());
+                                execute(query, request, response);
+                            } else {
+                                response.sendError(HttpServletResponse.SC_NOT_FOUND, "Cannot find persisted query " + queryHash);
                             }
-                            response.addHeader("Cache-Control", cacheControlValue.toString());
-                            execute(query, request, response);
-                        } else {
-                            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Cannot find persisted query " + queryHash);
                         }
+                    } else {
+                        response.sendError(HttpServletResponse.SC_BAD_REQUEST, "The persisted query's extension does not match the " +
+                                "servlet extension.");
                     }
                 } else {
                     response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unexpected hash.");
@@ -245,7 +265,9 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
         if (localPort != 80 && localPort != 443) {
             location.append(":").append(localPort);
         }
-        location.append(request.getContextPath()).append(request.getPathInfo()).append("/").append(hash);
+        String extension = request.getRequestPathInfo().getExtension();
+        location.append(request.getContextPath()).append(request.getPathInfo()).append("/").append(hash)
+                .append(StringUtils.isNotEmpty(extension) ? "." + extension : "");
         return location.toString();
     }
 

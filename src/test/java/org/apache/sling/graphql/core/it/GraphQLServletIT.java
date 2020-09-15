@@ -125,9 +125,14 @@ public class GraphQLServletIT extends GraphQLCoreTestSupport {
     public void testPersistedQueriesBasic() throws Exception {
         String queryHash = "a16982712f6ecdeba5d950d42e3c13df0fc26d008c497f6bf012701b57e02a51";
         MockSlingHttpServletResponse response = persistQuery("/graphql/two.gql", "{ currentResource { resourceType name } }", null);
-        assertEquals("http://localhost/graphql/two.gql/persisted/" + queryHash, response.getHeader("Location"));
+        assertEquals("Expected to have stored a persisted query.", 201, response.getStatus());
+        assertEquals("The value of the Location header does not look correct.",
+                "http://localhost/graphql/two.gql/persisted/" + queryHash + ".gql",
+                response.getHeader("Location"));
 
-        response = executeRequest("GET", "/graphql/two.gql/persisted/" + queryHash, null, "application/json", new StringReader(""),200);
+        response =
+                executeRequest("GET", "/graphql/two.gql/persisted/" + queryHash + ".gql", null, "application/json", new StringReader(""),
+                        200);
         assertEquals("max-age=60", response.getHeader("Cache-Control"));
         final String json = response.getOutputAsString();
         assertThat(json, hasJsonPath("$.data.currentResource.resourceType", equalTo("graphql/test/two")));
@@ -161,12 +166,15 @@ public class GraphQLServletIT extends GraphQLCoreTestSupport {
             post.setEntity(new ByteArrayEntity(json.getBytes(), ContentType.APPLICATION_JSON));
 
             try (CloseableHttpResponse postResponse = client.execute(targetHost, post, context)) {
+                assertEquals("Expected to have stored a persisted query.", 201, postResponse.getStatusLine().getStatusCode());
                 Header locationHeader = postResponse.getFirstHeader(HttpHeaders.LOCATION);
                 assertNotNull(locationHeader);
                 String location = locationHeader.getValue();
                 HttpGet get = new HttpGet(location);
-                try (CloseableHttpResponse getResponse = client.execute(targetHost, get, context)){
+                try (CloseableHttpResponse getResponse = client.execute(targetHost, get, context)) {
+                    assertEquals("Expected to find a persisted query.", 200, getResponse.getStatusLine().getStatusCode());
                     Header cacheControl = getResponse.getFirstHeader("Cache-Control");
+                    assertNotNull("Expected a Cache-Control header.", cacheControl);
                     assertEquals("max-age=60,private", cacheControl.getValue());
                     String getJson = IOUtils.toString(getResponse.getEntity().getContent());
                     assertThat(getJson, hasJsonPath("$.data.currentResource.resourceType", equalTo("graphql/test/two")));
