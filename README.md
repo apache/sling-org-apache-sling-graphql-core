@@ -43,19 +43,23 @@ See also the _caching_ section later in this file.
 
 Schemas are provided by `SchemaProvider` services:
 
-    public interface SchemaProvider {
+```java
+@ProviderType
+public interface SchemaProvider {
   
-      /** Get a GraphQL Schema definition for the given resource and optional selectors
-       *
-       *  @param r The Resource to which the schema applies
-       *  @param selectors Optional set of Request Selectors that can influence the schema selection
-       *  @return a GraphQL schema that can be annotated to define the data fetchers to use, see
-       *      this module's documentation. Can return null if a schema cannot be provided, in which
-       *      case a different provider should be used.
-       */
-      @Nullable
-      String getSchema(@NotNull Resource r, @Nullable String [] selectors) throws IOException;
-    }
+    /** Get a GraphQL Schema definition for the given resource and optional selectors
+     *
+     *  @param r The Resource to which the schema applies
+     *  @param selectors Optional set of Request Selectors that can influence the schema selection
+     *  @return a GraphQL schema that can be annotated to define the data fetchers to use, see
+     *      this module's documentation. Can return null if a schema cannot be provided, in which
+     *      case a different provider should be used.
+     *  @throws java.io.IOException if the schema cannot be retrieved
+     */
+    @Nullable
+    String getSchema(@NotNull Resource r, @Nullable String [] selectors) throws IOException;
+}
+```
 
 The default provider makes an internal Sling request with for the current Resource with a `.GQLschema` extension.
 
@@ -105,22 +109,22 @@ The `<options>` and `<source>` arguments of the directive can be used by the
 
 Besides Java, `SlingDataFetcher` scripts can be written in any scripting language that supported by the Sling instance's configuration.
 
-Here's an example from the test code.
-
-The schema contains the following statement:
+Here's an example from the test code. The schema contains the following statement:
 
     scriptedFetcher (testing : String) : Test @fetcher(name:"scripted/example")
 
 And here's the data fetcher code:
 
-    var result = { 
-        boolValue: true,
-        resourcePath: "From the test script: " + resource.path,
-        testingArgument: environment.getArgument("testing"),
-        anotherValue: 450 + 1
-    };
+```javascript
+var result = { 
+    boolValue: true,
+    resourcePath: "From the test script: " + resource.path,
+    testingArgument: environment.getArgument("testing"),
+    anotherValue: 450 + 1
+};
 
-    result;
+result;
+```
     
 The data fetcher provider then looks for a script that handles the `graphql/fetchers/scripted/example` resource type with a `fetcher`script name. `graphql/fetchers`is a prefix (hardcoded for now) and `scripted/example` comes from the above schema's `@fetcher` directive.
 
@@ -150,17 +154,21 @@ the parameter becoming too large for HTTP services and intermediates.
 
 #### Persisted Query Hash
 
-The hash that's part of the `persisted` URL is computed on the POSTed GraphQL query by the active `GraphQLCacheProvider` service. By 
-default this is the `SimpleGraphQLCacheProvider` which computes it as follows:
+The hash that's part of the `persisted` URL is computed on the POSTed GraphQL query by the
+active `GraphQLCacheProvider` service. By default, this is the `SimpleGraphQLCacheProvider`
+which computes it as follows:
 
-    MessageDigest digest = MessageDigest.getInstance("SHA-256");
-    byte[] hash = digest.digest(query.getBytes(StandardCharsets.UTF_8));
+```java
+MessageDigest digest = MessageDigest.getInstance("SHA-256");
+byte[] hash = digest.digest(query.getBytes(StandardCharsets.UTF_8));
+```
     
-And encodes it in hex to build the persisted query's path.
+and encodes it in hex to build the persisted query's path.
 
-This means that, if desired, an optimistic client can compute the hash itself and try a GET to the `persisted/<hash>` URL without doing
-a POST first. If the query is already cache this saves the POST request, and if not the client gets a 404 status and has to POST the
-query first.
+This means that, if desired, an optimistic client can compute the hash itself and try a GET to
+the `persisted/<hash>` URL without doing a POST first. If the query already exists in the cache
+this saves the POST request, and if not the client gets a 404 status and has to POST the query
+first.
 
 #### Example HTTP interactions with persisted queries enabled
 
