@@ -215,7 +215,7 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
             body.put("variables", variables);
         }
 
-        return executeRequest("POST", path + "/persisted", null, "application/json", new StringReader(toJSON(body)), 201);
+        return executeRequest("POST", path + "/persisted", null, "application/json", new StringReader(toJSON(body)), -1);
     }
 
     protected String toJSON(Object source) {

@@ -26,6 +26,7 @@ import java.util.Map;
 import javax.inject.Inject;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpHost;
@@ -64,6 +65,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.factoryConfiguration;
 
 @RunWith(PaxExam.class)
@@ -138,6 +140,28 @@ public class GraphQLServletIT extends GraphQLCoreTestSupport {
         assertThat(json, hasJsonPath("$.data.currentResource.resourceType", equalTo("graphql/test/two")));
         assertThat(json, hasJsonPath("$.data.currentResource.name", equalTo("two")));
         assertThat(json, hasNoJsonPath("$.data.currentResource.path"));
+    }
+
+    @Test
+    public void testPersistingInvalidQueries() throws Exception {
+        HttpHost targetHost = new HttpHost("localhost", httpPort(), "http");
+        HttpClientContext context = HttpClientContext.create();
+        Map<String, Object> queryMap = new HashMap<>();
+        queryMap.put("query", "{ current { resourceType name } }");
+        queryMap.put("variables", Collections.emptyMap());
+        String json = toJSON(queryMap);
+        try (CloseableHttpClient client = HttpClients.createDefault()) {
+
+            HttpPost post = new HttpPost("http://localhost:" + httpPort() + "/graphql/two.gql/persisted");
+            post.setEntity(new ByteArrayEntity(json.getBytes(), ContentType.APPLICATION_JSON));
+
+            try (CloseableHttpResponse postResponse = client.execute(targetHost, post, context)) {
+                assertEquals("Did not expect to persist an invalid query.", 400, postResponse.getStatusLine().getStatusCode());
+                String content = IOUtils.toString(postResponse.getEntity().getContent());
+                assertTrue("Expected a Sling error page.", StringUtils.isNotEmpty(content));
+                assertTrue("Expected to find the failure reason in the Sling error page.", content.contains("400 Invalid GraphQL query."));
+            }
+        }
     }
 
     @Test

@@ -19,6 +19,8 @@
 package org.apache.sling.graphql.core.engine;
 
 import static org.junit.Assert.assertTrue;
+
+import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.UUID;
@@ -76,12 +78,12 @@ public abstract class ResourceQueryTestBase {
     }
 
     protected String queryJSON(String stmt) throws Exception {
-        return queryJSON(stmt, null);
+        return queryJSON(stmt, new String[]{});
     }
 
     protected String queryJSON(String stmt, String [] selectors) throws Exception {
-        final ExecutionResult result = new GraphQLResourceQuery().executeQuery(schemaProvider,
-            dataFetchersSelector, scalarsProvider, resource, selectors, stmt, null);
+        final ExecutionResult result = GraphQLResourceQuery.executeQuery(schemaProvider,
+            dataFetchersSelector, scalarsProvider, resource, selectors, stmt, Collections.emptyMap());
         assertTrue("Expecting no errors: " + result.getErrors(), result.getErrors().isEmpty());
         return new JsonSerializer().toJSON(result);
     }

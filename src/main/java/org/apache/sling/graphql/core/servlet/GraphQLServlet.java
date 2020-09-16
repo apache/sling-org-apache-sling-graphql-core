@@ -53,11 +53,11 @@ import graphql.ExecutionResult;
 
 /** Servlet that can be activated to implement the standard
  *  GraphQL "protocol" as per https://graphql.org/learn/serving-over-http/
- * 
+ *
  *  This servlet is only active if the corresponding OSGi configurations
  *  are created. This allows is to be mounted either on a path to support
  *  the "traditional" GraphQL single-endpoint mode, or on specific resource
- *  types and selectors to turn specific Sling Resources into GraphQL 
+ *  types and selectors to turn specific Sling Resources into GraphQL
  *  endpoints.
  */
 
@@ -201,20 +201,32 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
     }
 
     @Override
-    public void doPost(SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
+    public void doPost(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) throws IOException {
         String suffix = request.getRequestPathInfo().getSuffix();
         if (suffix != null) {
             if (StringUtils.isNotEmpty(suffixPersisted) && suffix.equals(suffixPersisted)) {
-                String query = IOUtils.toString(request.getReader());
-                String hash = cacheProvider.cacheQuery(query, request.getResource().getResourceType(),
-                        request.getRequestPathInfo().getSelectorString());
-                response.addHeader("Location", getLocationHeaderValue(request, hash));
-                response.setStatus(HttpServletResponse.SC_CREATED);
+                doPostPersistedQuery(request, response);
             } else {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST);
             }
         } else {
             execute(request.getResource(), request, response);
+        }
+    }
+
+    private void doPostPersistedQuery(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response)
+            throws IOException {
+        String rawQuery = IOUtils.toString(request.getReader());
+        QueryParser.Result query = QueryParser.fromJSON(rawQuery);
+        if (GraphQLResourceQuery.isQueryValid(schemaProviders, dataFetcherSelector, scalarsProvider, request.getResource(),
+                request.getRequestPathInfo().getSelectors(), query.getQuery(), query.getVariables())) {
+
+            String hash = cacheProvider.cacheQuery(rawQuery, request.getResource().getResourceType(),
+                    request.getRequestPathInfo().getSelectorString());
+            response.addHeader("Location", getLocationHeaderValue(request, hash));
+            response.setStatus(HttpServletResponse.SC_CREATED);
+        } else {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid GraphQL query.");
         }
     }
 
@@ -233,8 +245,7 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
         }
 
         try {
-            final GraphQLResourceQuery q = new GraphQLResourceQuery();
-            final ExecutionResult executionResult = q.executeQuery(schemaProviders, dataFetcherSelector, scalarsProvider,
+            final ExecutionResult executionResult = GraphQLResourceQuery.executeQuery(schemaProviders, dataFetcherSelector, scalarsProvider,
                 resource, request.getRequestPathInfo().getSelectors(), query, result.getVariables());
             jsonSerializer.sendJSON(response.getWriter(), executionResult);
         } catch(Exception ex) {
@@ -247,8 +258,7 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
         response.setCharacterEncoding("UTF-8");
         try {
             final QueryParser.Result result = QueryParser.fromJSON(persistedQuery);
-            final GraphQLResourceQuery q = new GraphQLResourceQuery();
-            final ExecutionResult executionResult = q.executeQuery(schemaProviders, dataFetcherSelector, scalarsProvider,
+            final ExecutionResult executionResult = GraphQLResourceQuery.executeQuery(schemaProviders, dataFetcherSelector, scalarsProvider,
                     request.getResource(), request.getRequestPathInfo().getSelectors(), result.getQuery(), result.getVariables());
             jsonSerializer.sendJSON(response.getWriter(), executionResult);
         } catch(Exception ex) {
