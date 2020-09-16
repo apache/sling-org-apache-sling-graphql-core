@@ -23,6 +23,7 @@ import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collections;
 import java.util.UUID;
 
 import org.apache.sling.api.resource.Resource;
@@ -113,8 +114,8 @@ public class SchemaDescriptionsTest {
     }
 
     private String queryJSON(String stmt) throws Exception {
-        final ExecutionResult result = new GraphQLResourceQuery().executeQuery(schemaProvider,
-            dataFetchersSelector, scalarsProvider, resource, null, stmt, null);
+        final ExecutionResult result = GraphQLResourceQuery.executeQuery(schemaProvider,
+            dataFetchersSelector, scalarsProvider, resource, new String[] {}, stmt, Collections.emptyMap());
         assertTrue("Expecting no errors: " + result.getErrors(), result.getErrors().isEmpty());
         return new JsonSerializer().toJSON(result);
     }

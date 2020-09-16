@@ -19,39 +19,42 @@
 
 package org.apache.sling.graphql.core.engine;
 
-import javax.script.ScriptException;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
 
-import graphql.ExecutionInput;
-import graphql.language.Argument;
-import graphql.language.Directive;
-import graphql.language.FieldDefinition;
-import graphql.language.ObjectTypeDefinition;
-import graphql.language.StringValue;
+import javax.script.ScriptException;
 
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.api.SlingDataFetcher;
 import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
+import graphql.ParseAndValidate;
+import graphql.language.Argument;
+import graphql.language.Directive;
+import graphql.language.FieldDefinition;
+import graphql.language.ObjectTypeDefinition;
+import graphql.language.StringValue;
 import graphql.schema.DataFetcher;
+import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
-import graphql.schema.GraphQLScalarType;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
-
-/** Run a GraphQL query in the context of a Sling Resource */
+/**
+ * Run a GraphQL query in the context of a Sling Resource
+ */
 public class GraphQLResourceQuery {
 
     public static final String FETCHER_DIRECTIVE = "fetcher";
@@ -60,61 +63,66 @@ public class GraphQLResourceQuery {
     public static final String FETCHER_SOURCE = "source";
     private static final Pattern FETCHER_NAME_PATTERN = Pattern.compile("\\w+(/\\w+)+");
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    private static final Logger LOGGER = LoggerFactory.getLogger(GraphQLResourceQuery.class);
 
-    public ExecutionResult executeQuery(SchemaProvider schemaProvider, 
-                                        SlingDataFetcherSelector fetchersSelector,
-                                        SlingScalarsProvider scalarsProvider,
-                                        Resource r,
-                                        String [] requestSelectors,
-                                        String query, Map<String, Object> variables) throws ScriptException {
-        if(r == null) {
-            throw new ScriptException("Resource is null");
-        }
-        if(query == null) {
-            throw new ScriptException("Query is null");
-        }
-        if(schemaProvider == null) {
-            throw new ScriptException("SchemaProvider is null");
-        }
-        if(fetchersSelector == null) {
-            throw new ScriptException("DataFetcherSelector is null");
-        }
-        if(variables == null) {
-            variables = Collections.emptyMap();
-        }
+    private GraphQLResourceQuery() {}
 
+    public static ExecutionResult executeQuery(@NotNull SchemaProvider schemaProvider,
+                                               @NotNull SlingDataFetcherSelector fetchersSelector,
+                                               @NotNull SlingScalarsProvider scalarsProvider,
+                                               @NotNull Resource r,
+                                               @NotNull String[] requestSelectors,
+                                               @NotNull String query, @NotNull Map<String, Object> variables) throws ScriptException {
         String schemaDef = null;
         try {
-            schemaDef = schemaProvider.getSchema(r, requestSelectors);
-        } catch(Exception e) {
-            final ScriptException up = new ScriptException("Schema provider failed");
-            up.initCause(e);
-            log.info("Schema provider Exception", up);
-            throw up;
-        }
-        log.debug("Resource {} maps to GQL schema {}", r.getPath(), schemaDef);
-        try {
+            schemaDef = prepareSchemaDefinition(schemaProvider, r, requestSelectors);
+            LOGGER.debug("Resource {} maps to GQL schema {}", r.getPath(), schemaDef);
             final GraphQLSchema schema = buildSchema(schemaDef, fetchersSelector, scalarsProvider, r);
             final GraphQL graphQL = GraphQL.newGraphQL(schema).build();
-            log.debug("Executing query\n[{}]\nat [{}] with variables [{}]", query, r.getPath(), variables);
+            LOGGER.debug("Executing query\n[{}]\nat [{}] with variables [{}]", query, r.getPath(), variables);
             ExecutionInput ei = ExecutionInput.newExecutionInput()
-                .query(query)
-                .variables(variables)
-                .build();
+                    .query(query)
+                    .variables(variables)
+                    .build();
             final ExecutionResult result = graphQL.execute(ei);
-            log.debug("ExecutionResult.isDataPresent={}", result.isDataPresent());
+            LOGGER.debug("ExecutionResult.isDataPresent={}", result.isDataPresent());
             return result;
+        } catch (ScriptException e) {
+            throw e;
         } catch(Exception e) {
             final ScriptException up = new ScriptException(
                 String.format("Query failed for Resource %s: schema=%s, query=%s", r.getPath(), schemaDef, query));
             up.initCause(e);
-            log.info("GraphQL Query Exception", up);
+            LOGGER.info("GraphQL Query Exception", up);
             throw up;                
         }
     }
 
-    private GraphQLSchema buildSchema(String sdl, SlingDataFetcherSelector fetchers, SlingScalarsProvider scalarsProvider, Resource currentResource) throws IOException {
+    public static boolean isQueryValid(@NotNull SchemaProvider schemaProvider,
+                                       @NotNull SlingDataFetcherSelector fetchersSelector,
+                                       @NotNull SlingScalarsProvider scalarsProvider,
+                                       @NotNull Resource r,
+                                       @NotNull String[] requestSelectors,
+                                       @NotNull String query, Map<String, Object> variables) {
+
+        try {
+            String schemaDef = prepareSchemaDefinition(schemaProvider, r, requestSelectors);
+            LOGGER.debug("Resource {} maps to GQL schema {}", r.getPath(), schemaDef);
+            final GraphQLSchema schema =
+                    buildSchema(schemaDef, fetchersSelector, scalarsProvider, r);
+            ExecutionInput executionInput = ExecutionInput.newExecutionInput()
+                    .query(query)
+                    .variables(variables)
+                    .build();
+            return !ParseAndValidate.parseAndValidate(schema, executionInput).isFailure();
+        } catch (Exception e) {
+            LOGGER.error(String.format("Invalid query: %s.", query), e);
+            return false;
+        }
+    }
+
+    private static GraphQLSchema buildSchema(String sdl, SlingDataFetcherSelector fetchers, SlingScalarsProvider scalarsProvider,
+                                             Resource currentResource) {
         TypeDefinitionRegistry typeRegistry = new SchemaParser().parse(sdl);
         Iterable<GraphQLScalarType> scalars = scalarsProvider.getCustomScalars(typeRegistry.scalars());
         RuntimeWiring runtimeWiring = buildWiring(typeRegistry, fetchers, scalars, currentResource);
@@ -122,8 +130,8 @@ public class GraphQLResourceQuery {
         return schemaGenerator.makeExecutableSchema(typeRegistry, runtimeWiring);
     }
 
-    private RuntimeWiring buildWiring(TypeDefinitionRegistry typeRegistry, SlingDataFetcherSelector fetchers, Iterable<GraphQLScalarType> scalars, Resource r)
-        throws IOException {
+    private static RuntimeWiring buildWiring(TypeDefinitionRegistry typeRegistry, SlingDataFetcherSelector fetchers,
+                                       Iterable<GraphQLScalarType> scalars, Resource r) {
         List<ObjectTypeDefinition> types = typeRegistry.getTypes(ObjectTypeDefinition.class);
         RuntimeWiring.Builder builder = RuntimeWiring.newRuntimeWiring();
         for (ObjectTypeDefinition type : types) {
@@ -146,7 +154,7 @@ public class GraphQLResourceQuery {
         return builder.build();
     }
 
-    private String getDirectiveArgumentValue(Directive d, String name) {
+    private static String getDirectiveArgumentValue(Directive d, String name) {
         final Argument a = d.getArgument(name);
         if(a != null && a.getValue() instanceof StringValue) {
             return ((StringValue)a.getValue()).getValue();
@@ -165,7 +173,7 @@ public class GraphQLResourceQuery {
         return name;
     }
 
-    private DataFetcher<Object> getDataFetcher(FieldDefinition field, 
+    private static DataFetcher<Object> getDataFetcher(FieldDefinition field,
         SlingDataFetcherSelector fetchers, Resource currentResource) throws IOException {
         DataFetcher<Object> result = null;
         final Directive d =field.getDirective(FETCHER_DIRECTIVE);
@@ -179,5 +187,18 @@ public class GraphQLResourceQuery {
             }
         }
         return result;
+    }
+
+    private static @Nullable String prepareSchemaDefinition(@NotNull SchemaProvider schemaProvider,
+                                                            @NotNull Resource resource,
+                                                            @NotNull String[] selectors) throws ScriptException {
+        try {
+            return schemaProvider.getSchema(resource, selectors);
+        } catch (Exception e) {
+            final ScriptException up = new ScriptException("Schema provider failed");
+            up.initCause(e);
+            LOGGER.info("Schema provider Exception", up);
+            throw up;
+        }
     }
 }
