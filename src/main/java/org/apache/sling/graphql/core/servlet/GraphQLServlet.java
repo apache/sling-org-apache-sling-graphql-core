@@ -33,6 +33,9 @@ import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.servlets.SlingAllMethodsServlet;
+import org.apache.sling.commons.metrics.Counter;
+import org.apache.sling.commons.metrics.MetricsService;
+import org.apache.sling.commons.metrics.Timer;
 import org.apache.sling.graphql.api.cache.GraphQLCacheProvider;
 import org.apache.sling.graphql.core.engine.GraphQLResourceQuery;
 import org.apache.sling.graphql.core.engine.SlingDataFetcherSelector;
@@ -43,12 +46,15 @@ import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.AttributeType;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
+import com.codahale.metrics.Gauge;
+import com.codahale.metrics.MetricRegistry;
 import graphql.ExecutionResult;
 
 /** Servlet that can be activated to implement the standard
@@ -128,10 +134,25 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
     @Reference
     private GraphQLCacheProvider cacheProvider;
 
+    @Reference
+    private MetricsService metricsService;
+
+    @Reference(target = "(name=sling)")
+    private MetricRegistry metricRegistry;
+
     private String suffixPersisted;
     private Pattern patternGetPersistedQuery;
     private int cacheControlMaxAge;
     private final JsonSerializer jsonSerializer = new JsonSerializer();
+
+    private Counter cacheHits;
+    private Counter cacheMisses;
+    private Counter requestsServed;
+    private Timer requestTimer;
+
+    private static final String METRIC_NS = GraphQLServlet.class.getName();
+    private String servletRegistrationProperties;
+    private String gaugeCacheHitRate;
 
     @Activate
     private void activate(Config config) {
@@ -157,60 +178,100 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
             suffixPersisted = null;
             patternGetPersistedQuery = null;
         }
+        StringBuilder sb = new StringBuilder();
+        sb.append("[rt=").append(String.join(",", config.sling_servlet_resourceTypes())).append("]");
+        if (config.sling_servlet_methods().length > 0) {
+            sb.append("[m=").append(String.join(",", config.sling_servlet_methods())).append("]");
+        }
+        if (config.sling_servlet_selectors().length > 0) {
+            sb.append("[s=").append(String.join(",", config.sling_servlet_selectors())).append("]");
+        }
+        if (config.sling_servlet_extensions().length > 0) {
+            sb.append("[e=").append(String.join(",", config.sling_servlet_extensions())).append("]");
+        }
+        servletRegistrationProperties = sb.toString();
+        cacheHits = metricsService.counter(METRIC_NS + "." + servletRegistrationProperties + ".cache_hits");
+        cacheMisses = metricsService.counter(METRIC_NS + "." + servletRegistrationProperties + ".cache_misses");
+        requestsServed = metricsService.counter(METRIC_NS + "." + servletRegistrationProperties + ".total_requests");
+        gaugeCacheHitRate = METRIC_NS + "." + servletRegistrationProperties + ".cache_hit_rate";
+        metricRegistry.register(gaugeCacheHitRate,
+                (Gauge<Float>) () -> (float) (cacheHits.getCount() / (float) (cacheHits.getCount() + cacheMisses.getCount())));
+        requestTimer = metricsService.timer(METRIC_NS + "." + servletRegistrationProperties + ".requests_timer");
+    }
+
+    @Deactivate
+    private void deactivate() {
+        if (StringUtils.isNotEmpty(gaugeCacheHitRate)) {
+            metricRegistry.remove(gaugeCacheHitRate);
+        }
     }
 
     @Override
     public void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
-        String suffix = request.getRequestPathInfo().getSuffix();
-        if (suffix != null) {
-            if (StringUtils.isNotEmpty(suffixPersisted) && suffix.startsWith(suffixPersisted)) {
-                Matcher matcher = patternGetPersistedQuery.matcher(suffix);
-                if (matcher.matches()) {
-                    String queryHash = matcher.group(1);
-                    String extension = matcher.group(2);
-                    String requestExtension = request.getRequestPathInfo().getExtension();
-                    if (requestExtension != null && requestExtension.equals(extension)) {
-                        if (StringUtils.isNotEmpty(queryHash)) {
-                            String query = cacheProvider.getQuery(queryHash, request.getResource().getResourceType(),
-                                    request.getRequestPathInfo().getSelectorString());
-                            if (query != null) {
-                                boolean isAuthenticated = request.getHeaders("Authorization").hasMoreElements();
-                                StringBuilder cacheControlValue = new StringBuilder("max-age=").append(cacheControlMaxAge);
-                                if (isAuthenticated) {
-                                    cacheControlValue.append(",private");
+        requestsServed.increment();
+        Timer.Context requestTimerContext = requestTimer.time();
+        try {
+            String suffix = request.getRequestPathInfo().getSuffix();
+            if (suffix != null) {
+                if (StringUtils.isNotEmpty(suffixPersisted) && suffix.startsWith(suffixPersisted)) {
+                    Matcher matcher = patternGetPersistedQuery.matcher(suffix);
+                    if (matcher.matches()) {
+                        String queryHash = matcher.group(1);
+                        String extension = matcher.group(2);
+                        String requestExtension = request.getRequestPathInfo().getExtension();
+                        if (requestExtension != null && requestExtension.equals(extension)) {
+                            if (StringUtils.isNotEmpty(queryHash)) {
+                                String query = cacheProvider.getQuery(queryHash, request.getResource().getResourceType(),
+                                        request.getRequestPathInfo().getSelectorString());
+                                if (query != null) {
+                                    boolean isAuthenticated = request.getHeaders("Authorization").hasMoreElements();
+                                    StringBuilder cacheControlValue = new StringBuilder("max-age=").append(cacheControlMaxAge);
+                                    if (isAuthenticated) {
+                                        cacheControlValue.append(",private");
+                                    }
+                                    response.addHeader("Cache-Control", cacheControlValue.toString());
+                                    execute(query, request, response);
+                                    cacheHits.increment();
+                                } else {
+                                    cacheMisses.increment();
+                                    response.sendError(HttpServletResponse.SC_NOT_FOUND, "Cannot find persisted query " + queryHash);
                                 }
-                                response.addHeader("Cache-Control", cacheControlValue.toString());
-                                execute(query, request, response);
-                            } else {
-                                response.sendError(HttpServletResponse.SC_NOT_FOUND, "Cannot find persisted query " + queryHash);
                             }
+                        } else {
+                            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "The persisted query's extension does not match the " +
+                                    "servlet extension.");
                         }
                     } else {
-                        response.sendError(HttpServletResponse.SC_BAD_REQUEST, "The persisted query's extension does not match the " +
-                                "servlet extension.");
+                        response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unexpected hash.");
                     }
                 } else {
-                    response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unexpected hash.");
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Persisted queries are disabled.");
                 }
             } else {
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Persisted queries are disabled.");
+                execute(request.getResource(), request, response);
             }
-        } else {
-            execute(request.getResource(), request, response);
+        } finally {
+            requestTimerContext.stop();
         }
     }
 
     @Override
     public void doPost(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) throws IOException {
-        String suffix = request.getRequestPathInfo().getSuffix();
-        if (suffix != null) {
-            if (StringUtils.isNotEmpty(suffixPersisted) && suffix.equals(suffixPersisted)) {
-                doPostPersistedQuery(request, response);
+        requestsServed.increment();
+        Timer.Context requestTimerContext = requestTimer.time();
+        try {
+            String suffix = request.getRequestPathInfo().getSuffix();
+            if (suffix != null) {
+                if (StringUtils.isNotEmpty(suffixPersisted) && suffix.equals(suffixPersisted)) {
+                    doPostPersistedQuery(request, response);
+                } else {
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+                }
             } else {
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+                execute(request.getResource(), request, response);
             }
-        } else {
-            execute(request.getResource(), request, response);
+        } finally {
+            requestTimerContext.stop();
         }
     }
 

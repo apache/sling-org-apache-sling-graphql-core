@@ -21,27 +21,38 @@ package org.apache.sling.graphql.core.cache;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.commons.metrics.Counter;
+import org.apache.sling.commons.metrics.MetricsService;
 import org.apache.sling.graphql.api.cache.GraphQLCacheProvider;
 import org.apache.sling.graphql.core.engine.SlingGraphQLException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.AttributeType;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.codahale.metrics.Gauge;
+import com.codahale.metrics.MetricRegistry;
 
 @Component()
 @Designate(ocd = SimpleGraphQLCacheProvider.Config.class)
@@ -73,29 +84,61 @@ public class SimpleGraphQLCacheProvider implements GraphQLCacheProvider {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SimpleGraphQLCacheProvider.class);
 
+    @Reference
+    private MetricsService metricsService;
+
+    @Reference(target = "(name=sling)")
+    private MetricRegistry metricRegistry;
+
     private InMemoryLRUCache persistedQueriesCache;
     private Lock readLock;
     private Lock writeLock;
 
+    private Counter evictions;
+
+    private static final String METRIC_NS = SimpleGraphQLCacheProvider.class.getName();
+    private static final String GAUGE_CAPACITY = METRIC_NS + ".capacity";
+    private static final String GAUGE_ELEMENTS = METRIC_NS + ".elements";
+    private static final String GAUGE_MAX_MEMORY = METRIC_NS + ".maxMemory";
+    private static final String GAUGE_CURRENT_MEMORY = METRIC_NS + ".currentMemory";
+    private static final String COUNTER_EVICTIONS = METRIC_NS + ".evictions";
+    private static final Set<String> MANUALLY_REGISTERED_METRICS = new HashSet<>(Arrays.asList(GAUGE_CAPACITY, GAUGE_ELEMENTS,
+            GAUGE_MAX_MEMORY, GAUGE_CURRENT_MEMORY));
+
     @Activate
-    private void activate(Config config) {
+    private void activate(Config config, BundleContext bundleContext) {
         ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
         readLock = readWriteLock.readLock();
         writeLock = readWriteLock.writeLock();
-        int cacheSize = config.capacity();
-        if (cacheSize < 0) {
-            cacheSize = 0;
+        int capacity;
+        if (config.capacity() < 0) {
+            capacity = 0;
             LOGGER.debug("Cache capacity set to {}. Defaulting to 0.", config.capacity());
+        } else {
+            capacity = config.capacity();
         }
-        long maxSize = config.maxSize();
-        if (maxSize < 0) {
-            maxSize = 0;
-            LOGGER.debug("Cache size set to {}. Defaulting to 0.", config.maxSize());
+        long maxMemory;
+        if (config.maxSize() < 0) {
+            maxMemory = 0;
+            LOGGER.debug("Cache max memory set to {}. Defaulting to 0.", config.maxSize());
+        } else {
+            maxMemory = config.maxSize();
         }
-        persistedQueriesCache = new InMemoryLRUCache(cacheSize, maxSize);
-        LOGGER.debug("In-memory cache initialized: cacheSize={}, maxSize={}.", cacheSize, maxSize);
+        persistedQueriesCache = new InMemoryLRUCache(capacity, maxMemory);
+        LOGGER.debug("In-memory cache initialized: capacity={}, maxMemory={}.", capacity, maxMemory);
+        metricRegistry.register(GAUGE_CAPACITY, (Gauge<Integer>) () -> capacity);
+        metricRegistry.register(GAUGE_MAX_MEMORY, (Gauge<Long>) () -> maxMemory);
+        metricRegistry.register(GAUGE_CURRENT_MEMORY, (Gauge<Long>) () -> persistedQueriesCache.currentSizeInBytes);
+        metricRegistry.register(GAUGE_ELEMENTS, (Gauge<Integer>) () -> persistedQueriesCache.size());
+        evictions = metricsService.counter(COUNTER_EVICTIONS);
     }
 
+    @Deactivate
+    private void deactivate() {
+        for (String manuallyRegisteredMetric : MANUALLY_REGISTERED_METRICS) {
+            metricRegistry.remove(manuallyRegisteredMetric);
+        }
+    }
 
     @Override
     @Nullable
@@ -155,7 +198,7 @@ public class SimpleGraphQLCacheProvider implements GraphQLCacheProvider {
      * This implementation provides a simple LRU eviction based on either the number of entries or the memory used by the stored values.
      * Synchronization has to happen externally.
      */
-    private static class InMemoryLRUCache extends LinkedHashMap<String, String> {
+    private class InMemoryLRUCache extends LinkedHashMap<String, String> {
 
         private final int capacity;
         private final long maxSizeInBytes;
@@ -174,9 +217,10 @@ public class SimpleGraphQLCacheProvider implements GraphQLCacheProvider {
                 willRemove = size() > capacity;
             } else if (maxSizeInBytes > 0) {
                 willRemove = currentSizeInBytes > maxSizeInBytes;
-                if (willRemove) {
-                    currentSizeInBytes -=  getApproximateStringSizeInBytes(eldest.getValue());
-                }
+            }
+            if (willRemove) {
+                evictions.increment();
+                currentSizeInBytes -= getApproximateStringSizeInBytes(eldest.getValue());
             }
             return willRemove;
         }
