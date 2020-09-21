@@ -18,19 +18,39 @@
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 package org.apache.sling.graphql.core.cache;
 
+import org.apache.sling.commons.metrics.Counter;
+import org.apache.sling.commons.metrics.MetricsService;
+import org.apache.sling.commons.metrics.Timer;
 import org.apache.sling.graphql.api.cache.GraphQLCacheProvider;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+
+import com.codahale.metrics.MetricRegistry;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class SimpleGraphQLCacheProviderTest {
 
     @Rule
     public OsgiContext context = new OsgiContext();
+
+    @Before
+    public void setUp() {
+        MetricsService metricsService = mock(MetricsService.class);
+        when(metricsService.counter(anyString())).thenReturn(mock(Counter.class));
+        when(metricsService.timer(anyString())).thenReturn(mock(Timer.class));
+        context.registerService(MetricsService.class, metricsService);
+
+        MetricRegistry metricRegistry = mock(MetricRegistry.class);
+        context.registerService(MetricRegistry.class, metricRegistry, "name", "sling");
+    }
 
     @Test
     public void getHash() {

@@ -41,6 +41,7 @@ import org.ops4j.pax.tinybundles.core.TinyBundle;
 import org.osgi.framework.Constants;
 import org.apache.sling.engine.SlingRequestProcessor;
 
+import static org.apache.sling.testing.paxexam.SlingOptions.slingCommonsMetrics;
 import static org.junit.Assert.fail;
 import static org.apache.sling.testing.paxexam.SlingOptions.slingQuickstartOakTar;
 import static org.apache.sling.testing.paxexam.SlingOptions.slingResourcePresence;
@@ -95,6 +96,7 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
             mavenBundle().groupId("org.apache.sling").artifactId("org.apache.sling.servlet-helpers").versionAsInProject(),
             mavenBundle().groupId("com.cedarsoftware").artifactId("json-io").versionAsInProject(),
             slingResourcePresence(),
+            slingCommonsMetrics(),
             jsonPath(),
             junitBundles()
         );

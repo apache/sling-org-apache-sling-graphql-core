@@ -25,6 +25,9 @@ import javax.servlet.Servlet;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.servlets.ServletResolverConstants;
+import org.apache.sling.commons.metrics.Counter;
+import org.apache.sling.commons.metrics.MetricsService;
+import org.apache.sling.commons.metrics.Timer;
 import org.apache.sling.graphql.core.cache.SimpleGraphQLCacheProvider;
 import org.apache.sling.graphql.core.engine.SlingDataFetcherSelector;
 import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
@@ -33,17 +36,36 @@ import org.apache.sling.testing.mock.sling.junit.SlingContext;
 import org.apache.sling.testing.mock.sling.servlet.MockRequestPathInfo;
 import org.apache.sling.testing.mock.sling.servlet.MockSlingHttpServletRequest;
 import org.apache.sling.testing.mock.sling.servlet.MockSlingHttpServletResponse;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import com.codahale.metrics.MetricRegistry;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class GraphQLServletTest {
 
     @Rule
     public SlingContext context = new SlingContext();
+
+    @Before
+    public void setUp() {
+        MetricsService metricsService = mock(MetricsService.class);
+        when(metricsService.counter(anyString())).thenReturn(mock(Counter.class));
+
+        Timer timer = mock(Timer.class);
+        when(timer.time()).thenReturn(mock(Timer.Context.class));
+        when(metricsService.timer(anyString())).thenReturn(timer);
+        context.registerService(MetricsService.class, metricsService);
+
+        MetricRegistry metricRegistry = mock(MetricRegistry.class);
+        context.registerService(MetricRegistry.class, metricRegistry, "name", "sling");
+    }
 
     @Test
     public void testDisabledSuffix() throws IOException {
