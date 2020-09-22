@@ -50,6 +50,7 @@ import static org.apache.sling.testing.paxexam.SlingOptions.slingScriptingJsp;
 import static org.ops4j.pax.exam.CoreOptions.composite;
 import static org.ops4j.pax.exam.CoreOptions.junitBundles;
 import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
+import static org.ops4j.pax.exam.CoreOptions.vmOption;
 import static org.ops4j.pax.exam.CoreOptions.when;
 import static org.ops4j.pax.exam.CoreOptions.streamBundle;
 import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.newConfiguration;
@@ -98,7 +99,8 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
             slingResourcePresence(),
             slingCommonsMetrics(),
             jsonPath(),
-            junitBundles()
+            junitBundles(),
+            vmOption(System.getProperty("jacoco.command"))
         );
     }
 

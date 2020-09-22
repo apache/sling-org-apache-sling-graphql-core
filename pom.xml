@@ -70,12 +70,51 @@
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
         <version>${jacoco.maven.plugin.version}</version>
+        <configuration>
+          <propertyName>jacoco.command</propertyName>
+        </configuration>
         <executions>
           <execution>
             <id>prepare-agent</id>
+            <configuration>
+              <destFile>${project.build.directory}/jacoco-unit.exec</destFile>
+            </configuration>
+            <phase>generate-test-resources</phase>
             <goals>
               <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>prepare-agent-integration</id>
+            <configuration>
+              <destFile>${project.build.directory}/jacoco-it.exec</destFile>
+            </configuration>
+            <goals>
               <goal>prepare-agent-integration</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>merge</id>
+            <phase>post-integration-test</phase>
+            <goals>
+              <goal>merge</goal>
+            </goals>
+            <configuration>
+              <fileSets>
+                <fileSet>
+                  <directory>${project.build.directory}</directory>
+                  <includes>
+                    <include>*.exec</include>
+                  </includes>
+                </fileSet>
+              </fileSets>
+            </configuration>
+          </execution>
+          <execution>
+            <id>report</id>
+            <phase>post-integration-test</phase>
+            <goals>
+              <goal>report</goal>
             </goals>
           </execution>
         </executions>
@@ -84,7 +123,7 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
-          <argLine>@{argLine}</argLine>
+          <argLine>${jacoco.command}</argLine>
         </configuration>
       </plugin>
       <plugin>
@@ -99,8 +138,8 @@
           </execution>
         </executions>
         <configuration>
-          <argLine>@{argLine}</argLine>
           <systemPropertyVariables>
+            <jacoco.command>${jacoco.command}</jacoco.command>
             <bundle.filename>${basedir}/target/${project.build.finalName}.jar</bundle.filename>
             <pax.vm.options>${pax.vm.options}</pax.vm.options>
           </systemPropertyVariables>
