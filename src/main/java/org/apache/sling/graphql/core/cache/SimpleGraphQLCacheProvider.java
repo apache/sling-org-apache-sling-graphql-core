@@ -68,18 +68,18 @@ public class SimpleGraphQLCacheProvider implements GraphQLCacheProvider {
 
         @AttributeDefinition(
                 name = "Capacity",
-                description = "The number of persisted queries to cache. If the capacity is set to a number greater than 0, then this " +
-                        "parameter will have priority over maxSize.",
+                description = "The number of persisted queries to cache. If the cache size is set to a number greater than 0, then this " +
+                        "parameter will have priority over maxMemory.",
                 type = AttributeType.INTEGER,
                 min = "0"
         )
-        int capacity() default 0;
+        int cacheSize() default 0;
 
         @AttributeDefinition(
                 name = "Max Values in Bytes",
                 description = "The maximum amount of memory the values stored in the cache can use."
         )
-        long maxSize() default 10 * FileUtils.ONE_MB;
+        long maxMemory() default 10 * FileUtils.ONE_MB;
 
     }
 
@@ -98,12 +98,12 @@ public class SimpleGraphQLCacheProvider implements GraphQLCacheProvider {
     private Counter evictions;
 
     private static final String METRIC_NS = SimpleGraphQLCacheProvider.class.getName();
-    private static final String GAUGE_CAPACITY = METRIC_NS + ".capacity";
+    private static final String GAUGE_CACHE_SIZE = METRIC_NS + ".cacheSize";
     private static final String GAUGE_ELEMENTS = METRIC_NS + ".elements";
     private static final String GAUGE_MAX_MEMORY = METRIC_NS + ".maxMemory";
     private static final String GAUGE_CURRENT_MEMORY = METRIC_NS + ".currentMemory";
     private static final String COUNTER_EVICTIONS = METRIC_NS + ".evictions";
-    private static final Set<String> MANUALLY_REGISTERED_METRICS = new HashSet<>(Arrays.asList(GAUGE_CAPACITY, GAUGE_ELEMENTS,
+    private static final Set<String> MANUALLY_REGISTERED_METRICS = new HashSet<>(Arrays.asList(GAUGE_CACHE_SIZE, GAUGE_ELEMENTS,
             GAUGE_MAX_MEMORY, GAUGE_CURRENT_MEMORY));
 
     @Activate
@@ -112,22 +112,22 @@ public class SimpleGraphQLCacheProvider implements GraphQLCacheProvider {
         readLock = readWriteLock.readLock();
         writeLock = readWriteLock.writeLock();
         int capacity;
-        if (config.capacity() < 0) {
+        if (config.cacheSize() < 0) {
             capacity = 0;
-            LOGGER.debug("Cache capacity set to {}. Defaulting to 0.", config.capacity());
+            LOGGER.debug("Cache capacity set to {}. Defaulting to 0.", config.cacheSize());
         } else {
-            capacity = config.capacity();
+            capacity = config.cacheSize();
         }
         long maxMemory;
-        if (config.maxSize() < 0) {
+        if (config.maxMemory() < 0) {
             maxMemory = 0;
-            LOGGER.debug("Cache max memory set to {}. Defaulting to 0.", config.maxSize());
+            LOGGER.debug("Cache max memory set to {}. Defaulting to 0.", config.maxMemory());
         } else {
-            maxMemory = config.maxSize();
+            maxMemory = config.maxMemory();
         }
         persistedQueriesCache = new InMemoryLRUCache(capacity, maxMemory);
         LOGGER.debug("In-memory cache initialized: capacity={}, maxMemory={}.", capacity, maxMemory);
-        metricRegistry.register(GAUGE_CAPACITY, (Gauge<Integer>) () -> capacity);
+        metricRegistry.register(GAUGE_CACHE_SIZE, (Gauge<Integer>) () -> capacity);
         metricRegistry.register(GAUGE_MAX_MEMORY, (Gauge<Long>) () -> maxMemory);
         metricRegistry.register(GAUGE_CURRENT_MEMORY, (Gauge<Long>) () -> persistedQueriesCache.currentSizeInBytes);
         metricRegistry.register(GAUGE_ELEMENTS, (Gauge<Integer>) () -> persistedQueriesCache.size());

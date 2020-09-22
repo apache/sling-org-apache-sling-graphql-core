@@ -12,7 +12,7 @@ This page documents the metrics the Apache Sling GraphQL Core bundle exposes to 
     the number of cache evictions for <a href="../README.md#caching-persisted-queries-api">persisted queries</a>
 </dd>
 
-<dt>org.apache.sling.graphql.core.cache.SimpleGraphQLCacheProvider.capacity</dt>
+<dt>org.apache.sling.graphql.core.cache.SimpleGraphQLCacheProvider.cacheSize</dt>
 <dd>
     the maximum number of entries the cache can store
 </dd>
@@ -38,7 +38,8 @@ This page documents the metrics the Apache Sling GraphQL Core bundle exposes to 
 
 For each service instance of the `org.apache.sling.graphql.core.servlet.GraphQLServlet` servlet, the following additional
 metrics are available, where the `<qualifier>` is a string using the
-`[rt=list of servlet resource types][m=list of servlet methods][s=list of servlet selectors][e=list of servlet extensions]` pattern:
+`.rt:list of servlet resource types.m:list of servlet methods.s:list of servlet selectors.e:list of servlet extensions` pattern (each
+ list uses `_` as an element separator):
 
 <dl>
 

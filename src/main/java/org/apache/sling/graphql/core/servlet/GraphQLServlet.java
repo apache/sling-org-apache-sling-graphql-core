@@ -21,6 +21,7 @@
 package org.apache.sling.graphql.core.servlet;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -179,20 +180,27 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
             patternGetPersistedQuery = null;
         }
         StringBuilder sb = new StringBuilder();
-        sb.append("[rt=").append(String.join(",", config.sling_servlet_resourceTypes())).append("]");
+        String[] resourceTypes = config.sling_servlet_resourceTypes();
+        Arrays.sort(resourceTypes);
+        sb.append("rt:").append(String.join("_", resourceTypes));
         if (config.sling_servlet_methods().length > 0) {
-            sb.append("[m=").append(String.join(",", config.sling_servlet_methods())).append("]");
+            String[] methods = config.sling_servlet_methods();
+            Arrays.sort(methods);
+            sb.append(".m:").append(String.join("_", methods));
         }
         if (config.sling_servlet_selectors().length > 0) {
-            sb.append("[s=").append(String.join(",", config.sling_servlet_selectors())).append("]");
+            String[] selectors = config.sling_servlet_selectors();
+            Arrays.sort(selectors);
+            sb.append(".s:").append(String.join("_", selectors));
         }
-        if (config.sling_servlet_extensions().length > 0) {
-            sb.append("[e=").append(String.join(",", config.sling_servlet_extensions())).append("]");
+        if (extensions.length > 0) {
+            Arrays.sort(extensions);
+            sb.append(".e:").append(String.join("_", extensions));
         }
         servletRegistrationProperties = sb.toString();
         cacheHits = metricsService.counter(METRIC_NS + "." + servletRegistrationProperties + ".cache_hits");
         cacheMisses = metricsService.counter(METRIC_NS + "." + servletRegistrationProperties + ".cache_misses");
-        requestsServed = metricsService.counter(METRIC_NS + "." + servletRegistrationProperties + ".total_requests");
+        requestsServed = metricsService.counter(METRIC_NS + "." + servletRegistrationProperties + ".requests_total");
         gaugeCacheHitRate = METRIC_NS + "." + servletRegistrationProperties + ".cache_hit_rate";
         metricRegistry.register(gaugeCacheHitRate,
                 (Gauge<Float>) () -> (float) (cacheHits.getCount() / (float) (cacheHits.getCount() + cacheMisses.getCount())));

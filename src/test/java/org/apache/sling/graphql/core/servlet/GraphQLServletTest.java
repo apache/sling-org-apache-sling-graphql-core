@@ -90,7 +90,7 @@ public class GraphQLServletTest {
             SlingScalarsProvider slingScalarsProvider = mock(SlingScalarsProvider.class);
             context.registerService(slingScalarsProvider);
 
-            context.registerInjectActivateService(new SimpleGraphQLCacheProvider(), "maxSize", 10);
+            context.registerInjectActivateService(new SimpleGraphQLCacheProvider(), "maxMemory", 10);
 
             context.registerInjectActivateService(new GraphQLServlet(), ServletResolverConstants.SLING_SERVLET_RESOURCE_TYPES, "a/b/c",
                     "persistedQueries.suffix", "/persisted");

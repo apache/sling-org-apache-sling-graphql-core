@@ -62,7 +62,7 @@ public class SimpleGraphQLCacheProviderTest {
 
     @Test
     public void testMemoryLimits() {
-        context.registerInjectActivateService(new SimpleGraphQLCacheProvider(), "capacity", 0, "maxSize", 40);
+        context.registerInjectActivateService(new SimpleGraphQLCacheProvider(), "cacheSize", 0, "maxMemory", 40);
         SimpleGraphQLCacheProvider provider = (SimpleGraphQLCacheProvider) context.getService(GraphQLCacheProvider.class);
         assertNotNull(provider);
 
@@ -89,7 +89,7 @@ public class SimpleGraphQLCacheProviderTest {
 
     @Test
     public void testCapacityLimits() {
-        context.registerInjectActivateService(new SimpleGraphQLCacheProvider(), "capacity", 3, "maxSize", 0);
+        context.registerInjectActivateService(new SimpleGraphQLCacheProvider(), "cacheSize", 3, "maxMemory", 0);
         SimpleGraphQLCacheProvider provider = (SimpleGraphQLCacheProvider) context.getService(GraphQLCacheProvider.class);
         assertNotNull(provider);
 
@@ -116,7 +116,7 @@ public class SimpleGraphQLCacheProviderTest {
 
     @Test
     public void testCapacityHasPriorityOverMemory() {
-        context.registerInjectActivateService(new SimpleGraphQLCacheProvider(), "capacity", 2, "maxSize", 40);
+        context.registerInjectActivateService(new SimpleGraphQLCacheProvider(), "cacheSize", 2, "maxMemory", 40);
         SimpleGraphQLCacheProvider provider = (SimpleGraphQLCacheProvider) context.getService(GraphQLCacheProvider.class);
         assertNotNull(provider);
 
