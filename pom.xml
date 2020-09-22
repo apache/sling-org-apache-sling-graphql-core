@@ -61,10 +61,6 @@
       <plugin>
         <groupId>biz.aQute.bnd</groupId>
         <artifactId>bnd-baseline-maven-plugin</artifactId>
-        <configuration>
-          <!-- TODO remove this once we have a release of this module -->
-          <failOnMissing>false</failOnMissing>
-        </configuration>
       </plugin>
       <plugin>
         <groupId>org.jacoco</groupId>

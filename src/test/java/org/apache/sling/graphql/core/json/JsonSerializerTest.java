@@ -76,7 +76,7 @@ public class JsonSerializerTest {
     @Test
     public void testToMap() throws UnsupportedEncodingException {
         final String json = serializer.toJSON(TEST_MAP);
-        final Map<String, Object> map = serializer.JSONtoMaps(new ByteArrayInputStream(json.getBytes("UTF-8")));
+        final Map<String, Object> map = serializer.jsonToMaps(new ByteArrayInputStream(json.getBytes("UTF-8")));
         assertThat(map.get("A"), is("bc"));
         assertThat(map.get("farenheit"), is(451L));
         assertThat(map.get("really"), is(true));

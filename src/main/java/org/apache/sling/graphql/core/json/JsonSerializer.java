@@ -23,6 +23,7 @@ package org.apache.sling.graphql.core.json;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -38,12 +39,13 @@ import graphql.ExecutionResult;
  *  the underlying converter library later */
 public class JsonSerializer {
 
-    public static final Map<String, Object> WRITER_OPTIONS = new HashMap<String, Object>() {
-        private static final long serialVersionUID = 1L;
-        {
-            put(JsonWriter.TYPE, false);
-        }
-    };
+    public static final Map<String, Object> WRITER_OPTIONS;
+
+    static {
+        HashMap<String, Object> writerOptions = new HashMap<>();
+        writerOptions.put(JsonWriter.TYPE, false);
+        WRITER_OPTIONS = Collections.unmodifiableMap(writerOptions);
+    }
 
     public void sendJSON(Writer out, ExecutionResult result) throws IOException {
         final Object data = result.toSpecification();
@@ -60,7 +62,7 @@ public class JsonSerializer {
     }
 
     @SuppressWarnings("unchecked")
-    public Map<String, Object> JSONtoMaps(InputStream input) {
+    public Map<String, Object> jsonToMaps(InputStream input) {
         return JsonReader.jsonToMaps(input, null);
     }
 }

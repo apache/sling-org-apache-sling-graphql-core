@@ -237,7 +237,8 @@ public class GraphQLServletIT extends GraphQLCoreTestSupport {
 
     @Test
     public void testMissingQuery() throws Exception {
-        executeRequest("GET", "/graphql/two.gql", null, null, null, 400);
+        MockSlingHttpServletResponse response = executeRequest("GET", "/graphql/two.gql", null, null, null, -1);
+        assertEquals(400, response.getStatus());
     }
 
     @Test

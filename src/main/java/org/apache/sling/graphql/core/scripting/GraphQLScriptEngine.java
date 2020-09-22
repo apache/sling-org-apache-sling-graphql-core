@@ -96,7 +96,7 @@ public class GraphQLScriptEngine extends AbstractScriptEngine {
             final String pathInfo = r.getResourceMetadata().getResolutionPathInfo();
             if(pathInfo != null && pathInfo.startsWith(".")) {
                 final String [] parts = pathInfo.split("\\.");
-                Arrays.stream(parts).limit(parts.length - 1).forEach(it -> result.add(it));
+                Arrays.stream(parts).limit(parts.length - 1).forEach(result::add);
             }
         }
         return result.toArray(new String[] {});

@@ -152,7 +152,6 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
     private Timer requestTimer;
 
     private static final String METRIC_NS = GraphQLServlet.class.getName();
-    private String servletRegistrationProperties;
     private String gaugeCacheHitRate;
 
     @Activate
@@ -197,13 +196,13 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
             Arrays.sort(extensions);
             sb.append(".e:").append(String.join("_", extensions));
         }
-        servletRegistrationProperties = sb.toString();
+        String servletRegistrationProperties = sb.toString();
         cacheHits = metricsService.counter(METRIC_NS + "." + servletRegistrationProperties + ".cache_hits");
         cacheMisses = metricsService.counter(METRIC_NS + "." + servletRegistrationProperties + ".cache_misses");
         requestsServed = metricsService.counter(METRIC_NS + "." + servletRegistrationProperties + ".requests_total");
         gaugeCacheHitRate = METRIC_NS + "." + servletRegistrationProperties + ".cache_hit_rate";
         metricRegistry.register(gaugeCacheHitRate,
-                (Gauge<Float>) () -> (float) (cacheHits.getCount() / (float) (cacheHits.getCount() + cacheMisses.getCount())));
+                (Gauge<Float>) () -> (cacheHits.getCount() / (float) (cacheHits.getCount() + cacheMisses.getCount())));
         requestTimer = metricsService.timer(METRIC_NS + "." + servletRegistrationProperties + ".requests_timer");
     }
 

@@ -21,9 +21,8 @@
 package org.apache.sling.graphql.core.scalars;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
-
-import javax.script.ScriptException;
 
 import org.apache.sling.graphql.api.SlingScalarConverter;
 import org.apache.sling.graphql.core.engine.SlingGraphQLException;
@@ -93,7 +92,7 @@ public class SlingScalarsProvider {
         // Using just the names for now, not sure why we'd need the ScalarTypeDefinitions
         return schemaScalars.keySet().stream()
             .map(this::getScalar)
-            .filter(it -> it != null)
+            .filter(Objects::nonNull)
             .collect(Collectors.toList());
     }
 

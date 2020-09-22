@@ -38,7 +38,7 @@ class SlingCoercingWrapper implements Coercing<Object, Object> {
     }
 
     @Override
-    public Object serialize(Object dataFetcherResult) throws CoercingSerializeException {
+    public Object serialize(Object dataFetcherResult) {
         try {
             return converter.serialize(dataFetcherResult);
         } catch(ScalarConversionException sce) {
@@ -47,7 +47,7 @@ class SlingCoercingWrapper implements Coercing<Object, Object> {
     }
 
     @Override
-    public Object parseValue(Object input) throws CoercingParseValueException {
+    public Object parseValue(Object input) {
         try {
             return converter.parseValue(input);
         } catch(ScalarConversionException sce) {
@@ -56,7 +56,7 @@ class SlingCoercingWrapper implements Coercing<Object, Object> {
     }
 
     @Override
-    public Object parseLiteral(Object input) throws CoercingParseLiteralException {
+    public Object parseLiteral(Object input) {
         // This is called when parsing objects from the GraphQL Abstract Syntax Tree
         // So far we handle StringValue only and unfortunately there's no common
         // interface for the getValue() method.

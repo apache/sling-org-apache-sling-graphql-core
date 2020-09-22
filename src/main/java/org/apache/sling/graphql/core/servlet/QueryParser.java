@@ -88,7 +88,7 @@ public class QueryParser {
     }
 
     public static Result fromJSON(String json) throws IOException {
-        Map<String, Object> jsonMap = jsonSerializer.JSONtoMaps(IOUtils.toInputStream(json, StandardCharsets.UTF_8));
+        Map<String, Object> jsonMap = jsonSerializer.jsonToMaps(IOUtils.toInputStream(json, StandardCharsets.UTF_8));
         String query = (String) jsonMap.get(JSON_KEY_QUERY);
         if (query != null) {
             Map<String, Object> variables = (Map<String, Object>) jsonMap.get(JSON_KEY_VARIABLES);
@@ -102,7 +102,7 @@ public class QueryParser {
     }
 
     private static Map<String, Object> getInputJson(SlingHttpServletRequest req) throws IOException {
-        return jsonSerializer.JSONtoMaps(new ReaderInputStream(req.getReader()));
+        return jsonSerializer.jsonToMaps(new ReaderInputStream(req.getReader()));
     }
 
 }
