@@ -39,11 +39,10 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
     <org.ops4j.pax.exam.version>4.13.3</org.ops4j.pax.exam.version>
+    <jacoco.maven.plugin.version>0.8.2</jacoco.maven.plugin.version>
 
-    <argLine/>
-
-    <!-- this default setting allows collecting coverage info during IT -->
-    <pax.vm.options>${argLine}</pax.vm.options>
+    <!-- additional options that can be passed to Pax before executing the tests -->
+    <pax.vm.options/>
   </properties>
 
   <scm>
@@ -68,6 +67,27 @@
         </configuration>
       </plugin>
       <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${jacoco.maven.plugin.version}</version>
+        <executions>
+          <execution>
+            <id>prepare-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+              <goal>prepare-agent-integration</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <argLine>@{argLine}</argLine>
+        </configuration>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
         <executions>
@@ -79,19 +99,14 @@
           </execution>
         </executions>
         <configuration>
+          <argLine>@{argLine}</argLine>
+          <systemPropertyVariables>
+            <bundle.filename>${basedir}/target/${project.build.finalName}.jar</bundle.filename>
+            <pax.vm.options>${pax.vm.options}</pax.vm.options>
+          </systemPropertyVariables>
           <redirectTestOutputToFile>true</redirectTestOutputToFile>
           <!-- pax exam bug, often times out at exit -->
           <forkedProcessExitTimeoutInSeconds>1</forkedProcessExitTimeoutInSeconds>
-          <systemProperties>
-            <property>
-              <name>bundle.filename</name>
-              <value>${basedir}/target/${project.build.finalName}.jar</value>
-            </property>
-            <property>
-              <name>pax.vm.options</name>
-              <value>${pax.vm.options}</value>
-            </property>
-          </systemProperties>
         </configuration>
       </plugin>
       <plugin>
