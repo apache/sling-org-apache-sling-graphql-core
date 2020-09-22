@@ -21,8 +21,6 @@ package org.apache.sling.graphql.core.engine;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
-import java.util.Dictionary;
-import java.util.Hashtable;
 import java.util.UUID;
 
 import org.apache.sling.api.resource.Resource;
@@ -30,12 +28,8 @@ import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.apache.sling.graphql.core.json.JsonSerializer;
-import org.apache.sling.graphql.core.mocks.DigestDataFetcher;
-import org.apache.sling.graphql.core.mocks.EchoDataFetcher;
-import org.apache.sling.graphql.core.mocks.FailingDataFetcher;
 import org.apache.sling.graphql.core.mocks.MockSchemaProvider;
 import org.apache.sling.graphql.core.mocks.MockScriptServlet;
-import org.apache.sling.graphql.core.mocks.TestUtil;
 import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
 import org.junit.Before;
 import org.junit.Rule;
