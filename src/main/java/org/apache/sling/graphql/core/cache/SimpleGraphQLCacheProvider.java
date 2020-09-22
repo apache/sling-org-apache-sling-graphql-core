@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -152,14 +153,17 @@ public class SimpleGraphQLCacheProvider implements GraphQLCacheProvider {
     }
 
     @Override
-    @NotNull
+    @Nullable
     public String cacheQuery(@NotNull String query, @NotNull String resourceType, @Nullable String selectorString) {
         writeLock.lock();
         try {
             String hash = getHash(query);
             String key = getCacheKey(hash, resourceType, selectorString);
             persistedQueriesCache.put(key, query);
-            return hash;
+            if (persistedQueriesCache.containsKey(key)) {
+                return hash;
+            }
+            return null;
         } finally {
             writeLock.unlock();
         }
@@ -227,8 +231,34 @@ public class SimpleGraphQLCacheProvider implements GraphQLCacheProvider {
 
         @Override
         public String put(String key, String value) {
-            currentSizeInBytes += getApproximateStringSizeInBytes(value);
-            return super.put(key, value);
+            long valueSize = getApproximateStringSizeInBytes(value);
+            if (capacity <= 0 && maxSizeInBytes > 0) {
+                long newSizeInBytes;
+                boolean isReplacement = containsKey(key);
+                if (isReplacement) {
+                    long oldValueSize = getApproximateStringSizeInBytes(get(key));
+                    newSizeInBytes = currentSizeInBytes - oldValueSize + valueSize;
+                } else {
+                    // calculate what happens after removing LRU
+                    newSizeInBytes = currentSizeInBytes + valueSize;
+                    Optional<String> head = this.values().stream().findFirst();
+                    if (head.isPresent()) {
+                        newSizeInBytes -= getApproximateStringSizeInBytes(head.get());
+                    }
+                }
+                if (newSizeInBytes <= maxSizeInBytes) {
+                    if (isReplacement) {
+                        currentSizeInBytes = newSizeInBytes;
+                    } else {
+                        currentSizeInBytes += valueSize;
+                    }
+                    return super.put(key, value);
+                }
+            } else {
+                currentSizeInBytes += valueSize;
+                return super.put(key, value);
+            }
+            return null;
         }
 
         int getApproximateStringSizeInBytes(@NotNull String string) {

@@ -77,6 +77,14 @@ public class SimpleGraphQLCacheProviderTest {
 
         // but b should still be there
         assertEquals("b", provider.getQuery(bHash, "a/b/c", null));
+
+        // attempt a replacement of b
+        assertEquals(bHash, provider.cacheQuery("b", "a/b/c", null));
+        assertEquals("b", provider.getQuery(bHash, "a/b/c", null));
+
+        // and this value should not be stored since it's over the cache's limit
+        String abHash = provider.cacheQuery("ab", "a/b/c", null);
+        assertNull(abHash);
     }
 
     @Test

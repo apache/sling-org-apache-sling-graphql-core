@@ -42,13 +42,14 @@ public interface GraphQLCacheProvider {
     @Nullable String getQuery(@NotNull String hash, @NotNull String resourceType, @Nullable String selectorString);
 
     /**
-     * Stores the {@code query} into the cache, potentially overriding a previous value.
+     * Stores the {@code query} into the cache, potentially overriding a previous value. The method will return the query's SHA-256 hash
+     * if the persisting operation was successful. If not, a {@code null} value must be returned.
      *
      * @param query          the GraphQL query
      * @param resourceType   the resource type of the {@link org.apache.sling.graphql.core.servlet.GraphQLServlet} which will execute the
      *                       query, since multiple servlets can be registered
      * @param selectorString the selector string with which the {@link org.apache.sling.graphql.core.servlet.GraphQLServlet} is registered
-     * @return the query's SHA-256 hash, which will be passed to the GraphQL client for query retrieval
+     * @return the query's SHA-256 hash, if the query was successfully cached; {@code null} if the query could not be cached
      */
-    @NotNull String cacheQuery(@NotNull String query, @NotNull String resourceType, @Nullable String selectorString);
+    @Nullable String cacheQuery(@NotNull String query, @NotNull String resourceType, @Nullable String selectorString);
 }

@@ -284,8 +284,12 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
 
             String hash = cacheProvider.cacheQuery(rawQuery, request.getResource().getResourceType(),
                     request.getRequestPathInfo().getSelectorString());
-            response.addHeader("Location", getLocationHeaderValue(request, hash));
-            response.setStatus(HttpServletResponse.SC_CREATED);
+            if (hash != null) {
+                response.addHeader("Location", getLocationHeaderValue(request, hash));
+                response.setStatus(HttpServletResponse.SC_CREATED);
+            } else {
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Cannot store persisted query.");
+            }
         } else {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid GraphQL query.");
         }

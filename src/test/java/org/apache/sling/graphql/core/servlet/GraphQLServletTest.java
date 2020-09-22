@@ -19,6 +19,8 @@
 package org.apache.sling.graphql.core.servlet;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 import javax.servlet.Servlet;
 
@@ -28,7 +30,9 @@ import org.apache.sling.api.servlets.ServletResolverConstants;
 import org.apache.sling.commons.metrics.Counter;
 import org.apache.sling.commons.metrics.MetricsService;
 import org.apache.sling.commons.metrics.Timer;
+import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.core.cache.SimpleGraphQLCacheProvider;
+import org.apache.sling.graphql.core.engine.GraphQLResourceQuery;
 import org.apache.sling.graphql.core.engine.SlingDataFetcherSelector;
 import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
 import org.apache.sling.graphql.core.schema.RankedSchemaProviders;
@@ -39,15 +43,21 @@ import org.apache.sling.testing.mock.sling.servlet.MockSlingHttpServletResponse;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.MockedStatic;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import com.codahale.metrics.MetricRegistry;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.class)
 public class GraphQLServletTest {
 
     @Rule
@@ -65,6 +75,46 @@ public class GraphQLServletTest {
 
         MetricRegistry metricRegistry = mock(MetricRegistry.class);
         context.registerService(MetricRegistry.class, metricRegistry, "name", "sling");
+    }
+
+    @Test
+    public void testCachingErrors() throws IOException {
+        try (MockedStatic<GraphQLResourceQuery> graphQLResourceQueryMockedStatic = mockStatic(GraphQLResourceQuery.class)) {
+            graphQLResourceQueryMockedStatic.when(() -> GraphQLResourceQuery.isQueryValid(any(SchemaProvider.class),
+                    any(SlingDataFetcherSelector.class), any(SlingScalarsProvider.class), any(Resource.class), any(String[].class),
+                    anyString(), any(Map.class))).thenReturn(true);
+            RankedSchemaProviders rankedSchemaProviders = mock(RankedSchemaProviders.class);
+            context.registerService(rankedSchemaProviders);
+            SlingDataFetcherSelector slingDataFetcherSelector = mock(SlingDataFetcherSelector.class);
+            context.registerService(slingDataFetcherSelector);
+            SlingScalarsProvider slingScalarsProvider = mock(SlingScalarsProvider.class);
+            context.registerService(slingScalarsProvider);
+
+            context.registerInjectActivateService(new SimpleGraphQLCacheProvider(), "maxSize", 10);
+
+            context.registerInjectActivateService(new GraphQLServlet(), ServletResolverConstants.SLING_SERVLET_RESOURCE_TYPES, "a/b/c",
+                    "persistedQueries.suffix", "/persisted");
+            GraphQLServlet servlet = (GraphQLServlet) context.getService(Servlet.class);
+            assertNotNull(servlet);
+
+            context.build().resource("/content/graphql", ResourceResolver.PROPERTY_RESOURCE_TYPE, "a/b/c").commit();
+            Resource resource = context.resourceResolver().resolve("/content/graphql");
+
+            MockSlingHttpServletResponse response = context.response();
+            MockSlingHttpServletRequest request = new MockSlingHttpServletRequest(context.bundleContext());
+            request.setMethod("POST");
+            request.setContent("{\"query\": \"{ currentResource { resourceType name } }\" }".getBytes(StandardCharsets.UTF_8));
+
+            request.setResource(resource);
+            MockRequestPathInfo requestPathInfo = (MockRequestPathInfo) request.getRequestPathInfo();
+            requestPathInfo.setExtension("gql");
+            requestPathInfo.setResourcePath(resource.getPath());
+            requestPathInfo.setSuffix("/persisted");
+
+            servlet.doPost(request, response);
+
+            assertEquals(500, response.getStatus());
+        }
     }
 
     @Test
