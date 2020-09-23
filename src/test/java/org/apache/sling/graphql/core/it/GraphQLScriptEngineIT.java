@@ -41,7 +41,11 @@ public class GraphQLScriptEngineIT extends GraphQLCoreTestSupport {
 
     @Inject
     @Filter(value = "(names=graphql)")
-    protected ScriptEngineFactory scriptEngineFactory;
+    protected ScriptEngineFactory graphQLScriptEngine;
+
+    @Inject
+    @Filter(value = "(mimeTypes=application/graphql)")
+    protected ScriptEngineFactory graphQLScriptEngineByMimeType;
 
     @Configuration
     public Option[] configuration() {
@@ -50,9 +54,11 @@ public class GraphQLScriptEngineIT extends GraphQLCoreTestSupport {
 
     @Test
     public void testEnginePresent() throws ScriptException {
-        assertNotNull("Expecting ScriptEngineFactory to be present", scriptEngineFactory);
-        final ScriptEngine engine = scriptEngineFactory.getScriptEngine();
+        assertNotNull("Expecting ScriptEngineFactory to be present", graphQLScriptEngine);
+        final ScriptEngine engine = graphQLScriptEngine.getScriptEngine();
         assertNotNull("Expecting ScriptEngine to be provided", engine);
         assertEquals("Expecting our GraphQLScriptEngine", "GraphQLScriptEngine", engine.getClass().getSimpleName());
+        assertEquals("Expected to get the GraphQLScriptEngine when filtering by mime type.", graphQLScriptEngine,
+                graphQLScriptEngineByMimeType);
     }
 }

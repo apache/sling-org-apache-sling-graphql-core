@@ -40,8 +40,11 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
         description = "mime types"
     )
     String[] mimeTypes() default {
-        // TODO just making this up, is there a standard value?
-        "text/x-graphql"
+        /*
+        see https://graphql.org/learn/serving-over-http/ where it is documented that a request using the "application/graphql"
+        content-type should be treated as a raw GraphQL query
+         */
+        "application/graphql"
     };
 
     @AttributeDefinition(
