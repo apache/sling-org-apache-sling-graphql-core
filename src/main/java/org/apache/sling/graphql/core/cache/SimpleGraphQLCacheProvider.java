@@ -161,7 +161,7 @@ public class SimpleGraphQLCacheProvider implements GraphQLCacheProvider {
             String key = getCacheKey(hash, resourceType, selectorString);
             persistedQueriesCache.put(key, query);
             if (persistedQueriesCache.containsKey(key)) {
-                return key;
+                return hash;
             }
             return null;
         } finally {

@@ -151,10 +151,7 @@ public class SimpleGraphQLCacheProviderTest {
         final String selectors = UUID.randomUUID().toString();
 
         String aHash = provider.cacheQuery(queryText, path, null);
-        String bHash = provider.cacheQuery(queryText, path, null);
-        String cHash = provider.cacheQuery(queryText, path, selectors);
-
+        String bHash = provider.cacheQuery(queryText, path, selectors);
         assertEquals("Expecting the same hash for same query", aHash, bHash);
-        assertNotEquals("Expecting a different hash with added selectors", aHash, cHash);
     }
 }
