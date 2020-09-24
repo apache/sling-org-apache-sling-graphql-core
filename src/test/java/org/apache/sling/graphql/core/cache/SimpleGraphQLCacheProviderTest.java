@@ -30,11 +30,14 @@ import org.junit.Test;
 import com.codahale.metrics.MetricRegistry;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import java.util.UUID;
 
 public class SimpleGraphQLCacheProviderTest {
 
@@ -137,4 +140,18 @@ public class SimpleGraphQLCacheProviderTest {
         assertEquals("c", provider.getQuery(cHash, "a/b/c", null));
     }
 
+    @Test
+    public void testSelectors() {
+        context.registerInjectActivateService(new SimpleGraphQLCacheProvider(), "cacheSize", 2, "maxMemory", 40);
+        SimpleGraphQLCacheProvider provider = (SimpleGraphQLCacheProvider) context.getService(GraphQLCacheProvider.class);
+        assertNotNull(provider);
+
+        final String queryText = UUID.randomUUID().toString();
+        final String path = "testing/selectors";
+        final String selectors = UUID.randomUUID().toString();
+
+        String aHash = provider.cacheQuery(queryText, path, null);
+        String bHash = provider.cacheQuery(queryText, path, selectors);
+        assertEquals("Expecting the same hash for same query", aHash, bHash);
+    }
 }
