@@ -82,10 +82,15 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
             vmOption = new VMOption(vmOpt);
         }
 
+        final String jacocoOpt = System.getProperty("jacoco.command");
+        VMOption jacocoCommand = null;
+        if (StringUtils.isNotEmpty(jacocoOpt)) {
+            jacocoCommand = new VMOption(jacocoOpt);
+        }
+
         return composite(
-            when(vmOption != null).useOptions(
-                vmOption
-            ),
+            when(vmOption != null).useOptions(vmOption),
+            when(jacocoCommand != null).useOptions(jacocoCommand),
             super.baseConfiguration(),
             slingQuickstart(),
             graphQLJava(),
@@ -99,8 +104,7 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
             slingResourcePresence(),
             slingCommonsMetrics(),
             jsonPath(),
-            junitBundles(),
-            vmOption(System.getProperty("jacoco.command"))
+            junitBundles()
         );
     }
 

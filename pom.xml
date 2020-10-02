@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.apache.sling</groupId>
     <artifactId>sling-bundle-parent</artifactId>
-    <version>38</version>
+    <version>40-SNAPSHOT</version>
     <relativePath />
   </parent>
 
@@ -39,8 +39,6 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
     <org.ops4j.pax.exam.version>4.13.3</org.ops4j.pax.exam.version>
-    <jacoco.maven.plugin.version>0.8.2</jacoco.maven.plugin.version>
-
     <!-- additional options that can be passed to Pax before executing the tests -->
     <pax.vm.options />
   </properties>
@@ -63,66 +61,6 @@
         <artifactId>bnd-baseline-maven-plugin</artifactId>
       </plugin>
       <plugin>
-        <groupId>org.jacoco</groupId>
-        <artifactId>jacoco-maven-plugin</artifactId>
-        <version>${jacoco.maven.plugin.version}</version>
-        <configuration>
-          <propertyName>jacoco.command</propertyName>
-        </configuration>
-        <executions>
-          <execution>
-            <id>prepare-agent</id>
-            <configuration>
-              <destFile>${project.build.directory}/jacoco-unit.exec</destFile>
-            </configuration>
-            <phase>generate-test-resources</phase>
-            <goals>
-              <goal>prepare-agent</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>prepare-agent-integration</id>
-            <configuration>
-              <destFile>${project.build.directory}/jacoco-it.exec</destFile>
-            </configuration>
-            <goals>
-              <goal>prepare-agent-integration</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>merge</id>
-            <phase>post-integration-test</phase>
-            <goals>
-              <goal>merge</goal>
-            </goals>
-            <configuration>
-              <fileSets>
-                <fileSet>
-                  <directory>${project.build.directory}</directory>
-                  <includes>
-                    <include>*.exec</include>
-                  </includes>
-                </fileSet>
-              </fileSets>
-            </configuration>
-          </execution>
-          <execution>
-            <id>report</id>
-            <phase>post-integration-test</phase>
-            <goals>
-              <goal>report</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <configuration>
-          <argLine>${jacoco.command}</argLine>
-        </configuration>
-      </plugin>
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
         <executions>
@@ -135,7 +73,6 @@
         </executions>
         <configuration>
           <systemPropertyVariables>
-            <jacoco.command>${jacoco.command}</jacoco.command>
             <bundle.filename>${basedir}/target/${project.build.finalName}.jar</bundle.filename>
             <pax.vm.options>${pax.vm.options}</pax.vm.options>
           </systemPropertyVariables>
