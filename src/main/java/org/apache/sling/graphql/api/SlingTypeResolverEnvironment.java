@@ -24,7 +24,7 @@ import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * Provides contextual information to the {#link SlingDataFetcher}
+ * Provides contextual information to the {@link SlingTypeResolver}
  */
 @SuppressWarnings("TypeParameterUnusedInFormals")
 
@@ -59,5 +59,5 @@ public interface SlingTypeResolverEnvironment {
      * @param <T> the type name
      * @return the GraphQL Object Type
      */
-    @Nullable <T> T getObjectType(String name);
+    <T> T getObjectType(String name);
 }

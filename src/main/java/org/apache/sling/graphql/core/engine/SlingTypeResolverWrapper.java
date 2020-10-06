@@ -26,7 +26,7 @@ import org.apache.sling.api.resource.Resource;
 import org.apache.sling.graphql.api.SlingTypeResolver;
 
 /**
- * Wraps a SlingDataFetcher to make it usable by graphql-java
+ * Wraps a SlingTypeResolver to make it usable by graphql-java
  */
 class SlingTypeResolverWrapper implements TypeResolver {
 

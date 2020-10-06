@@ -39,7 +39,7 @@ public class TestUtil {
 
     public static ServiceRegistration<?> registerSlingTypeResolver(BundleContext bc, String name, SlingTypeResolver<?> f) {
         final Dictionary<String, Object> props = new Hashtable<>();
-        props.put(SlingDataFetcher.NAME_SERVICE_PROPERTY, name);
+        props.put(SlingTypeResolver.NAME_SERVICE_PROPERTY, name);
         return bc.registerService(SlingTypeResolver.class, f, props);
     }
 

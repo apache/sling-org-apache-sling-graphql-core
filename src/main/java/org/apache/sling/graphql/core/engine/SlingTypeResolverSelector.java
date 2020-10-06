@@ -39,13 +39,13 @@ import java.io.IOException;
 public class SlingTypeResolverSelector {
 
     /**
-     * Fetchers which have a name starting with this prefix must be
+     * Resolvers which have a name starting with this prefix must be
      * under the {#link RESERVED_PACKAGE_PREFIX} package.
      */
     public static final String RESERVED_NAME_PREFIX = "sling/";
 
     /**
-     * Package name prefix for fetchers which have names starting
+     * Package name prefix for resolvers which have names starting
      * with the {#link RESERVED_NAME_PREFIX}.
      */
     public static final String RESERVED_PACKAGE_PREFIX = "org.apache.sling.";
@@ -53,7 +53,7 @@ public class SlingTypeResolverSelector {
     private BundleContext bundleContext;
 
     @Reference
-    private ScriptedDataFetcherProvider scriptedDataFetcherProvider;
+    private ScriptedTypeResolverProvider scriptedTypeResolverProvider;
 
     @Activate
     public void activate(BundleContext ctx) {
@@ -65,7 +65,7 @@ public class SlingTypeResolverSelector {
      * registered with the supplied name.
      */
     @SuppressWarnings("unchecked")
-    private SlingTypeResolver<Object> getOsgiServiceFetcher(@NotNull String name) throws IOException {
+    private SlingTypeResolver<Object> getOsgiServiceTypeResolver(@NotNull String name) throws IOException {
         SlingTypeResolver<Object> result = null;
         final String filter = String.format("(%s=%s)", SlingTypeResolver.NAME_SERVICE_PROPERTY, name);
         ServiceReference<?>[] refs = null;
@@ -75,7 +75,7 @@ public class SlingTypeResolverSelector {
             throw new IOException("Invalid OSGi filter syntax", ise);
         }
         if (refs != null) {
-            // SlingFetcher services must have a unique name
+            // SlingTypeResolver services must have a unique name
             if (refs.length > 1) {
                 throw new IOException(String.format("Got %d services for %s, expected just one", refs.length, filter));
             }
@@ -99,11 +99,16 @@ public class SlingTypeResolverSelector {
     }
 
     /**
-     * @return a SlingDataFetcher, or null if none available. First tries to get an
-     * OSGi SlingDataFetcher service, and if not found tries to find a scripted SlingDataFetcher.
+     * @return a SlingTypeResolver, or null if none available. First tries to get an
+     * OSGi SlingTypeResolver service, and if not found tries to find a scripted SlingTypeResolver.
      */
     @Nullable
     public SlingTypeResolver<Object> getSlingTypeResolver(@NotNull String name) throws IOException {
-        return getOsgiServiceFetcher(name);
+        SlingTypeResolver<Object> result = getOsgiServiceTypeResolver(name);
+        if(result == null) {
+            result = scriptedTypeResolverProvider.getTypeResolver(name);
+        }
+        return result;
     }
+
 }
