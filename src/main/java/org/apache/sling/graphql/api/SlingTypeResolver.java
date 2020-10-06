@@ -17,10 +17,21 @@
  * under the License.
  */
 
- /**
-  * This package contains APIs which are independent of
-  * a specific implementation of the underlying graphQL engine.
-  */
-@Version("3.2.0")
 package org.apache.sling.graphql.api;
-import org.osgi.annotation.versioning.Version;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ConsumerType;
+
+/**
+ * Resolves the GraphQL object type of a given result item. Services must be
+ * registered with a NAME property with a unique value that's matched with the
+ * corresponding @directive in the GraphQL Schema.
+ */
+@ConsumerType
+public interface SlingTypeResolver<T> {
+    String NAME_SERVICE_PROPERTY = "name";
+
+    @Nullable
+    T getType(@NotNull SlingTypeResolverEnvironment e);
+}

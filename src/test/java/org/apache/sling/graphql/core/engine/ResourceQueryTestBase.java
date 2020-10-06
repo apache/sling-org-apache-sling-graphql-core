@@ -40,6 +40,7 @@ import graphql.ExecutionResult;
 public abstract class ResourceQueryTestBase {
     protected SchemaProvider schemaProvider;
     protected SlingDataFetcherSelector dataFetchersSelector;
+    protected SlingTypeResolverSelector typeResolverSelector;
     protected SlingScalarsProvider scalarsProvider;
     protected Resource resource;
 
@@ -67,6 +68,7 @@ public abstract class ResourceQueryTestBase {
         context.registerInjectActivateService(new ScriptedDataFetcherProvider());
         context.registerInjectActivateService(new SlingDataFetcherSelector());
         dataFetchersSelector = context.getService(SlingDataFetcherSelector.class);
+        typeResolverSelector = context.getService(SlingTypeResolverSelector.class);
         context.registerInjectActivateService(new SlingScalarsProvider());
         scalarsProvider = context.getService(SlingScalarsProvider.class);
     }
@@ -77,7 +79,7 @@ public abstract class ResourceQueryTestBase {
 
     protected String queryJSON(String stmt, String [] selectors) throws Exception {
         final ExecutionResult result = GraphQLResourceQuery.executeQuery(schemaProvider,
-            dataFetchersSelector, scalarsProvider, resource, selectors, stmt, Collections.emptyMap());
+            dataFetchersSelector, typeResolverSelector, scalarsProvider, resource, selectors, stmt, Collections.emptyMap());
         assertTrue("Expecting no errors: " + result.getErrors(), result.getErrors().isEmpty());
         return new JsonSerializer().toJSON(result);
     }

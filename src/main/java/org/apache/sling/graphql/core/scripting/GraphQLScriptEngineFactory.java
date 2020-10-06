@@ -22,6 +22,7 @@ package org.apache.sling.graphql.core.scripting;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
 
+import org.apache.sling.graphql.core.engine.SlingTypeResolverSelector;
 import org.apache.sling.scripting.api.AbstractScriptEngineFactory;
 import org.apache.sling.graphql.core.engine.SlingDataFetcherSelector;
 import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
@@ -57,6 +58,9 @@ public class GraphQLScriptEngineFactory extends AbstractScriptEngineFactory {
     private SlingDataFetcherSelector dataFetcherSelector;
 
     @Reference
+    private SlingTypeResolverSelector typeResolverSelector;
+
+    @Reference
     private SlingScalarsProvider scalarsProvider;
 
     @Activate
@@ -85,9 +89,11 @@ public class GraphQLScriptEngineFactory extends AbstractScriptEngineFactory {
         return schemaProviders;
     }
 
-    SlingDataFetcherSelector getdataFetcherSelector() {
+    SlingDataFetcherSelector getDataFetcherSelector() {
         return dataFetcherSelector;
     }
+
+    SlingTypeResolverSelector getTypeResolverSelector() { return typeResolverSelector; }
 
     SlingScalarsProvider getScalarsProvider() {
         return scalarsProvider;

@@ -40,6 +40,7 @@ import org.apache.sling.commons.metrics.Timer;
 import org.apache.sling.graphql.api.cache.GraphQLCacheProvider;
 import org.apache.sling.graphql.core.engine.GraphQLResourceQuery;
 import org.apache.sling.graphql.core.engine.SlingDataFetcherSelector;
+import org.apache.sling.graphql.core.engine.SlingTypeResolverSelector;
 import org.apache.sling.graphql.core.json.JsonSerializer;
 import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
 import org.apache.sling.graphql.core.schema.RankedSchemaProviders;
@@ -128,6 +129,9 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
 
     @Reference
     private SlingDataFetcherSelector dataFetcherSelector;
+
+    @Reference
+    private SlingTypeResolverSelector typeResolverSelector;
 
     @Reference
     private SlingScalarsProvider scalarsProvider;
@@ -286,7 +290,7 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
             throws IOException {
         String rawQuery = IOUtils.toString(request.getReader());
         QueryParser.Result query = QueryParser.fromJSON(rawQuery);
-        if (GraphQLResourceQuery.isQueryValid(schemaProviders, dataFetcherSelector, scalarsProvider, request.getResource(),
+        if (GraphQLResourceQuery.isQueryValid(schemaProviders, dataFetcherSelector, typeResolverSelector, scalarsProvider, request.getResource(),
                 request.getRequestPathInfo().getSelectors(), query.getQuery(), query.getVariables())) {
 
             String hash = cacheProvider.cacheQuery(rawQuery, request.getResource().getResourceType(),
@@ -317,7 +321,7 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
         }
 
         try {
-            final ExecutionResult executionResult = GraphQLResourceQuery.executeQuery(schemaProviders, dataFetcherSelector, scalarsProvider,
+            final ExecutionResult executionResult = GraphQLResourceQuery.executeQuery(schemaProviders, dataFetcherSelector, typeResolverSelector, scalarsProvider,
                 resource, request.getRequestPathInfo().getSelectors(), query, result.getVariables());
             jsonSerializer.sendJSON(response.getWriter(), executionResult);
         } catch(Exception ex) {
@@ -330,7 +334,7 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
         response.setCharacterEncoding("UTF-8");
         try {
             final QueryParser.Result result = QueryParser.fromJSON(persistedQuery);
-            final ExecutionResult executionResult = GraphQLResourceQuery.executeQuery(schemaProviders, dataFetcherSelector, scalarsProvider,
+            final ExecutionResult executionResult = GraphQLResourceQuery.executeQuery(schemaProviders, dataFetcherSelector, typeResolverSelector, scalarsProvider,
                     request.getResource(), request.getRequestPathInfo().getSelectors(), result.getQuery(), result.getVariables());
             jsonSerializer.sendJSON(response.getWriter(), executionResult);
         } catch(Exception ex) {

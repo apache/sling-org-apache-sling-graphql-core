@@ -29,6 +29,7 @@ import java.util.UUID;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.graphql.api.SchemaProvider;
+import org.apache.sling.graphql.core.engine.SlingTypeResolverSelector;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.hamcrest.CustomMatcher;
 import org.hamcrest.Matcher;
@@ -57,6 +58,7 @@ import net.minidev.json.JSONArray;
 public class SchemaDescriptionsTest {
     private SchemaProvider schemaProvider = new MockSchemaProvider("test-schema");
     private SlingDataFetcherSelector dataFetchersSelector;
+    private SlingTypeResolverSelector typeResolverSelector;
     private SlingScalarsProvider scalarsProvider;
     private Resource resource;
     private String schemaJson;
@@ -108,6 +110,7 @@ public class SchemaDescriptionsTest {
         context.registerInjectActivateService(new ScriptedDataFetcherProvider());
         context.registerInjectActivateService(new SlingDataFetcherSelector());
         dataFetchersSelector = context.getService(SlingDataFetcherSelector.class);
+        typeResolverSelector = context.getService(SlingTypeResolverSelector.class);
         context.registerInjectActivateService(new SlingScalarsProvider());
         scalarsProvider = context.getService(SlingScalarsProvider.class);
         schemaJson = queryJSON(SCHEMA_QUERY);
@@ -115,7 +118,7 @@ public class SchemaDescriptionsTest {
 
     private String queryJSON(String stmt) throws Exception {
         final ExecutionResult result = GraphQLResourceQuery.executeQuery(schemaProvider,
-            dataFetchersSelector, scalarsProvider, resource, new String[] {}, stmt, Collections.emptyMap());
+            dataFetchersSelector, typeResolverSelector, scalarsProvider, resource, new String[] {}, stmt, Collections.emptyMap());
         assertTrue("Expecting no errors: " + result.getErrors(), result.getErrors().isEmpty());
         return new JsonSerializer().toJSON(result);
     }

@@ -64,7 +64,7 @@ public class GraphQLScriptEngine extends AbstractScriptEngine {
             final Resource resource = (Resource) context.getBindings(ScriptContext.ENGINE_SCOPE)
                     .get(SlingBindings.RESOURCE);
             final String [] selectors = getRequestSelectors(resource);
-            final ExecutionResult result = GraphQLResourceQuery.executeQuery(factory.getSchemaProviders(), factory.getdataFetcherSelector(),
+            final ExecutionResult result = GraphQLResourceQuery.executeQuery(factory.getSchemaProviders(), factory.getDataFetcherSelector(), factory.getTypeResolverSelector(),
                     factory.getScalarsProvider(), resource, selectors, IOUtils.toString(reader), Collections.emptyMap());
             final PrintWriter out = (PrintWriter) context.getBindings(ScriptContext.ENGINE_SCOPE).get(SlingBindings.OUT);
             jsonSerializer.sendJSON(out, result);

@@ -93,7 +93,7 @@ public class GraphQLResourceQueryTest extends ResourceQueryTestBase {
     public void dataFetcherFailureTest() throws Exception {
         try {
             final String stmt = "{ currentResource { failure } }";
-            GraphQLResourceQuery.executeQuery(schemaProvider, dataFetchersSelector, scalarsProvider, resource, new String[] {}, stmt,
+            GraphQLResourceQuery.executeQuery(schemaProvider, dataFetchersSelector, typeResolverSelector, scalarsProvider, resource, new String[] {}, stmt,
                     Collections.emptyMap());
         } catch(RuntimeException rex) {
             assertThat(rex.getMessage(), equalTo("FailureDataFetcher"));

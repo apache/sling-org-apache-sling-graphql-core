@@ -34,6 +34,7 @@ import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.core.cache.SimpleGraphQLCacheProvider;
 import org.apache.sling.graphql.core.engine.GraphQLResourceQuery;
 import org.apache.sling.graphql.core.engine.SlingDataFetcherSelector;
+import org.apache.sling.graphql.core.engine.SlingTypeResolverSelector;
 import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
 import org.apache.sling.graphql.core.schema.RankedSchemaProviders;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
@@ -81,12 +82,14 @@ public class GraphQLServletTest {
     public void testCachingErrors() throws IOException {
         try (MockedStatic<GraphQLResourceQuery> graphQLResourceQueryMockedStatic = mockStatic(GraphQLResourceQuery.class)) {
             graphQLResourceQueryMockedStatic.when(() -> GraphQLResourceQuery.isQueryValid(any(SchemaProvider.class),
-                    any(SlingDataFetcherSelector.class), any(SlingScalarsProvider.class), any(Resource.class), any(String[].class),
+                    any(SlingDataFetcherSelector.class), any(SlingTypeResolverSelector.class), any(SlingScalarsProvider.class), any(Resource.class), any(String[].class),
                     anyString(), any(Map.class))).thenReturn(true);
             RankedSchemaProviders rankedSchemaProviders = mock(RankedSchemaProviders.class);
             context.registerService(rankedSchemaProviders);
             SlingDataFetcherSelector slingDataFetcherSelector = mock(SlingDataFetcherSelector.class);
             context.registerService(slingDataFetcherSelector);
+            SlingTypeResolverSelector slingTypeResolverSelector = mock(SlingTypeResolverSelector.class);
+            context.registerService(slingTypeResolverSelector);
             SlingScalarsProvider slingScalarsProvider = mock(SlingScalarsProvider.class);
             context.registerService(slingScalarsProvider);
 
@@ -123,6 +126,8 @@ public class GraphQLServletTest {
         context.registerService(rankedSchemaProviders);
         SlingDataFetcherSelector slingDataFetcherSelector = mock(SlingDataFetcherSelector.class);
         context.registerService(slingDataFetcherSelector);
+        SlingTypeResolverSelector slingTypeResolverSelector = mock(SlingTypeResolverSelector.class);
+        context.registerService(slingTypeResolverSelector);
         SlingScalarsProvider slingScalarsProvider = mock(SlingScalarsProvider.class);
         context.registerService(slingScalarsProvider);
         context.registerInjectActivateService(new SimpleGraphQLCacheProvider());
