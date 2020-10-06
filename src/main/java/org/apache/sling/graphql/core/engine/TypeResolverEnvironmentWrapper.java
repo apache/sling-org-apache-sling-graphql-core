@@ -20,8 +20,10 @@
 package org.apache.sling.graphql.core.engine;
 
 import graphql.TypeResolutionEnvironment;
+import graphql.schema.GraphQLObjectType;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.graphql.api.SlingTypeResolverEnvironment;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -29,7 +31,7 @@ import org.jetbrains.annotations.Nullable;
  * our own SlingTypeResolverEnvironment interface. This avoids
  * having to expose the graphql-java APIs in our own API.
  */
-class TypeResolverEnvironmentWrapper implements SlingTypeResolverEnvironment {
+class TypeResolverEnvironmentWrapper implements SlingTypeResolverEnvironment<GraphQLObjectType> {
     private final TypeResolutionEnvironment env;
     private final Resource currentResource;
     private final String options;
@@ -64,7 +66,8 @@ class TypeResolverEnvironmentWrapper implements SlingTypeResolverEnvironment {
     }
 
     @Override
-    public @Nullable Object getObjectType(String name) {
+    @Nullable
+    public GraphQLObjectType getObjectType(@NotNull String name) {
         return env.getSchema().getObjectType(name);
     }
 }

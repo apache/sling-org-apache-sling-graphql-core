@@ -20,6 +20,7 @@
 package org.apache.sling.graphql.api;
 
 import org.apache.sling.api.resource.Resource;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
@@ -29,7 +30,7 @@ import org.osgi.annotation.versioning.ProviderType;
 @SuppressWarnings("TypeParameterUnusedInFormals")
 
 @ProviderType
-public interface SlingTypeResolverEnvironment {
+public interface SlingTypeResolverEnvironment<T> {
 
     /**
      * @return the current Sling resource
@@ -56,8 +57,9 @@ public interface SlingTypeResolverEnvironment {
     Object getObject();
 
     /**
-     * @param <T> the type name
+     * @param name the type name
      * @return the GraphQL Object Type
      */
-    <T> T getObjectType(String name);
+    @Nullable
+    T getObjectType(@NotNull String name);
 }
