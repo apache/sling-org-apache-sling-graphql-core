@@ -22,6 +22,13 @@ directive @fetcher(
     source : String = ""
 ) on FIELD_DEFINITION
 
+# This directive to maps types
+directive @resolver(
+    name : String,
+    options : String = "",
+    source : String = ""
+) on UNION
+
 # GraphQL Schema used for our tests
 type Query {
     currentResource : SlingResource @fetcher(name:"echoNS/echo")
@@ -30,7 +37,12 @@ type Query {
     staticContent: Test @fetcher(name:"test/static")
 
     scriptedFetcher (testing : String) : Test @fetcher(name:"scripted/example")
+
+    # Test union as return type
+    unionFetcher: Test2 @fetcher(name:"union/fetcher")
 }
+
+union AllTypes @resolver(name:"union/resolver" source:"AllTypes") = SlingResource | Test
 
 # This should be omitted from the SlingResource type description
 #
@@ -51,6 +63,7 @@ type SlingResource {
 
     # Failure message
     failure: String @fetcher(name:"failure/fail")
+
 }
 
 type Test { 
@@ -59,3 +72,8 @@ type Test {
     resourcePath: String
     testingArgument: String
 }
+
+type Test2 {
+    items: [AllTypes]
+}
+

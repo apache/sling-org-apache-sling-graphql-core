@@ -27,15 +27,20 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Hashtable;
+import java.util.List;
 
 import org.apache.sling.graphql.core.mocks.DigestDataFetcher;
 import org.apache.sling.graphql.core.mocks.EchoDataFetcher;
 import org.apache.sling.graphql.core.mocks.FailingDataFetcher;
 import org.apache.sling.graphql.core.mocks.MockSchemaProvider;
 import org.apache.sling.graphql.core.mocks.TestUtil;
+import org.apache.sling.graphql.core.mocks.TypeSlingResourceDTO;
+import org.apache.sling.graphql.core.mocks.TypeTestDTO;
+import org.apache.sling.graphql.core.mocks.UnionTypeResolver;
 import org.junit.Test;
 import org.osgi.framework.ServiceRegistration;
 
@@ -45,13 +50,29 @@ public class GraphQLResourceQueryTest extends ResourceQueryTestBase {
         final Dictionary<String, Object> staticData = new Hashtable<>();
         staticData.put("test", true);
 
+        final Dictionary<String, Object> unionData = new Hashtable<>();
+        final List<Object> items = new ArrayList<>();
+        items.add(new TypeTestDTO(true, false, "path/to/resource", "1, 2, 3"));
+        items.add(new TypeSlingResourceDTO(resource.getPath(), resource.getResourceType()));
+        unionData.put("items", items);
+
+        TestUtil.registerSlingTypeResolver(context.bundleContext(), "union/resolver", new UnionTypeResolver());
+        TestUtil.registerSlingDataFetcher(context.bundleContext(), "union/fetcher", new EchoDataFetcher(unionData));
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "echoNS/echo", new EchoDataFetcher(null));
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "failure/fail", new FailingDataFetcher());
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "test/static", new EchoDataFetcher(staticData));
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "test/fortyTwo", new EchoDataFetcher(42));
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "sling/digest", new DigestDataFetcher());
     }
-    
+
+    @Test
+    public void unionFetcherTest() throws Exception {
+        final String json = queryJSON("{ unionFetcher { items { ... on Test { testingArgument }  ... on SlingResource { path }} } }");
+        assertThat(json, hasJsonPath("$.data.unionFetcher"));
+        assertThat(json, hasJsonPath("$.data.unionFetcher.items[0].testingArgument", equalTo("1, 2, 3")));
+        assertThat(json, hasJsonPath("$.data.unionFetcher.items[1].path", equalTo(resource.getPath())));
+    }
+
     @Test
     public void basicTest() throws Exception {
         final String json = queryJSON("{ currentResource { path resourceType } }");

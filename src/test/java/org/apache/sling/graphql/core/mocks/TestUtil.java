@@ -37,10 +37,10 @@ public class TestUtil {
         return bc.registerService(SlingDataFetcher.class, f, props);
     }
 
-    public static ServiceRegistration<?> registerSlingTypeResolver(BundleContext bc, String name, SlingTypeResolver<?> f) {
+    public static ServiceRegistration<?> registerSlingTypeResolver(BundleContext bc, String name, SlingTypeResolver<?> tr) {
         final Dictionary<String, Object> props = new Hashtable<>();
         props.put(SlingTypeResolver.NAME_SERVICE_PROPERTY, name);
-        return bc.registerService(SlingTypeResolver.class, f, props);
+        return bc.registerService(SlingTypeResolver.class, tr, props);
     }
 
     public static ServiceRegistration<?> registerSlingScalarConverter(BundleContext bc, String name, SlingScalarConverter<?,?> c) {

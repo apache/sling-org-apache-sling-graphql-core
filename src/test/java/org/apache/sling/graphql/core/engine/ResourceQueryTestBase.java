@@ -67,6 +67,8 @@ public abstract class ResourceQueryTestBase {
 
         context.registerInjectActivateService(new ScriptedDataFetcherProvider());
         context.registerInjectActivateService(new SlingDataFetcherSelector());
+        context.registerInjectActivateService(new ScriptedTypeResolverProvider());
+        context.registerInjectActivateService(new SlingTypeResolverSelector());
         dataFetchersSelector = context.getService(SlingDataFetcherSelector.class);
         typeResolverSelector = context.getService(SlingTypeResolverSelector.class);
         context.registerInjectActivateService(new SlingScalarsProvider());
