@@ -18,29 +18,28 @@
  */
 package org.apache.sling.graphql.core.engine;
 
-import static org.junit.Assert.assertTrue;
-
 import java.util.Collections;
 import java.util.UUID;
+
+import javax.json.JsonObject;
 
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.graphql.api.SchemaProvider;
-import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
-import org.apache.sling.graphql.core.json.JsonSerializer;
+import org.apache.sling.graphql.api.engine.QueryExecutor;
 import org.apache.sling.graphql.core.mocks.MockSchemaProvider;
 import org.apache.sling.graphql.core.mocks.MockScriptServlet;
 import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
+import org.apache.sling.graphql.core.schema.RankedSchemaProviders;
+import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.mockito.Mockito;
 
-import graphql.ExecutionResult;
+import static org.junit.Assert.assertNotNull;
 
 public abstract class ResourceQueryTestBase {
-    protected SchemaProvider schemaProvider;
-    protected SlingDataFetcherSelector dataFetchersSelector;
-    protected SlingScalarsProvider scalarsProvider;
+
     protected Resource resource;
 
     @Rule
@@ -48,7 +47,8 @@ public abstract class ResourceQueryTestBase {
 
     @Before
     public void setup() {
-        schemaProvider = new MockSchemaProvider(getTestSchemaName());
+        SchemaProvider schemaProvider = new MockSchemaProvider(getTestSchemaName());
+        context.registerService(SchemaProvider.class, schemaProvider);
         final String resourceType = "RT-" + UUID.randomUUID();
         final String path = "/some/path/" + UUID.randomUUID();
         resource = Mockito.mock(Resource.class);
@@ -66,20 +66,20 @@ public abstract class ResourceQueryTestBase {
 
         context.registerInjectActivateService(new ScriptedDataFetcherProvider());
         context.registerInjectActivateService(new SlingDataFetcherSelector());
-        dataFetchersSelector = context.getService(SlingDataFetcherSelector.class);
         context.registerInjectActivateService(new SlingScalarsProvider());
-        scalarsProvider = context.getService(SlingScalarsProvider.class);
+        context.registerInjectActivateService(new RankedSchemaProviders());
+        context.registerInjectActivateService(new DefaultQueryExecutor());
     }
 
     protected String queryJSON(String stmt) throws Exception {
         return queryJSON(stmt, new String[]{});
     }
 
-    protected String queryJSON(String stmt, String [] selectors) throws Exception {
-        final ExecutionResult result = GraphQLResourceQuery.executeQuery(schemaProvider,
-            dataFetchersSelector, scalarsProvider, resource, selectors, stmt, Collections.emptyMap());
-        assertTrue("Expecting no errors: " + result.getErrors(), result.getErrors().isEmpty());
-        return new JsonSerializer().toJSON(result);
+    protected String queryJSON(String stmt, String [] selectors) {
+        final QueryExecutor queryExecutor = context.getService(QueryExecutor.class);
+        assertNotNull(queryExecutor);
+        JsonObject json = queryExecutor.execute(stmt, Collections.emptyMap(), resource, selectors);
+        return json.toString();
     }
 
     protected void setupAdditionalServices() {

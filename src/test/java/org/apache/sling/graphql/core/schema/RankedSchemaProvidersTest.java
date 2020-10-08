@@ -80,26 +80,29 @@ public class RankedSchemaProvidersTest {
     public void providerPriorities() throws IOException {
         assertProvider("Beginning", DEFAULT_SCHEMA_PROVIDER_OUTPUT);
 
-        registerProvider("Y", DEFAULT_SERVICE_RANKING + 1);
-        assertProvider("After Y", DEFAULT_SCHEMA_PROVIDER_OUTPUT);
+        final ServiceRegistration<?> y = registerProvider("Y", DEFAULT_SERVICE_RANKING + 1);
+        assertProvider("After Default", "Y");
 
         final ServiceRegistration<?> z = registerProvider("Z", DEFAULT_SERVICE_RANKING - 1);
-        assertProvider("After Z", "Z");
+        assertProvider("Before Default", "Y");
 
         final ServiceRegistration<?> a = registerProvider("A", 1);
         assertProvider("After A", "A");
 
         final ServiceRegistration<?> b = registerProvider("B", 2);
-        assertProvider("After B", "A");
+        assertProvider("After B", "B");
 
         a.unregister();
         assertProvider("After removing A", "B");
 
         b.unregister();
-        assertProvider("After removing B", "Z");
+        assertProvider("After removing B", "Y");
 
         z.unregister();
-        assertProvider("After removing Z", DEFAULT_SCHEMA_PROVIDER_OUTPUT);
+        assertProvider("After removing Z", "Y");
+
+        y.unregister();
+        assertProvider("After removing Y", DEFAULT_SCHEMA_PROVIDER_OUTPUT);
     }
 
     @Test

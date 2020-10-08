@@ -250,8 +250,8 @@ public class GraphQLServletIT extends GraphQLCoreTestSupport {
 
     @Test
     public void testMultipleSchemaProviders() throws Exception {
-        new ReplacingSchemaProvider("currentResource", "REPLACED").register(bundleContext, defaultSchemaProvider, 1);
-        new ReplacingSchemaProvider("currentResource", "NOT_THIS_ONE").register(bundleContext, defaultSchemaProvider, Integer.MAX_VALUE);
+        new ReplacingSchemaProvider("currentResource", "REPLACED").register(bundleContext, defaultSchemaProvider, Integer.MAX_VALUE);
+        new ReplacingSchemaProvider("currentResource", "NOT_THIS_ONE").register(bundleContext, defaultSchemaProvider, 1);
         final String json = getContent("/graphql/two.gql", "query", "{ REPLACED { resourceType name } }");
         assertThat(json, hasJsonPath("$.data.REPLACED.resourceType", equalTo("graphql/test/two")));
         assertThat(json, hasJsonPath("$.data.REPLACED.name", equalTo("two")));

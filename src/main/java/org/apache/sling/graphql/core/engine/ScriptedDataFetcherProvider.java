@@ -22,10 +22,8 @@ package org.apache.sling.graphql.core.engine;
 
 import javax.servlet.Servlet;
 
-import org.apache.sling.api.resource.AbstractResource;
 import org.apache.sling.api.resource.Resource;
-import org.apache.sling.api.resource.ResourceMetadata;
-import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.SyntheticResource;
 import org.apache.sling.api.scripting.SlingScript;
 import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.graphql.api.SlingDataFetcher;
@@ -45,43 +43,10 @@ public class ScriptedDataFetcherProvider {
     @Reference
     private ServletResolver servletResolver;
 
-    private static class FakeResource extends AbstractResource {
-
-        private final String resourceType;
-
-        FakeResource(String resourceType) {
-            this.resourceType = resourceType;
-        }
-
-        @Override
-        public String getPath() {
-            return "FAKE_RESOURCE_PATH";
-        }
-
-        @Override
-        public String getResourceType() {
-            return resourceType;
-        }
-
-        @Override
-        public String getResourceSuperType() {
-            return null;
-        }
-
-        @Override
-        public ResourceMetadata getResourceMetadata() {
-            throw new UnsupportedOperationException("Shouldn't be needed");
-        }
-
-        @Override
-        public ResourceResolver getResourceResolver() {
-            throw new UnsupportedOperationException("Shouldn't be needed");
-        }
-    }
-
     @Nullable
     SlingDataFetcher<Object> getDataFetcher(@NotNull String name) {
-        final Resource r = new FakeResource(FAKE_RESOURCE_TYPE_PREFIX + name);
+        final Resource r = new SyntheticResource(null,
+                "FAKE_RESOURCE_PATH", FAKE_RESOURCE_TYPE_PREFIX + name);
         final Servlet s = servletResolver.resolveServlet(r, SCRIPT_NAME);
         if(s instanceof SlingScript) {
             return new SlingScriptWrapper((SlingScript)s);

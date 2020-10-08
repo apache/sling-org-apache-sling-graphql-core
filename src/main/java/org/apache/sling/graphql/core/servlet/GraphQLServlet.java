@@ -25,6 +25,9 @@ import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonWriter;
 import javax.servlet.Servlet;
 import javax.servlet.http.HttpServletResponse;
 
@@ -38,11 +41,7 @@ import org.apache.sling.commons.metrics.Counter;
 import org.apache.sling.commons.metrics.MetricsService;
 import org.apache.sling.commons.metrics.Timer;
 import org.apache.sling.graphql.api.cache.GraphQLCacheProvider;
-import org.apache.sling.graphql.core.engine.GraphQLResourceQuery;
-import org.apache.sling.graphql.core.engine.SlingDataFetcherSelector;
-import org.apache.sling.graphql.core.json.JsonSerializer;
-import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
-import org.apache.sling.graphql.core.schema.RankedSchemaProviders;
+import org.apache.sling.graphql.api.engine.QueryExecutor;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -56,7 +55,6 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
-import graphql.ExecutionResult;
 
 /** Servlet that can be activated to implement the standard
  *  GraphQL "protocol" as per https://graphql.org/learn/serving-over-http/
@@ -124,13 +122,7 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
     }
 
     @Reference
-    private RankedSchemaProviders schemaProviders;
-
-    @Reference
-    private SlingDataFetcherSelector dataFetcherSelector;
-
-    @Reference
-    private SlingScalarsProvider scalarsProvider;
+    private QueryExecutor queryExecutor;
 
     @Reference
     private GraphQLCacheProvider cacheProvider;
@@ -144,7 +136,6 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
     private String suffixPersisted;
     private Pattern patternGetPersistedQuery;
     private int cacheControlMaxAge;
-    private final JsonSerializer jsonSerializer = new JsonSerializer();
 
     private Counter cacheHits;
     private Counter cacheMisses;
@@ -286,9 +277,8 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
             throws IOException {
         String rawQuery = IOUtils.toString(request.getReader());
         QueryParser.Result query = QueryParser.fromJSON(rawQuery);
-        if (GraphQLResourceQuery.isQueryValid(schemaProviders, dataFetcherSelector, scalarsProvider, request.getResource(),
-                request.getRequestPathInfo().getSelectors(), query.getQuery(), query.getVariables())) {
-
+        if (queryExecutor
+                .isValid(query.getQuery(), query.getVariables(), request.getResource(), request.getRequestPathInfo().getSelectors())) {
             String hash = cacheProvider.cacheQuery(rawQuery, request.getResource().getResourceType(),
                     request.getRequestPathInfo().getSelectorString());
             if (hash != null) {
@@ -316,10 +306,10 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
             return;
         }
 
-        try {
-            final ExecutionResult executionResult = GraphQLResourceQuery.executeQuery(schemaProviders, dataFetcherSelector, scalarsProvider,
-                resource, request.getRequestPathInfo().getSelectors(), query, result.getVariables());
-            jsonSerializer.sendJSON(response.getWriter(), executionResult);
+        try (JsonWriter writer = Json.createWriter(response.getWriter())) {
+            final JsonObject json = queryExecutor.execute(query, result.getVariables(), resource,
+                    request.getRequestPathInfo().getSelectors());
+            writer.writeObject(json);
         } catch(Exception ex) {
             throw new IOException(ex);
         }
@@ -328,12 +318,12 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
     private void execute(@NotNull String persistedQuery, SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
-        try {
+        try (JsonWriter writer = Json.createWriter(response.getWriter())) {
             final QueryParser.Result result = QueryParser.fromJSON(persistedQuery);
-            final ExecutionResult executionResult = GraphQLResourceQuery.executeQuery(schemaProviders, dataFetcherSelector, scalarsProvider,
-                    request.getResource(), request.getRequestPathInfo().getSelectors(), result.getQuery(), result.getVariables());
-            jsonSerializer.sendJSON(response.getWriter(), executionResult);
-        } catch(Exception ex) {
+            final JsonObject json = queryExecutor
+                    .execute(result.getQuery(), result.getVariables(), request.getResource(), request.getRequestPathInfo().getSelectors());
+            writer.writeObject(json);
+        } catch (Exception ex) {
             throw new IOException(ex);
         }
     }

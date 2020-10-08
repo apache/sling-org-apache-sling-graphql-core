@@ -18,33 +18,33 @@
  */
 package org.apache.sling.graphql.core.schema;
 
-import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
-
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-
 import java.util.Collections;
 import java.util.UUID;
+
+import javax.json.JsonObject;
 
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.graphql.api.SchemaProvider;
+import org.apache.sling.graphql.api.engine.QueryExecutor;
+import org.apache.sling.graphql.core.engine.DefaultQueryExecutor;
+import org.apache.sling.graphql.core.engine.ScriptedDataFetcherProvider;
+import org.apache.sling.graphql.core.engine.SlingDataFetcherSelector;
+import org.apache.sling.graphql.core.mocks.MockSchemaProvider;
+import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.hamcrest.CustomMatcher;
 import org.hamcrest.Matcher;
-import org.apache.sling.graphql.core.engine.GraphQLResourceQuery;
-import org.apache.sling.graphql.core.engine.ScriptedDataFetcherProvider;
-import org.apache.sling.graphql.core.engine.SlingDataFetcherSelector;
-import org.apache.sling.graphql.core.json.JsonSerializer;
-import org.apache.sling.graphql.core.mocks.MockSchemaProvider;
-import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import graphql.ExecutionResult;
 import net.minidev.json.JSONArray;
+
+import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 
 /**
  * Test the fields descriptions which are part of the schema as per
@@ -55,9 +55,6 @@ import net.minidev.json.JSONArray;
  * containing just a hash character.
  */
 public class SchemaDescriptionsTest {
-    private SchemaProvider schemaProvider = new MockSchemaProvider("test-schema");
-    private SlingDataFetcherSelector dataFetchersSelector;
-    private SlingScalarsProvider scalarsProvider;
     private Resource resource;
     private String schemaJson;
 
@@ -107,17 +104,18 @@ public class SchemaDescriptionsTest {
         context.bundleContext().registerService(ServletResolver.class, servletResolver, null);
         context.registerInjectActivateService(new ScriptedDataFetcherProvider());
         context.registerInjectActivateService(new SlingDataFetcherSelector());
-        dataFetchersSelector = context.getService(SlingDataFetcherSelector.class);
         context.registerInjectActivateService(new SlingScalarsProvider());
-        scalarsProvider = context.getService(SlingScalarsProvider.class);
+        context.registerService(SchemaProvider.class, new MockSchemaProvider("test-schema"));
+        context.registerInjectActivateService(new RankedSchemaProviders());
+        context.registerInjectActivateService(new DefaultQueryExecutor());
         schemaJson = queryJSON(SCHEMA_QUERY);
     }
 
     private String queryJSON(String stmt) throws Exception {
-        final ExecutionResult result = GraphQLResourceQuery.executeQuery(schemaProvider,
-            dataFetchersSelector, scalarsProvider, resource, new String[] {}, stmt, Collections.emptyMap());
-        assertTrue("Expecting no errors: " + result.getErrors(), result.getErrors().isEmpty());
-        return new JsonSerializer().toJSON(result);
+        QueryExecutor queryExecutor = context.getService(QueryExecutor.class);
+        assertNotNull(queryExecutor);
+        JsonObject json = queryExecutor.execute(stmt, Collections.emptyMap(), resource, new String[] {});
+        return json.toString();
     }
 
     private void assertTypeDescription(String typeName, String expected) {

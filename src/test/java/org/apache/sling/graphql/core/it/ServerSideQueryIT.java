@@ -84,8 +84,8 @@ public class ServerSideQueryIT extends GraphQLCoreTestSupport {
 
     @Test
     public void testMultipleSchemaProviders() throws Exception {
-        new ReplacingSchemaProvider("scriptedSchemaResource", "REPLACED").register(bundleContext, defaultSchemaProvider, 1);
-        new ReplacingSchemaProvider("scriptedSchemaResource", "NOT_THIS_ONE").register(bundleContext, defaultSchemaProvider, Integer.MAX_VALUE);
+        new ReplacingSchemaProvider("scriptedSchemaResource", "REPLACED").register(bundleContext, defaultSchemaProvider, Integer.MAX_VALUE);
+        new ReplacingSchemaProvider("scriptedSchemaResource", "NOT_THIS_ONE").register(bundleContext, defaultSchemaProvider, 1);
         assertDefaultContent(".REPLACED", "REPLACED");
     }
 

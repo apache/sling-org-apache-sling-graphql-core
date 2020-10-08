@@ -20,14 +20,17 @@
 package org.apache.sling.graphql.core.servlet;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.io.StringReader;
 import java.util.Collections;
 import java.util.Map;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.input.ReaderInputStream;
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonReader;
+
+import org.apache.johnzon.mapper.Mapper;
+import org.apache.johnzon.mapper.MapperBuilder;
 import org.apache.sling.api.SlingHttpServletRequest;
-import org.apache.sling.graphql.core.json.JsonSerializer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -57,21 +60,23 @@ public class QueryParser {
     }
 
     private static final String MIME_TYPE_JSON = "application/json";
-    private static final JsonSerializer jsonSerializer = new JsonSerializer();
     private static final String JSON_KEY_QUERY = "query";
     private static final String JSON_KEY_VARIABLES = "variables";
+    private static final Mapper MAPPER = new MapperBuilder().build();
 
     @Nullable
     public static Result fromRequest(@NotNull SlingHttpServletRequest request) throws IOException {
         String query = null;
         Map<String, Object> variables = null;
         if (request.getMethod().equalsIgnoreCase("POST") && MIME_TYPE_JSON.equals(request.getContentType())) {
-            Map<String, Object> requestJson = getInputJson(request);
-            query = (String) requestJson.get(JSON_KEY_QUERY);
-            if (query != null) {
+            try (JsonReader reader = Json.createReader(request.getReader())) {
+                JsonObject input = reader.readObject();
+                query = input.getString(JSON_KEY_QUERY);
                 query = query.replace("\\n", "\n");
+                if (input.containsKey(JSON_KEY_VARIABLES)) {
+                    variables = MAPPER.readObject(input.get(JSON_KEY_VARIABLES), Map.class);
+                }
             }
-            variables = (Map<String, Object>) requestJson.get(JSON_KEY_VARIABLES);
         }
 
         if (query == null) {
@@ -88,21 +93,19 @@ public class QueryParser {
     }
 
     public static Result fromJSON(String json) throws IOException {
-        Map<String, Object> jsonMap = jsonSerializer.jsonToMaps(IOUtils.toInputStream(json, StandardCharsets.UTF_8));
-        String query = (String) jsonMap.get(JSON_KEY_QUERY);
-        if (query != null) {
-            Map<String, Object> variables = (Map<String, Object>) jsonMap.get(JSON_KEY_VARIABLES);
-            if (variables == null) {
-                variables = Collections.emptyMap();
+        try (JsonReader reader = Json.createReader(new StringReader(json))) {
+            JsonObject jsonInput = reader.readObject();
+            String query = jsonInput.getString(JSON_KEY_QUERY);
+            if (query != null) {
+                Map<String, Object> variables = null;
+                if (jsonInput.containsKey(JSON_KEY_VARIABLES)) {
+                     variables= MAPPER.readObject(jsonInput.get(JSON_KEY_VARIABLES), Map.class);
+                } else {
+                    variables = Collections.emptyMap();
+                }
+                return new Result(query, variables);
             }
-            return new Result(query, variables);
+            throw new IOException("The provided JSON structure does not contain a query.");
         }
-        throw new IOException("The provided JSON structure does not contain a query.");
-
     }
-
-    private static Map<String, Object> getInputJson(SlingHttpServletRequest req) throws IOException {
-        return jsonSerializer.jsonToMaps(new ReaderInputStream(req.getReader()));
-    }
-
 }

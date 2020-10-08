@@ -43,7 +43,7 @@ import org.osgi.service.component.annotations.ReferencePolicyOption;
 @Component(service = RankedSchemaProviders.class)
 public class RankedSchemaProviders implements SchemaProvider {
 
-    final RankedServices<SchemaProvider> providers = new RankedServices<>(Order.ASCENDING);
+    final RankedServices<SchemaProvider> providers = new RankedServices<>(Order.DESCENDING);
 
     @Override
     public @Nullable String getSchema(@NotNull final Resource r, @Nullable final String[] selectors) throws IOException {

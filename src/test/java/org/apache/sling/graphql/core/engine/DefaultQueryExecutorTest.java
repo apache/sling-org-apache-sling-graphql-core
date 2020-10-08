@@ -1,46 +1,49 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ ~ Licensed to the Apache Software Foundation (ASF) under one
+ ~ or more contributor license agreements.  See the NOTICE file
+ ~ distributed with this work for additional information
+ ~ regarding copyright ownership.  The ASF licenses this file
+ ~ to you under the Apache License, Version 2.0 (the
+ ~ "License"); you may not use this file except in compliance
+ ~ with the License.  You may obtain a copy of the License at
+ ~
+ ~   http://www.apache.org/licenses/LICENSE-2.0
+ ~
+ ~ Unless required by applicable law or agreed to in writing,
+ ~ software distributed under the License is distributed on an
+ ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ ~ KIND, either express or implied.  See the License for the
+ ~ specific language governing permissions and limitations
+ ~ under the License.
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 package org.apache.sling.graphql.core.engine;
 
-import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
-
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
+import org.apache.sling.graphql.api.SchemaProvider;
+import org.apache.sling.graphql.api.SlingGraphQLException;
+import org.apache.sling.graphql.api.engine.QueryExecutor;
 import org.apache.sling.graphql.core.mocks.DigestDataFetcher;
 import org.apache.sling.graphql.core.mocks.EchoDataFetcher;
 import org.apache.sling.graphql.core.mocks.FailingDataFetcher;
 import org.apache.sling.graphql.core.mocks.MockSchemaProvider;
 import org.apache.sling.graphql.core.mocks.TestUtil;
 import org.junit.Test;
+import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 
-public class GraphQLResourceQueryTest extends ResourceQueryTestBase {
-    
+import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+
+public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
     protected void setupAdditionalServices() {
         final Dictionary<String, Object> staticData = new Hashtable<>();
         staticData.put("test", true);
@@ -51,7 +54,7 @@ public class GraphQLResourceQueryTest extends ResourceQueryTestBase {
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "test/fortyTwo", new EchoDataFetcher(42));
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "sling/digest", new DigestDataFetcher());
     }
-    
+
     @Test
     public void basicTest() throws Exception {
         final String json = queryJSON("{ currentResource { path resourceType } }");
@@ -90,13 +93,14 @@ public class GraphQLResourceQueryTest extends ResourceQueryTestBase {
     }
 
     @Test
-    public void dataFetcherFailureTest() throws Exception {
+    public void dataFetcherFailureTest() {
         try {
             final String stmt = "{ currentResource { failure } }";
-            GraphQLResourceQuery.executeQuery(schemaProvider, dataFetchersSelector, scalarsProvider, resource, new String[] {}, stmt,
-                    Collections.emptyMap());
+            QueryExecutor queryExecutor = context.getService(QueryExecutor.class);
+            assertNotNull(queryExecutor);
+            queryExecutor.execute(stmt, Collections.emptyMap(), resource, new String[] {});
         } catch(RuntimeException rex) {
-            assertThat(rex.getMessage(), equalTo("FailureDataFetcher"));
+            assertThat(rex.getMessage(), containsString("DataFetchingException; error message: Exception while fetching data (/currentResource/failure) : FailingDataFetcher"));
         }
     }
 
@@ -111,14 +115,15 @@ public class GraphQLResourceQueryTest extends ResourceQueryTestBase {
     }
 
     @Test
-    public void invalidFetcherNamesTest() throws Exception {
-        schemaProvider = new MockSchemaProvider("failing-schema");
+    public void invalidFetcherNamesTest() {
+        context.registerService(SchemaProvider.class, new MockSchemaProvider("failing-schema"), Constants.SERVICE_RANKING,
+                Integer.MAX_VALUE);
         final ServiceRegistration<?> reg = TestUtil.registerSlingDataFetcher(context.bundleContext(), "missingSlash", new EchoDataFetcher(42));
         try {
             queryJSON("{ currentResource { missingSlash } }", new String[] {});
             fail("Expected query to fail");
         } catch(Exception e) {
-            TestUtil.assertNestedException(e, IOException.class, "does not match");
+            TestUtil.assertNestedException(e, SlingGraphQLException.class, "does not match");
         } finally {
             reg.unregister();
         }

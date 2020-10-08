@@ -30,12 +30,8 @@ import org.apache.sling.api.servlets.ServletResolverConstants;
 import org.apache.sling.commons.metrics.Counter;
 import org.apache.sling.commons.metrics.MetricsService;
 import org.apache.sling.commons.metrics.Timer;
-import org.apache.sling.graphql.api.SchemaProvider;
+import org.apache.sling.graphql.api.engine.QueryExecutor;
 import org.apache.sling.graphql.core.cache.SimpleGraphQLCacheProvider;
-import org.apache.sling.graphql.core.engine.GraphQLResourceQuery;
-import org.apache.sling.graphql.core.engine.SlingDataFetcherSelector;
-import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
-import org.apache.sling.graphql.core.schema.RankedSchemaProviders;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
 import org.apache.sling.testing.mock.sling.servlet.MockRequestPathInfo;
 import org.apache.sling.testing.mock.sling.servlet.MockSlingHttpServletRequest;
@@ -44,7 +40,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.MockedStatic;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.codahale.metrics.MetricRegistry;
@@ -52,9 +47,7 @@ import com.codahale.metrics.MetricRegistry;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -66,30 +59,23 @@ public class GraphQLServletTest {
     @Before
     public void setUp() {
         MetricsService metricsService = mock(MetricsService.class);
-        when(metricsService.counter(anyString())).thenReturn(mock(Counter.class));
+        when(metricsService.counter(any(String.class))).thenReturn(mock(Counter.class));
 
         Timer timer = mock(Timer.class);
         when(timer.time()).thenReturn(mock(Timer.Context.class));
-        when(metricsService.timer(anyString())).thenReturn(timer);
+        when(metricsService.timer(any(String.class))).thenReturn(timer);
         context.registerService(MetricsService.class, metricsService);
 
         MetricRegistry metricRegistry = mock(MetricRegistry.class);
         context.registerService(MetricRegistry.class, metricRegistry, "name", "sling");
+
+        QueryExecutor queryExecutor = mock(QueryExecutor.class);
+        when(queryExecutor.isValid(any(String.class), any(Map.class), any(Resource.class), any(String[].class))).thenReturn(true);
+        context.registerService(QueryExecutor.class, queryExecutor);
     }
 
     @Test
     public void testCachingErrors() throws IOException {
-        try (MockedStatic<GraphQLResourceQuery> graphQLResourceQueryMockedStatic = mockStatic(GraphQLResourceQuery.class)) {
-            graphQLResourceQueryMockedStatic.when(() -> GraphQLResourceQuery.isQueryValid(any(SchemaProvider.class),
-                    any(SlingDataFetcherSelector.class), any(SlingScalarsProvider.class), any(Resource.class), any(String[].class),
-                    anyString(), any(Map.class))).thenReturn(true);
-            RankedSchemaProviders rankedSchemaProviders = mock(RankedSchemaProviders.class);
-            context.registerService(rankedSchemaProviders);
-            SlingDataFetcherSelector slingDataFetcherSelector = mock(SlingDataFetcherSelector.class);
-            context.registerService(slingDataFetcherSelector);
-            SlingScalarsProvider slingScalarsProvider = mock(SlingScalarsProvider.class);
-            context.registerService(slingScalarsProvider);
-
             context.registerInjectActivateService(new SimpleGraphQLCacheProvider(), "maxMemory", 10);
 
             context.registerInjectActivateService(new GraphQLServlet(), ServletResolverConstants.SLING_SERVLET_RESOURCE_TYPES, "a/b/c",
@@ -114,17 +100,10 @@ public class GraphQLServletTest {
             servlet.doPost(request, response);
 
             assertEquals(500, response.getStatus());
-        }
     }
 
     @Test
     public void testDisabledSuffix() throws IOException {
-        RankedSchemaProviders rankedSchemaProviders = mock(RankedSchemaProviders.class);
-        context.registerService(rankedSchemaProviders);
-        SlingDataFetcherSelector slingDataFetcherSelector = mock(SlingDataFetcherSelector.class);
-        context.registerService(slingDataFetcherSelector);
-        SlingScalarsProvider slingScalarsProvider = mock(SlingScalarsProvider.class);
-        context.registerService(slingScalarsProvider);
         context.registerInjectActivateService(new SimpleGraphQLCacheProvider());
         context.registerInjectActivateService(new GraphQLServlet(), ServletResolverConstants.SLING_SERVLET_RESOURCE_TYPES, "a/b/c",
                 "persistedQueries.suffix", "");

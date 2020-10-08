@@ -20,14 +20,19 @@ package org.apache.sling.graphql.core.engine;
 
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
 
 import com.example.fetchers.DoNothingFetcher;
 
 import org.apache.sling.graphql.api.SlingDataFetcher;
+import org.apache.sling.graphql.api.SlingDataFetcherEnvironment;
 import org.apache.sling.graphql.core.mocks.DigestDataFetcher;
 import org.apache.sling.graphql.core.mocks.EchoDataFetcher;
 import org.apache.sling.graphql.core.mocks.TestUtil;
@@ -46,7 +51,7 @@ public class SlingDataFetcherSelectorTest {
 
     @Before
     public void setup() {
-        final ScriptedDataFetcherProvider sdfp = Mockito.mock(ScriptedDataFetcherProvider.class);
+        final ScriptedDataFetcherProvider sdfp = mock(ScriptedDataFetcherProvider.class);
         context.bundleContext().registerService(ScriptedDataFetcherProvider.class, sdfp, null);
         context.registerInjectActivateService(new SlingDataFetcherSelector());
         selector = context.getService(SlingDataFetcherSelector.class);
@@ -54,8 +59,9 @@ public class SlingDataFetcherSelectorTest {
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "sling/digest", new DigestDataFetcher());
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "sling/shouldFail", new DoNothingFetcher());
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "example/ok", new DoNothingFetcher());
-        TestUtil.registerSlingDataFetcher(context.bundleContext(), "sling/duplicate", new EchoDataFetcher(451));
-        TestUtil.registerSlingDataFetcher(context.bundleContext(), "sling/duplicate", new DigestDataFetcher());
+        TestUtil.registerSlingDataFetcher(context.bundleContext(), "sling/duplicate", 0, new DigestDataFetcher());
+        TestUtil.registerSlingDataFetcher(context.bundleContext(), "sling/duplicate", 10, new EchoDataFetcher(451));
+        TestUtil.registerSlingDataFetcher(context.bundleContext(), "sling/duplicate", 5, new EchoDataFetcher(452));
     }
 
     @Test
@@ -71,18 +77,15 @@ public class SlingDataFetcherSelectorTest {
     }
 
     @Test
-    public void reservedNameError() throws Exception {
-        try {
-            selector.getSlingFetcher("sling/shouldFail");
-            fail("Expected getSlingFetcher to fail");
-        } catch(Exception e) {
-            TestUtil.assertNestedException(e, IOException.class, DoNothingFetcher.class.getName());
-            TestUtil.assertNestedException(e, IOException.class, "starting with 'sling/' are reserved for Apache Sling");
-        }
+    public void reservedNameError() {
+        assertNull(selector.getSlingFetcher("sling/shouldFail"));
     }
 
-    @Test(expected=IOException.class)
-    public void duplicateFetcherError() throws Exception {
+    @Test
+    public void sameNameFetcher() throws Exception {
         final SlingDataFetcher<Object> sdf = selector.getSlingFetcher("sling/duplicate");
+        assertNotNull(sdf);
+        assertEquals(EchoDataFetcher.class, sdf.getClass());
+        assertEquals(451, sdf.get(mock(SlingDataFetcherEnvironment.class)));
     }
 }
