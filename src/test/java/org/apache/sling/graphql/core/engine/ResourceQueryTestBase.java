@@ -66,6 +66,7 @@ public abstract class ResourceQueryTestBase {
 
         context.registerInjectActivateService(new ScriptedDataFetcherProvider());
         context.registerInjectActivateService(new SlingDataFetcherSelector());
+        context.registerInjectActivateService(new SlingTypeResolverSelector());
         context.registerInjectActivateService(new SlingScalarsProvider());
         context.registerInjectActivateService(new RankedSchemaProviders());
         context.registerInjectActivateService(new DefaultQueryExecutor());
