@@ -19,23 +19,38 @@
 
 package org.apache.sling.graphql.core.engine;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.TreeSet;
+import java.util.regex.Pattern;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.apache.sling.graphql.api.SlingDataFetcher;
+import org.apache.sling.graphql.core.osgi.ServiceReferenceObjectTuple;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
-import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
-
-import java.io.IOException;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Selects a SlingDataFetcher used to retrieve data, based
  *  on a name specified by a GraphQL schema directive.
  */
-@Component(service=SlingDataFetcherSelector.class)
+@Component(
+        service=SlingDataFetcherSelector.class
+)
 public class SlingDataFetcherSelector {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SlingDataFetcherSelector.class);
+    static final Pattern FETCHER_NAME_PATTERN = Pattern.compile("\\w+(/\\w+)+");
+
+    private final Map<String, TreeSet<ServiceReferenceObjectTuple<SlingDataFetcher<Object>>>> dataFetchers = new HashMap<>();
 
     /** Fetchers which have a name starting with this prefix must be
      *  under the {#link RESERVED_PACKAGE_PREFIX} package.
@@ -47,62 +62,92 @@ public class SlingDataFetcherSelector {
      */
     public static final String RESERVED_PACKAGE_PREFIX = "org.apache.sling.";
 
-    private BundleContext bundleContext;
-
     @Reference
     private ScriptedDataFetcherProvider scriptedDataFetcherProvider;
-
-    @Activate
-    public void activate(BundleContext ctx) {
-        bundleContext = ctx;
-    }
-
-    /** Return a SlingFetcher from the available OSGi services, if there's one
-     *  registered with the supplied name.
-      */
-      @SuppressWarnings("unchecked")
-      private SlingDataFetcher<Object> getOsgiServiceFetcher(@NotNull String name) throws IOException {
-        SlingDataFetcher<Object> result = null;
-        final String filter = String.format("(%s=%s)", SlingDataFetcher.NAME_SERVICE_PROPERTY, name);
-        ServiceReference<?>[] refs= null;
-        try {
-            refs = bundleContext.getServiceReferences(SlingDataFetcher.class.getName(), filter);
-        } catch(InvalidSyntaxException ise) {
-            throw new IOException("Invalid OSGi filter syntax", ise);
-        }
-        if(refs != null) {
-            // SlingFetcher services must have a unique name
-            if(refs.length > 1) {
-                throw new IOException(String.format("Got %d services for %s, expected just one", refs.length, filter));
-            }
-            result = (SlingDataFetcher<Object>)bundleContext.getService(refs[0]);
-            validateResult(name, result);
-        }
-        return result;
-    }
-
-    private void validateResult(String name, SlingDataFetcher<?> fetcher) throws IOException {
-        if(name.startsWith(RESERVED_NAME_PREFIX)) {
-            final String className = fetcher.getClass().getName();
-            if(!fetcher.getClass().getName().startsWith(RESERVED_PACKAGE_PREFIX)) {
-                throw new IOException(
-                    String.format(
-                        "Invalid SlingDataFetcher %s:"
-                        + " fetcher names starting with '%s' are reserved for Apache Sling Java packages", 
-                        className, RESERVED_NAME_PREFIX));
-            }
-        }
-    }
 
     /** @return a SlingDataFetcher, or null if none available. First tries to get an
      *  OSGi SlingDataFetcher service, and if not found tries to find a scripted SlingDataFetcher.
      */
     @Nullable
-    public SlingDataFetcher<Object> getSlingFetcher(@NotNull String name) throws IOException {
+    public SlingDataFetcher<Object> getSlingFetcher(@NotNull String name) {
         SlingDataFetcher<Object> result = getOsgiServiceFetcher(name);
         if(result == null) {
             result = scriptedDataFetcherProvider.getDataFetcher(name);
         }
         return result;
+    }
+
+    /**
+     * Returns a SlingFetcher from the available OSGi services, if there's one registered with the supplied name.
+     */
+    private SlingDataFetcher<Object> getOsgiServiceFetcher(@NotNull String name) {
+        TreeSet<ServiceReferenceObjectTuple<SlingDataFetcher<Object>>> fetcherSet = dataFetchers.get(name);
+        if (fetcherSet != null && !fetcherSet.isEmpty()) {
+            return fetcherSet.last().getServiceObject();
+        }
+        return null;
+    }
+
+    private boolean hasValidName(@NotNull ServiceReference<SlingDataFetcher<Object>> serviceReference, @NotNull SlingDataFetcher<Object> fetcher) {
+        String name = PropertiesUtil.toString(serviceReference.getProperty(SlingDataFetcher.NAME_SERVICE_PROPERTY), null);
+        if (StringUtils.isNotEmpty(name)) {
+            if (!nameMatchesPattern(name)) {
+                LOGGER.error("Invalid SlingDataFetcher {}: fetcher name is not namespaced (e.g. ns/myFetcher)",
+                        fetcher.getClass().getName());
+                return false;
+            }
+            if (name.startsWith(RESERVED_NAME_PREFIX)) {
+                final String className = fetcher.getClass().getName();
+                if (!fetcher.getClass().getName().startsWith(RESERVED_PACKAGE_PREFIX)) {
+                    LOGGER.error(
+                            "Invalid SlingDataFetcher {}: fetcher names starting with '{}' are reserved for Apache Sling Java packages",
+                            className, RESERVED_NAME_PREFIX);
+                    return false;
+                }
+            }
+        } else {
+            LOGGER.error("Invalid {} implementation: fetcher {} is missing the mandatory value for its {} service property.",
+                    SlingDataFetcher.class.getName(), fetcher.getClass().getName(), SlingDataFetcher.NAME_SERVICE_PROPERTY);
+            return false;
+        }
+        return true;
+    }
+
+    static boolean nameMatchesPattern(String name) {
+        if (StringUtils.isNotEmpty(name)) {
+            return FETCHER_NAME_PATTERN.matcher(name).matches();
+        }
+        return false;
+    }
+
+    @Reference(
+            service = SlingDataFetcher.class,
+            cardinality = ReferenceCardinality.MULTIPLE,
+            policy = ReferencePolicy.DYNAMIC
+    )
+    private void bindSlingDataFetcher(ServiceReference<SlingDataFetcher<Object>> reference, SlingDataFetcher<Object> slingDataFetcher) {
+        if (hasValidName(reference, slingDataFetcher)) {
+            synchronized (dataFetchers) {
+                String name = (String) reference.getProperty(SlingDataFetcher.NAME_SERVICE_PROPERTY);
+                TreeSet<ServiceReferenceObjectTuple<SlingDataFetcher<Object>>> fetchers = dataFetchers.computeIfAbsent(name,
+                        key -> new TreeSet<>());
+                fetchers.add(new ServiceReferenceObjectTuple<>(reference, slingDataFetcher));
+            }
+        }
+    }
+
+    @SuppressWarnings("unused")
+    private void unbindSlingDataFetcher(ServiceReference<SlingDataFetcher<Object>> reference) {
+        synchronized (dataFetchers) {
+            String name = (String) reference.getProperty(SlingDataFetcher.NAME_SERVICE_PROPERTY);
+            if (StringUtils.isNotEmpty(name)) {
+                TreeSet<ServiceReferenceObjectTuple<SlingDataFetcher<Object>>> fetchers = dataFetchers.get(name);
+                if (fetchers != null) {
+                    Optional<ServiceReferenceObjectTuple<SlingDataFetcher<Object>>> tupleToRemove =
+                            fetchers.stream().filter(tuple -> reference.equals(tuple.getServiceReference())).findFirst();
+                    tupleToRemove.ifPresent(fetchers::remove);
+                }
+            }
+        }
     }
 }

@@ -59,14 +59,8 @@ public class SlingDataFetcherNameValidationTest {
 
     @Test
     public void testValidation() {
-        boolean valid = true;
-        try {
-            GraphQLResourceQuery.validateFetcherName(name);
-        } catch(IOException ioe) {
-            valid = false;
-        }
         final String msg = String.format("Expecting '%s' to be %s", name, expectValid ? "valid" : "invalid");
-        assertEquals(msg, valid, expectValid);
+        assertEquals(msg, SlingDataFetcherSelector.nameMatchesPattern(name), expectValid);
     }
 
 }

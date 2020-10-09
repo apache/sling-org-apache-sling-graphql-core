@@ -37,7 +37,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.commons.metrics.Counter;
 import org.apache.sling.commons.metrics.MetricsService;
 import org.apache.sling.graphql.api.cache.GraphQLCacheProvider;
-import org.apache.sling.graphql.core.engine.SlingGraphQLException;
+import org.apache.sling.graphql.api.SlingGraphQLException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.framework.BundleContext;

@@ -44,7 +44,7 @@ public class DefaultSchemaProvider implements SchemaProvider {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    public static final int SERVICE_RANKING = Integer.MAX_VALUE - 100;
+    public static final int SERVICE_RANKING =  Integer.MIN_VALUE + 1000;
     public static final String SCHEMA_EXTENSION = "GQLschema";
     public static final String DEFAULT_SCHEMA = "";
 

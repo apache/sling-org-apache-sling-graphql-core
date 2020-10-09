@@ -159,6 +159,18 @@
     </dependency>
     <dependency>
       <groupId>org.apache.sling</groupId>
+      <artifactId>org.apache.sling.commons.johnzon</artifactId>
+      <version>1.2.7-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.johnzon</groupId>
+      <artifactId>johnzon-mapper</artifactId>
+      <version>1.2.8</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.sling</groupId>
       <artifactId>org.apache.sling.resource.presence</artifactId>
       <version>0.0.2</version>
       <scope>test</scope>
@@ -185,12 +197,6 @@
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
       <version>2.4</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.cedarsoftware</groupId>
-      <artifactId>json-io</artifactId>
-      <version>4.12.0</version>
       <scope>provided</scope>
     </dependency>
     <dependency>

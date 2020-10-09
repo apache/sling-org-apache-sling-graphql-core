@@ -27,12 +27,20 @@ import java.util.Hashtable;
 import org.apache.sling.graphql.api.SlingDataFetcher;
 import org.apache.sling.graphql.api.SlingScalarConverter;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 
 public class TestUtil {
+
     public static ServiceRegistration<?> registerSlingDataFetcher(BundleContext bc, String name, SlingDataFetcher<?> f) {
+        return registerSlingDataFetcher(bc, name, 0, f);
+    }
+
+    public static ServiceRegistration<?> registerSlingDataFetcher(BundleContext bc, String name, int serviceRanking,
+                                                                  SlingDataFetcher<?> f) {
         final Dictionary<String, Object> props = new Hashtable<>();
         props.put(SlingDataFetcher.NAME_SERVICE_PROPERTY, name);
+        props.put(Constants.SERVICE_RANKING, serviceRanking);
         return bc.registerService(SlingDataFetcher.class, f, props);
     }
 

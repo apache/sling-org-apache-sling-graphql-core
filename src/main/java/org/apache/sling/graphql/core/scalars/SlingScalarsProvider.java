@@ -20,18 +20,23 @@
 
 package org.apache.sling.graphql.core.scalars;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.graphql.api.SlingScalarConverter;
-import org.apache.sling.graphql.core.engine.SlingGraphQLException;
-import org.osgi.framework.BundleContext;
+import org.apache.sling.graphql.api.SlingGraphQLException;
+import org.apache.sling.graphql.core.osgi.ServiceReferenceObjectTuple;
 import org.osgi.framework.Constants;
-import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
-import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 
 import graphql.language.ScalarTypeDefinition;
 import graphql.schema.GraphQLScalarType;
@@ -45,41 +50,50 @@ import graphql.schema.idl.ScalarInfo;
     Constants.SERVICE_VENDOR + "=The Apache Software Foundation" })
 public class SlingScalarsProvider {
 
-    private BundleContext bundleContext;
-    
-    @Activate
-    public void activate(BundleContext ctx) {
-        bundleContext = ctx;
+    private final Map<String, TreeSet<ServiceReferenceObjectTuple<SlingScalarConverter<Object, Object>>>> scalars = new HashMap<>();
+
+    @Reference(
+            service = SlingScalarConverter.class,
+            cardinality = ReferenceCardinality.MULTIPLE,
+            policy = ReferencePolicy.DYNAMIC
+    )
+    private void bindSlingScalarConverter(ServiceReference<SlingScalarConverter<Object, Object>> serviceReference,
+                                          SlingScalarConverter<Object, Object> scalarConverter) {
+        String name = (String) serviceReference.getProperty(SlingScalarConverter.NAME_SERVICE_PROPERTY);
+        if (StringUtils.isNotEmpty(name)) {
+            synchronized (scalars) {
+                TreeSet<ServiceReferenceObjectTuple<SlingScalarConverter<Object, Object>>> set =
+                        scalars.computeIfAbsent(name, key -> new TreeSet<>());
+                set.add(new ServiceReferenceObjectTuple<>(serviceReference, scalarConverter));
+            }
+        }
     }
 
-    @SuppressWarnings("unchecked")
-    private GraphQLScalarType getScalar(String name) {
+    @SuppressWarnings("unused")
+    private void unbindSlingScalarConverter(ServiceReference<SlingScalarConverter<Object, Object>> serviceReference) {
+        String name = (String) serviceReference.getProperty(SlingScalarConverter.NAME_SERVICE_PROPERTY);
+        if (StringUtils.isNotEmpty(name)) {
+            synchronized (scalars) {
+                TreeSet<ServiceReferenceObjectTuple<SlingScalarConverter<Object, Object>>> set = scalars.get(name);
+                if (set != null) {
+                    Optional<ServiceReferenceObjectTuple<SlingScalarConverter<Object, Object>>> tupleToRemove =
+                            set.stream().filter(tuple -> serviceReference.equals(tuple.getServiceReference())).findFirst();
+                    tupleToRemove.ifPresent(set::remove);
+                }
+            }
+        }
+    }
 
+    private GraphQLScalarType getScalar(String name) {
         // Ignore standard scalars
         if(ScalarInfo.isGraphqlSpecifiedScalar(name)) {
             return null;
         }
-
-        SlingScalarConverter<Object, Object> converter = null;
-        final String filter = String.format("(%s=%s)", SlingScalarConverter.NAME_SERVICE_PROPERTY, name);
-        ServiceReference<?>[] refs= null;
-        try {
-            refs = bundleContext.getServiceReferences(SlingScalarConverter.class.getName(), filter);
-        } catch(InvalidSyntaxException ise) {
-            throw new SlingGraphQLException("Invalid OSGi filter syntax:" + filter);
-        }
-        if(refs != null) {
-            // SlingScalarConverter services must have a unique name for now
-            // (we might use a namespacing @directive in the schema to allow multiple ones with the same name)
-            if(refs.length > 1) {
-                throw new SlingGraphQLException(String.format("Got %d services for %s, expected just one", refs.length, filter));
-            }
-            converter = (SlingScalarConverter<Object, Object>)bundleContext.getService(refs[0]);
-        }
-
-        if(converter == null) {
+        TreeSet<ServiceReferenceObjectTuple<SlingScalarConverter<Object, Object>>> set = scalars.get(name);
+        if (set == null || set.isEmpty()) {
             throw new SlingGraphQLException("SlingScalarConverter with name '" + name + "' not found");
         }
+        SlingScalarConverter<Object, Object> converter = set.last().getServiceObject();
 
         return GraphQLScalarType.newScalar()
             .name(name)

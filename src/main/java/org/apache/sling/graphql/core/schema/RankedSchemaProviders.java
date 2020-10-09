@@ -43,7 +43,12 @@ import org.osgi.service.component.annotations.ReferencePolicyOption;
 @Component(service = RankedSchemaProviders.class)
 public class RankedSchemaProviders implements SchemaProvider {
 
-    final RankedServices<SchemaProvider> providers = new RankedServices<>(Order.ASCENDING);
+    /*
+        before SLING-9800 this was using an ASCENDING order, using the SchemaProvider with the lowest service ranking that returned a
+        non-null schema; however, this was considered inconsistent with how service implementations are provided by OSGi containers,
+        where the service with the highest ranking will be returned
+     */
+    final RankedServices<SchemaProvider> providers = new RankedServices<>(Order.DESCENDING);
 
     @Override
     public @Nullable String getSchema(@NotNull final Resource r, @Nullable final String[] selectors) throws IOException {

@@ -22,10 +22,8 @@ package org.apache.sling.graphql.core.scripting;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
 
+import org.apache.sling.graphql.api.engine.QueryExecutor;
 import org.apache.sling.scripting.api.AbstractScriptEngineFactory;
-import org.apache.sling.graphql.core.engine.SlingDataFetcherSelector;
-import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
-import org.apache.sling.graphql.core.schema.RankedSchemaProviders;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Activate;
@@ -51,13 +49,7 @@ public class GraphQLScriptEngineFactory extends AbstractScriptEngineFactory {
     public static final String LANGUAGE_VERSION = "Sling:GraphQL:0.1";
 
     @Reference
-    private RankedSchemaProviders schemaProviders;
-
-    @Reference
-    private SlingDataFetcherSelector dataFetcherSelector;
-
-    @Reference
-    private SlingScalarsProvider scalarsProvider;
+    private QueryExecutor queryExecutor;
 
     @Activate
     private void activate(final GraphQLScriptEngineFactoryConfiguration config, final BundleContext ctx) {
@@ -81,16 +73,7 @@ public class GraphQLScriptEngineFactory extends AbstractScriptEngineFactory {
         return new GraphQLScriptEngine(this);
     }
 
-    RankedSchemaProviders getSchemaProviders() {
-        return schemaProviders;
+    QueryExecutor getQueryExecutor() {
+        return queryExecutor;
     }
-
-    SlingDataFetcherSelector getdataFetcherSelector() {
-        return dataFetcherSelector;
-    }
-
-    SlingScalarsProvider getScalarsProvider() {
-        return scalarsProvider;
-    }
-
 }

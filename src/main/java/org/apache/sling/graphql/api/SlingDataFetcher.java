@@ -30,6 +30,10 @@ import org.osgi.annotation.versioning.ConsumerType;
  */
 @ConsumerType
 public interface SlingDataFetcher<T> {
+    /**
+     * Defines the service registration property with which all {@code SlingDataFetcher} services have to be registered. The value should
+     * be namespaced, with namespaces being delimited by the "/" character.
+     */
     String NAME_SERVICE_PROPERTY = "name";
 
     @Nullable

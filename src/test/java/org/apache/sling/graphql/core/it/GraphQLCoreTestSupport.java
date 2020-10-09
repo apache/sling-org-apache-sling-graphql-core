@@ -18,15 +18,24 @@
  */
 package org.apache.sling.graphql.core.it;
 
+import java.io.Reader;
+import java.io.StringReader;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import javax.inject.Inject;
 
-import com.cedarsoftware.util.io.JsonWriter;
-
-import org.apache.commons.io.output.WriterOutputStream;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.johnzon.mapper.Mapper;
+import org.apache.johnzon.mapper.MapperBuilder;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
-import org.apache.sling.graphql.core.json.JsonSerializer;
+import org.apache.sling.engine.SlingRequestProcessor;
 import org.apache.sling.graphql.core.mocks.TestDataFetcherComponent;
 import org.apache.sling.servlethelpers.MockSlingHttpServletResponse;
 import org.apache.sling.servlethelpers.internalrequests.SlingInternalRequest;
@@ -39,31 +48,19 @@ import org.ops4j.pax.exam.options.ModifiableCompositeOption;
 import org.ops4j.pax.exam.options.extra.VMOption;
 import org.ops4j.pax.tinybundles.core.TinyBundle;
 import org.osgi.framework.Constants;
-import org.apache.sling.engine.SlingRequestProcessor;
 
 import static org.apache.sling.testing.paxexam.SlingOptions.slingCommonsMetrics;
-import static org.junit.Assert.fail;
 import static org.apache.sling.testing.paxexam.SlingOptions.slingQuickstartOakTar;
 import static org.apache.sling.testing.paxexam.SlingOptions.slingResourcePresence;
 import static org.apache.sling.testing.paxexam.SlingOptions.slingScripting;
 import static org.apache.sling.testing.paxexam.SlingOptions.slingScriptingJsp;
+import static org.junit.Assert.fail;
 import static org.ops4j.pax.exam.CoreOptions.composite;
 import static org.ops4j.pax.exam.CoreOptions.junitBundles;
 import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
-import static org.ops4j.pax.exam.CoreOptions.vmOption;
-import static org.ops4j.pax.exam.CoreOptions.when;
 import static org.ops4j.pax.exam.CoreOptions.streamBundle;
+import static org.ops4j.pax.exam.CoreOptions.when;
 import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.newConfiguration;
-
-import java.io.Reader;
-import java.io.StringReader;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 public abstract class GraphQLCoreTestSupport extends TestSupport {
 
@@ -95,12 +92,12 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
             slingQuickstart(),
             graphQLJava(),
             testBundle("bundle.filename"),
-            buildBundleWithExportedPackages(JsonSerializer.class, WriterOutputStream.class),
             newConfiguration("org.apache.sling.jcr.base.internal.LoginAdminWhitelist")
                 .put("whitelist.bundles.regexp", "^PAXEXAM.*$")
                 .asOption(),
             mavenBundle().groupId("org.apache.sling").artifactId("org.apache.sling.servlet-helpers").versionAsInProject(),
-            mavenBundle().groupId("com.cedarsoftware").artifactId("json-io").versionAsInProject(),
+            mavenBundle().groupId("org.apache.sling").artifactId("org.apache.sling.commons.johnzon").versionAsInProject(),
+            mavenBundle().groupId("org.apache.johnzon").artifactId("johnzon-mapper").versionAsInProject(),
             slingResourcePresence(),
             slingCommonsMetrics(),
             jsonPath(),
@@ -227,7 +224,8 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
     }
 
     protected String toJSON(Object source) {
-        return JsonWriter.objectToJson(source, JsonSerializer.WRITER_OPTIONS);
+        Mapper mapper = new MapperBuilder().build();
+        return mapper.toStructure(source).toString();
     }
 
     protected Map<String, Object> toMap(String ...keyValuePairs) {

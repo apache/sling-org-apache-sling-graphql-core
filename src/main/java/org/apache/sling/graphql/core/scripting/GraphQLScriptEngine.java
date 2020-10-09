@@ -1,4 +1,3 @@
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -28,6 +27,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonWriter;
 import javax.script.AbstractScriptEngine;
 import javax.script.Bindings;
 import javax.script.ScriptContext;
@@ -37,16 +39,10 @@ import javax.script.ScriptException;
 import org.apache.commons.io.IOUtils;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.scripting.SlingBindings;
-import org.apache.sling.graphql.core.engine.GraphQLResourceQuery;
-import org.apache.sling.graphql.core.json.JsonSerializer;
-
-import graphql.ExecutionResult;
 
 public class GraphQLScriptEngine extends AbstractScriptEngine {
 
     private final GraphQLScriptEngineFactory factory;
-    private final JsonSerializer jsonSerializer = new JsonSerializer();
-    public static final int JSON_INDENT_SPACES = 2;
 
     public GraphQLScriptEngine(GraphQLScriptEngineFactory factory) {
         this.factory = factory;
@@ -59,15 +55,13 @@ public class GraphQLScriptEngine extends AbstractScriptEngine {
 
     @Override
     public Object eval(Reader reader, ScriptContext context) throws ScriptException {
-        try {
+        try (JsonWriter writer = Json.createWriter((PrintWriter) context.getBindings(ScriptContext.ENGINE_SCOPE).get(SlingBindings.OUT))) {
 
             final Resource resource = (Resource) context.getBindings(ScriptContext.ENGINE_SCOPE)
                     .get(SlingBindings.RESOURCE);
             final String [] selectors = getRequestSelectors(resource);
-            final ExecutionResult result = GraphQLResourceQuery.executeQuery(factory.getSchemaProviders(), factory.getdataFetcherSelector(),
-                    factory.getScalarsProvider(), resource, selectors, IOUtils.toString(reader), Collections.emptyMap());
-            final PrintWriter out = (PrintWriter) context.getBindings(ScriptContext.ENGINE_SCOPE).get(SlingBindings.OUT);
-            jsonSerializer.sendJSON(out, result);
+            JsonObject json = factory.getQueryExecutor().execute(IOUtils.toString(reader), Collections.emptyMap(), resource, selectors);
+            writer.writeObject(json);
         } catch(Exception e) {
             throw new ScriptException(e);
         }
