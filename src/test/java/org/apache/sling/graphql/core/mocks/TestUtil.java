@@ -26,6 +26,7 @@ import java.util.Hashtable;
 
 import org.apache.sling.graphql.api.SlingDataFetcher;
 import org.apache.sling.graphql.api.SlingScalarConverter;
+import org.apache.sling.graphql.api.SlingTypeResolver;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
@@ -42,6 +43,18 @@ public class TestUtil {
         props.put(SlingDataFetcher.NAME_SERVICE_PROPERTY, name);
         props.put(Constants.SERVICE_RANKING, serviceRanking);
         return bc.registerService(SlingDataFetcher.class, f, props);
+    }
+
+    public static ServiceRegistration<?> registerSlingTypeResolver(BundleContext bc, String name, SlingTypeResolver<?> tr) {
+        return registerSlingTypeResolver(bc, name, 0, tr);
+    }
+
+    public static ServiceRegistration<?> registerSlingTypeResolver(BundleContext bc, String name, int serviceRanking,
+                                                                   SlingTypeResolver<?> tr) {
+        final Dictionary<String, Object> props = new Hashtable<>();
+        props.put(SlingTypeResolver.NAME_SERVICE_PROPERTY, name);
+        props.put(Constants.SERVICE_RANKING, serviceRanking);
+        return bc.registerService(SlingTypeResolver.class, tr, props);
     }
 
     public static ServiceRegistration<?> registerSlingScalarConverter(BundleContext bc, String name, SlingScalarConverter<?,?> c) {

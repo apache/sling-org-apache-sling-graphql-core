@@ -18,19 +18,25 @@
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 package org.apache.sling.graphql.core.engine;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Hashtable;
+import java.util.List;
 
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.api.SlingGraphQLException;
 import org.apache.sling.graphql.api.engine.QueryExecutor;
 import org.apache.sling.graphql.api.engine.ValidationResult;
 import org.apache.sling.graphql.core.mocks.DigestDataFetcher;
+import org.apache.sling.graphql.core.mocks.DummyTypeResolver;
 import org.apache.sling.graphql.core.mocks.EchoDataFetcher;
 import org.apache.sling.graphql.core.mocks.FailingDataFetcher;
 import org.apache.sling.graphql.core.mocks.MockSchemaProvider;
 import org.apache.sling.graphql.core.mocks.TestUtil;
+import org.apache.sling.graphql.core.mocks.TypeSlingResourceDTO;
+import org.apache.sling.graphql.core.mocks.TypeTestDTO;
+import org.apache.sling.graphql.core.mocks.UnionTypeResolver;
 import org.junit.Test;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
@@ -47,10 +53,19 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
+
     protected void setupAdditionalServices() {
         final Dictionary<String, Object> staticData = new Hashtable<>();
         staticData.put("test", true);
 
+        final Dictionary<String, Object> unionData = new Hashtable<>();
+        final List<Object> items = new ArrayList<>();
+        items.add(new TypeTestDTO(true, false, "path/to/resource", "1, 2, 3"));
+        items.add(new TypeSlingResourceDTO(resource.getPath(), resource.getResourceType()));
+        unionData.put("items", items);
+
+        TestUtil.registerSlingTypeResolver(context.bundleContext(), "union/resolver", new UnionTypeResolver());
+        TestUtil.registerSlingDataFetcher(context.bundleContext(), "union/fetcher", new EchoDataFetcher(unionData));
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "echoNS/echo", new EchoDataFetcher(null));
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "failure/fail", new FailingDataFetcher());
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "test/static", new EchoDataFetcher(staticData));
@@ -130,17 +145,40 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
 
     @Test
     public void invalidFetcherNamesTest() {
-        context.registerService(SchemaProvider.class, new MockSchemaProvider("failing-schema"), Constants.SERVICE_RANKING,
+        context.registerService(SchemaProvider.class, new MockSchemaProvider("failing-fetcher-schema"), Constants.SERVICE_RANKING,
                 Integer.MAX_VALUE);
         final ServiceRegistration<?> reg = TestUtil.registerSlingDataFetcher(context.bundleContext(), "missingSlash", new EchoDataFetcher(42));
         try {
             queryJSON("{ currentResource { missingSlash } }", new String[] {});
             fail("Expected query to fail");
         } catch(Exception e) {
-            TestUtil.assertNestedException(e, SlingGraphQLException.class, "does not match");
+            TestUtil.assertNestedException(e, SlingGraphQLException.class, "Invalid fetcher name missingSlash");
         } finally {
             reg.unregister();
         }
     }
 
+    @Test
+    public void invalidTypeResolverNamesTest() {
+        context.registerService(SchemaProvider.class, new MockSchemaProvider("failing-type-resolver-schema"), Constants.SERVICE_RANKING,
+                Integer.MAX_VALUE);
+        final ServiceRegistration<?> reg = TestUtil.registerSlingTypeResolver(context.bundleContext(), "missingSlash",
+                new DummyTypeResolver());
+        try {
+            queryJSON("{ currentResource { missingSlash } }", new String[] {});
+            fail("Expected query to fail");
+        } catch(Exception e) {
+            TestUtil.assertNestedException(e, SlingGraphQLException.class, "Invalid type resolver name missingSlash");
+        } finally {
+            reg.unregister();
+        }
+    }
+
+    @Test
+    public void unionFetcherTest() throws Exception {
+        final String json = queryJSON("{ unionFetcher { items { ... on Test { testingArgument }  ... on SlingResource { path }} } }");
+        assertThat(json, hasJsonPath("$.data.unionFetcher"));
+        assertThat(json, hasJsonPath("$.data.unionFetcher.items[0].testingArgument", equalTo("1, 2, 3")));
+        assertThat(json, hasJsonPath("$.data.unionFetcher.items[1].path", equalTo(resource.getPath())));
+    }
 }

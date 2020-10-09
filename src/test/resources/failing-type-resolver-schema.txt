@@ -16,13 +16,6 @@
 # * under the License.
 
 # This directive maps fields to our Sling data fetchers
-directive @fetcher(
-    name : String,
-    options : String = "",
-    source : String = ""
-) on FIELD_DEFINITION
-
-# This directive to maps types
 directive @resolver(
     name : String,
     options : String = "",
@@ -40,37 +33,4 @@ type Query {
     unionFetcher: Test2 @fetcher(name:"union/fetcher")
 }
 
-union AllTypes @resolver(name:"union/resolver" source:"AllTypes") = SlingResource | Test
-
-# This should be omitted from the SlingResource type description
-#
-# SlingResource, for our tests
-type SlingResource { 
-    path: String
-    resourceType: String
-
-    pathMD5: String @fetcher(name:"sling/digest" options:"md5" source:"path")
-
-    # SHA256 digest of the path
-    pathSHA256: String @fetcher(name:"sling/digest" options:"sha-256" source:"path")
-
-    # MD5 digest of the resource type
-    resourceTypeMD5: String @fetcher(name:"sling/digest" options:"md5" source:"resourceType")
-
-    nullValue: String @fetcher(name:"echoNS/echo" options:"null")
-
-    # Failure message
-    failure: String @fetcher(name:"failure/fail")
-}
-
-type Test { 
-    test: Boolean
-    boolValue: Boolean
-    resourcePath: String
-    testingArgument: String
-}
-
-type Test2 {
-    items: [AllTypes]
-}
-
+union AllTypes @resolver(name:"missingSlash" source:"AllTypes") = SlingResource | Test
