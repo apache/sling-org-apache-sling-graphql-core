@@ -26,6 +26,7 @@ import javax.json.JsonObject;
 import javax.script.ScriptException;
 
 import graphql.language.UnionTypeDefinition;
+import graphql.schema.GraphQLObjectType;
 import graphql.schema.TypeResolver;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.graphql.api.SchemaProvider;

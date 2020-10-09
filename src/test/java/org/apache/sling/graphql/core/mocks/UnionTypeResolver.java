@@ -28,7 +28,7 @@ public class UnionTypeResolver implements SlingTypeResolver<Object> {
 
     @Nullable
     @Override
-    public Object getType(@NotNull SlingTypeResolverEnvironment<Object> e) {
+    public Object getType(@NotNull SlingTypeResolverEnvironment e) {
         Object resultItem = e.getObject();
         if (resultItem instanceof TypeTestDTO) {
             return e.getObjectType("Test");
