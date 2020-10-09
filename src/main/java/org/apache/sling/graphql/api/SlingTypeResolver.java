@@ -37,5 +37,5 @@ public interface SlingTypeResolver<T> {
     String NAME_SERVICE_PROPERTY = "name";
 
     @Nullable
-    T getType(@NotNull SlingTypeResolverEnvironment e);
+    T getType(@NotNull SlingTypeResolverEnvironment<T> e);
 }

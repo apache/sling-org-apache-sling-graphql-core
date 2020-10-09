@@ -30,7 +30,7 @@ public class DoNothingTypeResolver implements SlingTypeResolver<Object> {
 
     @Nullable
     @Override
-    public Object getType(@NotNull SlingTypeResolverEnvironment e) {
+    public Object getType(@NotNull SlingTypeResolverEnvironment<Object> e) {
         return null;
     }
 }

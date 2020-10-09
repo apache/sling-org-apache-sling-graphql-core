@@ -26,7 +26,7 @@ import org.jetbrains.annotations.Nullable;
 public class DummyTypeResolver implements SlingTypeResolver<Object> {
 
     @Override
-    public @Nullable Object getType(@NotNull SlingTypeResolverEnvironment e) {
+    public @Nullable Object getType(@NotNull SlingTypeResolverEnvironment<Object> e) {
         return null;
     }
 }

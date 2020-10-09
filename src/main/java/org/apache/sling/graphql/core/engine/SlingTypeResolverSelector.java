@@ -19,7 +19,6 @@
 
 package org.apache.sling.graphql.core.engine;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -28,7 +27,6 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.commons.osgi.PropertiesUtil;
-import org.apache.sling.graphql.api.SlingDataFetcher;
 import org.apache.sling.graphql.api.SlingTypeResolver;
 import org.apache.sling.graphql.core.osgi.ServiceReferenceObjectTuple;
 import org.jetbrains.annotations.NotNull;
@@ -91,14 +89,15 @@ public class SlingTypeResolverSelector {
                 final String className = slingTypeResolver.getClass().getName();
                 if (!slingTypeResolver.getClass().getName().startsWith(RESERVED_PACKAGE_PREFIX)) {
                     LOGGER.error(
-                            "Invalid SlingDataFetcher {}: fetcher names starting with '{}' are reserved for Apache Sling Java packages",
+                            "Invalid SlingTypeResolver {}: type resolver names starting with '{}' are reserved for Apache Sling Java " +
+                                    "packages",
                             className, RESERVED_NAME_PREFIX);
                     return false;
                 }
             }
         } else {
-            LOGGER.error("Invalid {} implementation: fetcher {} is missing the mandatory value for its {} service property.",
-                    SlingDataFetcher.class.getName(), slingTypeResolver.getClass().getName(), SlingDataFetcher.NAME_SERVICE_PROPERTY);
+            LOGGER.error("Invalid {} implementation: type resolver {} is missing the mandatory value for its {} service property.",
+                    SlingTypeResolver.class.getName(), slingTypeResolver.getClass().getName(), SlingTypeResolver.NAME_SERVICE_PROPERTY);
             return false;
         }
         return true;
