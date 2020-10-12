@@ -62,18 +62,11 @@ public class SlingDataFetcherSelector {
      */
     public static final String RESERVED_PACKAGE_PREFIX = "org.apache.sling.";
 
-    @Reference
-    private ScriptedDataFetcherProvider scriptedDataFetcherProvider;
-
-    /** @return a SlingDataFetcher, or null if none available. First tries to get an
-     *  OSGi SlingDataFetcher service, and if not found tries to find a scripted SlingDataFetcher.
+    /** @return a SlingDataFetcher, or null if none available.
      */
     @Nullable
     public SlingDataFetcher<Object> getSlingFetcher(@NotNull String name) {
         SlingDataFetcher<Object> result = getOsgiServiceFetcher(name);
-        if(result == null) {
-            result = scriptedDataFetcherProvider.getDataFetcher(name);
-        }
         return result;
     }
 

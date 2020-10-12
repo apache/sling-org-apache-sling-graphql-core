@@ -28,7 +28,6 @@ import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.api.engine.QueryExecutor;
 import org.apache.sling.graphql.core.engine.DefaultQueryExecutor;
-import org.apache.sling.graphql.core.engine.ScriptedDataFetcherProvider;
 import org.apache.sling.graphql.core.engine.SlingDataFetcherSelector;
 import org.apache.sling.graphql.core.engine.SlingTypeResolverSelector;
 import org.apache.sling.graphql.core.mocks.MockSchemaProvider;
@@ -105,7 +104,6 @@ public class SchemaDescriptionsTest {
         Mockito.when(resource.getResourceType()).thenReturn(resourceType);
         final ServletResolver servletResolver = Mockito.mock(ServletResolver.class);
         context.bundleContext().registerService(ServletResolver.class, servletResolver, null);
-        context.registerInjectActivateService(new ScriptedDataFetcherProvider());
         context.registerInjectActivateService(new SlingDataFetcherSelector());
         context.registerInjectActivateService(new SlingTypeResolverSelector());
         TestUtil.registerSlingTypeResolver(context.bundleContext(), "union/resolver", new UnionTypeResolver());

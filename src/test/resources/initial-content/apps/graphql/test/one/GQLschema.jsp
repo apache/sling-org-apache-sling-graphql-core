@@ -25,7 +25,7 @@ directive @fetcher(
 ) on FIELD_DEFINITION
 
 type Query {
-  scriptedSchemaResource : SlingResource @fetcher(name:"test/pipe" source:"$")
+  oneSchemaResource : SlingResource @fetcher(name:"test/pipe" source:"$")
 }
 
 type SlingResource { 

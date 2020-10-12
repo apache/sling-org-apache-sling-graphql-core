@@ -24,10 +24,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
-
-import java.io.IOException;
 
 import com.example.fetchers.DoNothingFetcher;
 
@@ -40,7 +37,6 @@ import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 public class SlingDataFetcherSelectorTest {
 
@@ -51,8 +47,6 @@ public class SlingDataFetcherSelectorTest {
 
     @Before
     public void setup() {
-        final ScriptedDataFetcherProvider sdfp = mock(ScriptedDataFetcherProvider.class);
-        context.bundleContext().registerService(ScriptedDataFetcherProvider.class, sdfp, null);
         context.registerInjectActivateService(new SlingDataFetcherSelector());
         selector = context.getService(SlingDataFetcherSelector.class);
 

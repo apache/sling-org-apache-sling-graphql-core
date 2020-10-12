@@ -161,16 +161,6 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
     }
 
     @Test
-    public void scriptedFetcherProviderTest() throws Exception {
-        final String json = queryJSON("{ currentResource { path } scriptedFetcher (testing: \"1, 2, 3\") { boolValue resourcePath " +
-                "testingArgument } }", new String[] {});
-        assertThat(json, hasJsonPath("$.data.currentResource.path", equalTo(resource.getPath())));
-        assertThat(json, hasJsonPath("$.data.scriptedFetcher.boolValue", equalTo(true)));
-        assertThat(json, hasJsonPath("$.data.scriptedFetcher.resourcePath", equalTo(resource.getPath())));
-        assertThat(json, hasJsonPath("$.data.scriptedFetcher.testingArgument", equalTo("1, 2, 3")));
-    }
-
-    @Test
     public void unionFetcherTest() throws Exception {
         final String json = queryJSON("{ unionFetcher { items { ... on Test { testingArgument }  ... on SlingResource { path }} } }");
         assertThat(json, hasJsonPath("$.data.unionFetcher"));
