@@ -20,8 +20,6 @@ package org.apache.sling.graphql.api.engine;
 
 import java.util.Map;
 
-import javax.json.JsonObject;
-
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.graphql.api.SlingGraphQLException;
 import org.jetbrains.annotations.NotNull;
@@ -42,8 +40,8 @@ public interface QueryExecutor {
      * @param selectors     potential selectors used to select the schema applicable to the passed {@code query}
      * @return {code true} if the {@code query} is valid, {@code false} otherwise
      */
-    boolean isValid(@NotNull String query, @NotNull Map<String, Object> variables, @NotNull Resource queryResource,
-                    @NotNull String[] selectors);
+    ValidationResult validate(@NotNull String query, @NotNull Map<String, Object> variables, @NotNull Resource queryResource,
+                     @NotNull String[] selectors);
 
     /**
      * Executes the passed {@code query}.
@@ -52,10 +50,10 @@ public interface QueryExecutor {
      * @param variables     the query's variables; can be an empty {@link Map} if the query doesn't accept variables
      * @param queryResource the current resource, used as the root for the query
      * @param selectors     potential selectors used to select the schema applicable to the passed {@code query}
-     * @return a {@link JsonObject} representing the query's result
+     * @return a {@link Map} representing the query's result
      * @throws SlingGraphQLException if the execution of the query leads to any issues
      */
     @NotNull
-    JsonObject execute(@NotNull String query, @NotNull Map<String, Object> variables, @NotNull Resource queryResource,
+    Map<String, Object> execute(@NotNull String query, @NotNull Map<String, Object> variables, @NotNull Resource queryResource,
                        @NotNull String[] selectors);
 }

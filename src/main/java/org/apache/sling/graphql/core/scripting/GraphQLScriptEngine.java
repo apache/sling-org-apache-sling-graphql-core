@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import javax.json.Json;
 import javax.json.JsonObject;
@@ -60,8 +61,9 @@ public class GraphQLScriptEngine extends AbstractScriptEngine {
             final Resource resource = (Resource) context.getBindings(ScriptContext.ENGINE_SCOPE)
                     .get(SlingBindings.RESOURCE);
             final String [] selectors = getRequestSelectors(resource);
-            JsonObject json = factory.getQueryExecutor().execute(IOUtils.toString(reader), Collections.emptyMap(), resource, selectors);
-            writer.writeObject(json);
+            Map<String, Object> executionResult = factory.getQueryExecutor().execute(IOUtils.toString(reader), Collections.emptyMap(),
+                    resource, selectors);
+            writer.write(Json.createObjectBuilder(executionResult).build().asJsonObject());
         } catch(Exception e) {
             throw new ScriptException(e);
         }

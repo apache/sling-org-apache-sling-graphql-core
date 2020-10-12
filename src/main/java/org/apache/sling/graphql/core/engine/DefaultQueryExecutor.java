@@ -21,8 +21,6 @@ package org.apache.sling.graphql.core.engine;
 import java.util.List;
 import java.util.Map;
 
-import javax.json.Json;
-import javax.json.JsonObject;
 import javax.script.ScriptException;
 
 import org.apache.sling.api.resource.Resource;
@@ -30,6 +28,7 @@ import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.api.SlingDataFetcher;
 import org.apache.sling.graphql.api.SlingGraphQLException;
 import org.apache.sling.graphql.api.engine.QueryExecutor;
+import org.apache.sling.graphql.api.engine.ValidationResult;
 import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
 import org.apache.sling.graphql.core.schema.RankedSchemaProviders;
 import org.jetbrains.annotations.NotNull;
@@ -44,10 +43,12 @@ import graphql.ExecutionResult;
 import graphql.GraphQL;
 import graphql.GraphQLError;
 import graphql.ParseAndValidate;
+import graphql.ParseAndValidateResult;
 import graphql.language.Argument;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.ObjectTypeDefinition;
+import graphql.language.SourceLocation;
 import graphql.language.StringValue;
 import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLScalarType;
@@ -79,8 +80,8 @@ public class DefaultQueryExecutor implements QueryExecutor {
     private SlingScalarsProvider scalarsProvider;
 
     @Override
-    public boolean isValid(@NotNull String query, @NotNull Map<String, Object> variables, @NotNull Resource queryResource,
-                           @NotNull String[] selectors) {
+    public ValidationResult validate(@NotNull String query, @NotNull Map<String, Object> variables, @NotNull Resource queryResource,
+                                     @NotNull String[] selectors) {
         try {
             String schemaDef = prepareSchemaDefinition(schemaProvider, queryResource, selectors);
             LOGGER.debug("Resource {} maps to GQL schema {}", queryResource.getPath(), schemaDef);
@@ -90,16 +91,29 @@ public class DefaultQueryExecutor implements QueryExecutor {
                     .query(query)
                     .variables(variables)
                     .build();
-            return !ParseAndValidate.parseAndValidate(schema, executionInput).isFailure();
+            ParseAndValidateResult parseAndValidateResult = ParseAndValidate.parseAndValidate(schema, executionInput);
+            if (!parseAndValidateResult.isFailure()) {
+                return DefaultValidationResult.Builder.newBuilder().withValidFlag(true).build();
+            }
+            DefaultValidationResult.Builder validationResultBuilder = DefaultValidationResult.Builder.newBuilder().withValidFlag(false);
+            for (GraphQLError error : parseAndValidateResult.getErrors()) {
+                StringBuilder sb = new StringBuilder();
+                sb.append("Error: type=").append(error.getErrorType().toString()).append("; ");
+                sb.append("message=").append(error.getMessage()).append("; ");
+                for (SourceLocation location : error.getLocations()) {
+                    sb.append("location=").append(location.getLine()).append(",").append(location.getColumn()).append(";");
+                }
+                validationResultBuilder.withErrorMessage(sb.toString());
+            }
+            return validationResultBuilder.build();
         } catch (Exception e) {
-            LOGGER.error(String.format("Invalid query: %s.", query), e);
-            return false;
+            return DefaultValidationResult.Builder.newBuilder().withValidFlag(false).withErrorMessage(e.getMessage()).build();
         }
     }
 
     @Override
-    public @NotNull JsonObject execute(@NotNull String query, @NotNull Map<String, Object> variables, @NotNull Resource queryResource,
-                                       @NotNull String[] selectors) {
+    public @NotNull Map<String, Object> execute(@NotNull String query, @NotNull Map<String, Object> variables,
+                                                @NotNull Resource queryResource, @NotNull String[] selectors) {
         String schemaDef = null;
         try {
             schemaDef = prepareSchemaDefinition(schemaProvider, queryResource, selectors);
@@ -115,14 +129,16 @@ public class DefaultQueryExecutor implements QueryExecutor {
             if (!result.getErrors().isEmpty()) {
                 StringBuilder errors = new StringBuilder();
                 for (GraphQLError error : result.getErrors()) {
-                    errors.append("Error type: ").append(error.getErrorType().toString()).append("; error message: ").append(error.getMessage()).append(System.lineSeparator());
+                    errors.append("Error: type=").append(error.getErrorType().toString()).append("; message=").append(error.getMessage()).append(System.lineSeparator());
+                    for (SourceLocation location : error.getLocations()) {
+                        errors.append("location=").append(location.getLine()).append(",").append(location.getColumn()).append(";");
+                    }
                 }
                 throw new SlingGraphQLException(String.format("Query failed for Resource %s: schema=%s, query=%s%nErrors:%n%s",
                         queryResource.getPath(), schemaDef, query, errors.toString()));
             }
             LOGGER.debug("ExecutionResult.isDataPresent={}", result.isDataPresent());
-            Map<String, Object> resultAsMap = result.toSpecification();
-            return Json.createObjectBuilder(resultAsMap).build().asJsonObject();
+            return result.toSpecification();
         } catch (SlingGraphQLException e) {
             throw e;
         } catch (Exception e) {

@@ -22,11 +22,11 @@ package org.apache.sling.graphql.core.servlet;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.json.Json;
-import javax.json.JsonObject;
 import javax.json.JsonWriter;
 import javax.servlet.Servlet;
 import javax.servlet.http.HttpServletResponse;
@@ -42,6 +42,7 @@ import org.apache.sling.commons.metrics.MetricsService;
 import org.apache.sling.commons.metrics.Timer;
 import org.apache.sling.graphql.api.cache.GraphQLCacheProvider;
 import org.apache.sling.graphql.api.engine.QueryExecutor;
+import org.apache.sling.graphql.api.engine.ValidationResult;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -52,6 +53,8 @@ import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.AttributeType;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
@@ -78,6 +81,7 @@ import com.codahale.metrics.MetricRegistry;
 @Designate(ocd = GraphQLServlet.Config.class, factory=true)
 public class GraphQLServlet extends SlingAllMethodsServlet {
     private static final long serialVersionUID = 1L;
+    private static final Logger LOGGER = LoggerFactory.getLogger(GraphQLServlet.class);
 
     public static final String P_QUERY = "query";
 
@@ -277,8 +281,9 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
             throws IOException {
         String rawQuery = IOUtils.toString(request.getReader());
         QueryParser.Result query = QueryParser.fromJSON(rawQuery);
-        if (queryExecutor
-                .isValid(query.getQuery(), query.getVariables(), request.getResource(), request.getRequestPathInfo().getSelectors())) {
+        ValidationResult validationResult = queryExecutor
+                .validate(query.getQuery(), query.getVariables(), request.getResource(), request.getRequestPathInfo().getSelectors());
+        if (validationResult.isValid()) {
             String hash = cacheProvider.cacheQuery(rawQuery, request.getResource().getResourceType(),
                     request.getRequestPathInfo().getSelectorString());
             if (hash != null) {
@@ -288,6 +293,7 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
                 response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Cannot store persisted query.");
             }
         } else {
+            LOGGER.error("Invalid GraphQL query: " + String.join(System.lineSeparator(), validationResult.getErrors()));
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid GraphQL query.");
         }
     }
@@ -307,9 +313,9 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
         }
 
         try (JsonWriter writer = Json.createWriter(response.getWriter())) {
-            final JsonObject json = queryExecutor.execute(query, result.getVariables(), resource,
+            Map<String, Object> executionResult = queryExecutor.execute(query, result.getVariables(), resource,
                     request.getRequestPathInfo().getSelectors());
-            writer.writeObject(json);
+            writer.write(Json.createObjectBuilder(executionResult).build().asJsonObject());
         } catch(Exception ex) {
             throw new IOException(ex);
         }
@@ -320,9 +326,9 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
         response.setCharacterEncoding("UTF-8");
         try (JsonWriter writer = Json.createWriter(response.getWriter())) {
             final QueryParser.Result result = QueryParser.fromJSON(persistedQuery);
-            final JsonObject json = queryExecutor
-                    .execute(result.getQuery(), result.getVariables(), request.getResource(), request.getRequestPathInfo().getSelectors());
-            writer.writeObject(json);
+            Map<String, Object> executionResult = queryExecutor.execute(result.getQuery(), result.getVariables(), request.getResource(),
+                    request.getRequestPathInfo().getSelectors());
+            writer.write(Json.createObjectBuilder(executionResult).build().asJsonObject());
         } catch (Exception ex) {
             throw new IOException(ex);
         }

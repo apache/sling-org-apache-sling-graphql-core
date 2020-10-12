@@ -31,6 +31,7 @@ import org.apache.sling.commons.metrics.Counter;
 import org.apache.sling.commons.metrics.MetricsService;
 import org.apache.sling.commons.metrics.Timer;
 import org.apache.sling.graphql.api.engine.QueryExecutor;
+import org.apache.sling.graphql.api.engine.ValidationResult;
 import org.apache.sling.graphql.core.cache.SimpleGraphQLCacheProvider;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
 import org.apache.sling.testing.mock.sling.servlet.MockRequestPathInfo;
@@ -70,7 +71,9 @@ public class GraphQLServletTest {
         context.registerService(MetricRegistry.class, metricRegistry, "name", "sling");
 
         QueryExecutor queryExecutor = mock(QueryExecutor.class);
-        when(queryExecutor.isValid(any(String.class), any(Map.class), any(Resource.class), any(String[].class))).thenReturn(true);
+        ValidationResult validationResult = mock(ValidationResult.class);
+        when(validationResult.isValid()).thenReturn(true);
+        when(queryExecutor.validate(any(String.class), any(Map.class), any(Resource.class), any(String[].class))).thenReturn(validationResult);
         context.registerService(QueryExecutor.class, queryExecutor);
     }
 

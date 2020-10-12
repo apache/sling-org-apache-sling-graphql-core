@@ -19,9 +19,10 @@
 package org.apache.sling.graphql.core.schema;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.UUID;
 
-import javax.json.JsonObject;
+import javax.json.Json;
 
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.servlets.ServletResolver;
@@ -112,8 +113,8 @@ public class SchemaDescriptionsTest {
     private String queryJSON(String stmt) throws Exception {
         QueryExecutor queryExecutor = context.getService(QueryExecutor.class);
         assertNotNull(queryExecutor);
-        JsonObject json = queryExecutor.execute(stmt, Collections.emptyMap(), resource, new String[] {});
-        return json.toString();
+        Map<String, Object> executionResult = queryExecutor.execute(stmt, Collections.emptyMap(), resource, new String[]{});
+        return Json.createObjectBuilder(executionResult).build().asJsonObject().toString();
     }
 
     private void assertTypeDescription(String typeName, String expected) {

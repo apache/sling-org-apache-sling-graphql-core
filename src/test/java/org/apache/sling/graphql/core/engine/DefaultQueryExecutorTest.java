@@ -25,6 +25,7 @@ import java.util.Hashtable;
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.api.SlingGraphQLException;
 import org.apache.sling.graphql.api.engine.QueryExecutor;
+import org.apache.sling.graphql.api.engine.ValidationResult;
 import org.apache.sling.graphql.core.mocks.DigestDataFetcher;
 import org.apache.sling.graphql.core.mocks.EchoDataFetcher;
 import org.apache.sling.graphql.core.mocks.FailingDataFetcher;
@@ -39,8 +40,10 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
@@ -100,8 +103,19 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
             assertNotNull(queryExecutor);
             queryExecutor.execute(stmt, Collections.emptyMap(), resource, new String[] {});
         } catch(RuntimeException rex) {
-            assertThat(rex.getMessage(), containsString("DataFetchingException; error message: Exception while fetching data (/currentResource/failure) : FailingDataFetcher"));
+            assertThat(rex.getMessage(), containsString("Error: type=DataFetchingException; message=Exception while fetching data (/currentResource/failure) : FailingDataFetcher"));
         }
+    }
+
+    @Test
+    public void invalidQueryTest() {
+        final String stmt = "{ currentRsrc { failure } }";
+        QueryExecutor queryExecutor = context.getService(QueryExecutor.class);
+        assertNotNull(queryExecutor);
+        ValidationResult result = queryExecutor.validate(stmt, Collections.emptyMap(), resource, new String[] {});
+        assertFalse(result.isValid());
+        String errors = String.join("\n", result.getErrors());
+        assertTrue(errors.contains("Error: type=ValidationError; message=Validation error of type FieldUndefined: Field 'currentRsrc' in type 'Query' is undefined @ 'currentRsrc'; location=1,3;"));
     }
 
     @Test

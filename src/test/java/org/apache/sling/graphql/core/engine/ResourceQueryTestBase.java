@@ -19,8 +19,10 @@
 package org.apache.sling.graphql.core.engine;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.UUID;
 
+import javax.json.Json;
 import javax.json.JsonObject;
 
 import org.apache.sling.api.resource.Resource;
@@ -77,8 +79,8 @@ public abstract class ResourceQueryTestBase {
     protected String queryJSON(String stmt, String [] selectors) {
         final QueryExecutor queryExecutor = context.getService(QueryExecutor.class);
         assertNotNull(queryExecutor);
-        JsonObject json = queryExecutor.execute(stmt, Collections.emptyMap(), resource, selectors);
-        return json.toString();
+        Map<String, Object> executionResult = queryExecutor.execute(stmt, Collections.emptyMap(), resource, selectors);
+        return Json.createObjectBuilder(executionResult).build().asJsonObject().toString();
     }
 
     protected void setupAdditionalServices() {
