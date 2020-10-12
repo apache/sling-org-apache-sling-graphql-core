@@ -64,7 +64,6 @@ public abstract class ResourceQueryTestBase {
         Mockito.when(servletResolver.resolveServlet(Mockito.any(Resource.class), Mockito.any(String.class))).thenReturn(mss);
         context.bundleContext().registerService(ServletResolver.class, servletResolver, null);
 
-        context.registerInjectActivateService(new ScriptedDataFetcherProvider());
         context.registerInjectActivateService(new SlingDataFetcherSelector());
         context.registerInjectActivateService(new SlingScalarsProvider());
         context.registerInjectActivateService(new RankedSchemaProviders());

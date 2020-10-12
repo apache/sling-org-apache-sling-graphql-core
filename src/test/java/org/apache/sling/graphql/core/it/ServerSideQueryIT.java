@@ -79,23 +79,13 @@ public class ServerSideQueryIT extends GraphQLCoreTestSupport {
 
     @Test
     public void testJsonContent() throws Exception {
-        assertDefaultContent("", "scriptedSchemaResource");
+        assertDefaultContent("", "oneSchemaResource");
     }
 
     @Test
     public void testMultipleSchemaProviders() throws Exception {
-        new ReplacingSchemaProvider("scriptedSchemaResource", "REPLACED").register(bundleContext, defaultSchemaProvider, Integer.MAX_VALUE);
-        new ReplacingSchemaProvider("scriptedSchemaResource", "NOT_THIS_ONE").register(bundleContext, defaultSchemaProvider, 1);
+        new ReplacingSchemaProvider("oneSchemaResource", "REPLACED").register(bundleContext, defaultSchemaProvider, Integer.MAX_VALUE);
+        new ReplacingSchemaProvider("oneSchemaResource", "NOT_THIS_ONE").register(bundleContext, defaultSchemaProvider, 1);
         assertDefaultContent(".REPLACED", "REPLACED");
-    }
-
-    @Test
-    public void testScriptedDataFetcher() throws Exception {
-        final String json = getContent("/graphql/one.scripted.json");
-        assertThat(json, hasJsonPath("$.data.currentResource.resourceType", equalTo("graphql/test/one")));
-        assertThat(json, hasJsonPath("$.data.scriptedFetcher.boolValue", equalTo(true)));
-        assertThat(json, hasJsonPath("$.data.scriptedFetcher.resourcePath", equalTo("From the test script: /content/graphql/one")));
-        assertThat(json, hasJsonPath("$.data.scriptedFetcher.testingArgument", equalTo("1,2,42")));
-        assertThat(json, hasJsonPath("$.data.scriptedFetcher.anotherValue", equalTo(451)));
     }
 }
