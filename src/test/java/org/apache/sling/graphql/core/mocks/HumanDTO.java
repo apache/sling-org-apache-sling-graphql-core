@@ -18,20 +18,26 @@
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 package org.apache.sling.graphql.core.mocks;
 
-public class TypeSlingResourceDTO {
-    private final String path;
-    private final String resourceType;
+public class HumanDTO {
+    private final String id;
+    private final String name;
+    private final String address;
 
-    public TypeSlingResourceDTO(String path, String resourceType) {
-        this.path = path;
-        this.resourceType = resourceType;
+    public HumanDTO(String id, String name, String address) {
+        this.id = id;
+        this.name = name;
+        this.address = address;
     }
 
-    public String getPath() {
-        return path;
+    public String getId() {
+        return id;
     }
 
-    public String getResourceType() {
-        return resourceType;
+    public String getName() {
+        return name;
+    }
+
+    public String getTotalCredits() {
+        return address;
     }
 }

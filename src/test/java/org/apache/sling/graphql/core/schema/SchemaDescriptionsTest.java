@@ -33,7 +33,7 @@ import org.apache.sling.graphql.core.engine.SlingDataFetcherSelector;
 import org.apache.sling.graphql.core.engine.SlingTypeResolverSelector;
 import org.apache.sling.graphql.core.mocks.MockSchemaProvider;
 import org.apache.sling.graphql.core.mocks.TestUtil;
-import org.apache.sling.graphql.core.mocks.UnionTypeResolver;
+import org.apache.sling.graphql.core.mocks.CharacterTypeResolver;
 import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.hamcrest.CustomMatcher;
@@ -107,7 +107,7 @@ public class SchemaDescriptionsTest {
         context.bundleContext().registerService(ServletResolver.class, servletResolver, null);
         context.registerInjectActivateService(new SlingDataFetcherSelector());
         context.registerInjectActivateService(new SlingTypeResolverSelector());
-        TestUtil.registerSlingTypeResolver(context.bundleContext(), "union/resolver", new UnionTypeResolver());
+        TestUtil.registerSlingTypeResolver(context.bundleContext(), "character/resolver", new CharacterTypeResolver());
         context.registerInjectActivateService(new SlingScalarsProvider());
         context.registerService(SchemaProvider.class, new MockSchemaProvider("test-schema"));
         context.registerInjectActivateService(new RankedSchemaProviders());
