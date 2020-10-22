@@ -111,6 +111,15 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
     }
 
     @Test
+    public void queryValidationErrorResponseTest() throws Exception {
+        final String json = queryJSON("{ currentResource_NON_EXISTENT { nullValue } }");
+        assertThat(json, hasJsonPath("$.errors[0].message"));
+        assertThat(json, hasJsonPath("$.errors[0].locations"));
+        assertThat(json, hasJsonPath("$.errors[0].extensions"));
+        assertThat(json, hasJsonPath("$.errors[0].extensions.classification", is("ValidationError")));
+    }
+
+    @Test
     public void dataFetcherFailureTest() {
         try {
             final String stmt = "{ currentResource { failure } }";
