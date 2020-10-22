@@ -146,7 +146,7 @@ public class DefaultQueryExecutor implements QueryExecutor {
                     }
                 }
                 LOGGER.error("Query failed for Resource {}: schema={}, query={} Errors:{}",
-                        queryResource.getPath(), schemaDef, query, errors.toString());
+                        queryResource.getPath(), schemaDef, query, errors);
             }
             LOGGER.debug("ExecutionResult.isDataPresent={}", result.isDataPresent());
             return result.toSpecification();
