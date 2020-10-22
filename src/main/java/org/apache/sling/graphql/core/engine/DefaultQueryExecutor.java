@@ -145,8 +145,8 @@ public class DefaultQueryExecutor implements QueryExecutor {
                         errors.append("location=").append(location.getLine()).append(",").append(location.getColumn()).append(";");
                     }
                 }
-                throw new SlingGraphQLException(String.format("Query failed for Resource %s: schema=%s, query=%s%nErrors:%n%s",
-                        queryResource.getPath(), schemaDef, query, errors.toString()));
+                LOGGER.error("Query failed for Resource {}: schema={}, query={} Errors:{}",
+                        queryResource.getPath(), schemaDef, query, errors.toString());
             }
             LOGGER.debug("ExecutionResult.isDataPresent={}", result.isDataPresent());
             return result.toSpecification();
