@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
         Constants.SERVICE_VENDOR + "=The Apache Software Foundation" })
 public class DefaultSchemaProvider implements SchemaProvider {
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    private final Logger LOGGER = LoggerFactory.getLogger(getClass());
 
     public static final int SERVICE_RANKING =  Integer.MIN_VALUE + 1000;
     public static final String SCHEMA_EXTENSION = "GQLschema";
@@ -59,7 +59,7 @@ public class DefaultSchemaProvider implements SchemaProvider {
             .withExtension(SCHEMA_EXTENSION)
         ;
 
-        log.debug("Getting GraphQL Schema for {}: {}", r.getPath(), req);
+        LOGGER.debug("Getting GraphQL Schema for {}: {}", r.getPath(), req);
 
         if(req.execute().getStatus() == HttpServletResponse.SC_OK) {
             return req.getResponseAsString();
