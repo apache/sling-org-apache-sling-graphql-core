@@ -32,6 +32,7 @@ import org.apache.sling.graphql.api.SlingGraphQLException;
 import org.apache.sling.graphql.api.engine.QueryExecutor;
 import org.apache.sling.graphql.api.engine.ValidationResult;
 import org.apache.sling.graphql.api.SlingTypeResolver;
+import org.apache.sling.graphql.core.logging.Sanitizer;
 import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
 import org.apache.sling.graphql.core.schema.RankedSchemaProviders;
 import org.jetbrains.annotations.NotNull;
@@ -77,6 +78,8 @@ public class DefaultQueryExecutor implements QueryExecutor {
     public static final String RESOLVER_NAME = "name";
     public static final String RESOLVER_OPTIONS = "options";
     public static final String RESOLVER_SOURCE = "source";
+
+    private static final Sanitizer cleanLog = new Sanitizer();
 
     @Reference
     private RankedSchemaProviders schemaProvider;
@@ -130,7 +133,10 @@ public class DefaultQueryExecutor implements QueryExecutor {
             LOGGER.debug("Resource {} maps to GQL schema {}", queryResource.getPath(), schemaDef);
             final GraphQLSchema schema = buildSchema(schemaDef, queryResource);
             final GraphQL graphQL = GraphQL.newGraphQL(schema).build();
-            LOGGER.debug("Executing query\n[{}]\nat [{}] with variables [{}]", query, queryResource.getPath(), variables);
+            if(LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Executing query\n[{}]\nat [{}] with variables [{}]",
+                    cleanLog.sanitize(query), queryResource.getPath(), cleanLog.sanitize(variables.toString()));
+            }
             ExecutionInput ei = ExecutionInput.newExecutionInput()
                     .query(query)
                     .variables(variables)
@@ -146,8 +152,11 @@ public class DefaultQueryExecutor implements QueryExecutor {
                         }
                     }
                 }
-                LOGGER.error("Query failed for Resource {}: query={} Errors:{}, schema={}",
-                        queryResource.getPath(), query, errors, schemaDef);
+                if(LOGGER.isErrorEnabled()) {
+                    LOGGER.error("Query failed for Resource {}: query={} Errors:{}, schema={}",
+                        queryResource.getPath(), cleanLog.sanitize(query), errors, schemaDef);
+                }
+
             }
             LOGGER.debug("ExecutionResult.isDataPresent={}", result.isDataPresent());
             return result.toSpecification();
