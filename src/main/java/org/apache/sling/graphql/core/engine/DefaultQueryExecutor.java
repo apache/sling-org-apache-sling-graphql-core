@@ -24,7 +24,6 @@ import java.util.Map;
 import javax.script.ScriptException;
 
 import graphql.language.UnionTypeDefinition;
-import graphql.schema.GraphQLObjectType;
 import graphql.schema.TypeResolver;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.graphql.api.SchemaProvider;
@@ -141,12 +140,14 @@ public class DefaultQueryExecutor implements QueryExecutor {
                 StringBuilder errors = new StringBuilder();
                 for (GraphQLError error : result.getErrors()) {
                     errors.append("Error: type=").append(error.getErrorType().toString()).append("; message=").append(error.getMessage()).append(System.lineSeparator());
-                    for (SourceLocation location : error.getLocations()) {
-                        errors.append("location=").append(location.getLine()).append(",").append(location.getColumn()).append(";");
+                    if (error.getLocations() != null) {
+                        for (SourceLocation location : error.getLocations()) {
+                            errors.append("location=").append(location.getLine()).append(",").append(location.getColumn()).append(";");
+                        }
                     }
                 }
-                LOGGER.error("Query failed for Resource {}: schema={}, query={} Errors:{}",
-                        queryResource.getPath(), schemaDef, query, errors);
+                LOGGER.error("Query failed for Resource {}: query={} Errors:{}, schema={}",
+                        queryResource.getPath(), query, errors, schemaDef);
             }
             LOGGER.debug("ExecutionResult.isDataPresent={}", result.isDataPresent());
             return result.toSpecification();
