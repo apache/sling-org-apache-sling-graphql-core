@@ -51,12 +51,8 @@ public class SlingGraphQLErrorHelper {
             List<String> stacktrace =  new ArrayList<>();
             
             //keep top 10 (max) stacktrace entries
-            int i = 0;
-            for (StackTraceElement stackTraceElement : e.getCause().getStackTrace()) {
+            for (int i=0; i<e.getCause().getStackTrace().length && i<10; i++) {
                 stacktrace.add(e.getCause().getStackTrace()[i].toString());
-                if (++i > 9) {
-                    break;
-                }
             }
             extensionsMap.put(GRAPHQL_ERROR_CAUSE_STACKTRACE, stacktrace);
         }
