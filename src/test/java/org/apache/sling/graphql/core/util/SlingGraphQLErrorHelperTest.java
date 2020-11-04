@@ -36,14 +36,16 @@ import static org.junit.Assert.*;
 public class SlingGraphQLErrorHelperTest{
     @Test
     public void toSpecificatonTest() {
-        String customMessage = "Custom error message";
+        final String customMessage = "Custom error message";
         try {
             throw new Exception(new InvalidParameterException());
-        }catch(Exception e) {
-            List<Map<String, Object>> errors = (List<Map<String, Object>>) SlingGraphQLErrorHelper.toSpecification(customMessage, e).get(SlingGraphQLErrorHelper.GRAPHQL_ERROR_ERRORS);
+        } catch(Exception e) {
+            @SuppressWarnings("unchecked")
+            final List<Map<String, Object>> errors = (List<Map<String, Object>>) SlingGraphQLErrorHelper.toSpecification(customMessage, e).get(SlingGraphQLErrorHelper.GRAPHQL_ERROR_ERRORS);
             assertEquals(e.getMessage(), errors.get(0).get(SlingGraphQLErrorHelper.GRAPHQL_ERROR_MESSAGE));
 
-            Map<String, Object> extensions = (Map<String, Object>) errors.get(0).get(SlingGraphQLErrorHelper.GRAPHQL_ERROR_EXTENSIONS);
+            @SuppressWarnings("unchecked")
+            final Map<String, Object> extensions = (Map<String, Object>) errors.get(0).get(SlingGraphQLErrorHelper.GRAPHQL_ERROR_EXTENSIONS);
             assertEquals(customMessage, extensions.get(SlingGraphQLErrorHelper.GRAPHQL_ERROR_DETAIL));
             assertEquals(InvalidParameterException.class.getName(), extensions.get(SlingGraphQLErrorHelper.GRAPHQL_ERROR_CAUSE));
         }

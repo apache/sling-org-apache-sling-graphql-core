@@ -32,6 +32,9 @@ public class SlingGraphQLErrorHelper {
     public static final String GRAPHQL_ERROR_CAUSE = "cause";
     public static final String GRAPHQL_ERROR_CAUSE_STACKTRACE = "stacktrace";
     public static final String GRAPHQL_ERROR_ERRORS = "errors";
+    
+    private SlingGraphQLErrorHelper(){
+    }
 
     /**
      * Structures the given error information into a {@code Map} following GraphQL error specification.
@@ -39,16 +42,16 @@ public class SlingGraphQLErrorHelper {
      * @param e exception.
      * @return a map containing error detail.
      */
-    public static Map<String, Object> toSpecification(String customMessage, Exception e) {
-        Map<String, Object> additionalExceptionInfo = new LinkedHashMap<>();
+    public static Map<String, Object> toSpecification(final String customMessage, final Exception e) {
+        final Map<String, Object> additionalExceptionInfo = new LinkedHashMap<>();
         additionalExceptionInfo.put(GRAPHQL_ERROR_MESSAGE, e.getMessage());
 
-        Map<String, Object> extensionsMap = new LinkedHashMap<>();
+        final Map<String, Object> extensionsMap = new LinkedHashMap<>();
         extensionsMap.put(GRAPHQL_ERROR_DETAIL, customMessage);
         extensionsMap.put(GRAPHQL_ERROR_EXCEPTION, e.getClass().getName());
         if (e.getCause() != null) {
             extensionsMap.put(GRAPHQL_ERROR_CAUSE, e.getCause().toString());
-            List<String> stacktrace =  new ArrayList<>();
+            final List<String> stacktrace =  new ArrayList<>();
             
             //keep top 10 (max) stacktrace entries
             for (int i=0; i<e.getCause().getStackTrace().length && i<10; i++) {
@@ -58,10 +61,10 @@ public class SlingGraphQLErrorHelper {
         }
         additionalExceptionInfo.put(GRAPHQL_ERROR_EXTENSIONS, extensionsMap);
 
-        List<Map<String, Object>> errorList = new ArrayList<>();
+        final List<Map<String, Object>> errorList = new ArrayList<>();
         errorList.add(0, additionalExceptionInfo);
 
-        Map<String, Object> result = new LinkedHashMap<>();
+        final Map<String, Object> result = new LinkedHashMap<>();
         result.put(GRAPHQL_ERROR_ERRORS, errorList );
 
         return result;

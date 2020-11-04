@@ -56,7 +56,7 @@ public class CustomScalarsTest extends ResourceQueryTestBase {
     public void urlSyntaxError() throws Exception {
         final String url = "This is not an URL!";
         final String query = String.format("{ address (url: \"%s\") { url hostname } }", url);
-        String json = queryJSON(query);
+        final String json = queryJSON(query);
         assertThat(json, hasJsonPath("$.errors[0].extensions.cause", is(ScalarConversionException.class.getCanonicalName() + ": " + URLScalarConverter.class.getSimpleName() + ":Invalid URL:" + url)));
     }
 }

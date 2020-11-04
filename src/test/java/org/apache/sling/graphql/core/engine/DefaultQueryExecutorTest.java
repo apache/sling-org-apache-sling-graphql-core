@@ -143,7 +143,7 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
     }
 
     @Test
-    public void schemaSelectorsTest() throws Exception {
+    public void schemaSelectorsTest(){
         final String [] selectors = { "selected", "foryou" };
         final String json = queryJSON("{ currentResource { path fortyTwo } }", selectors);
 
@@ -158,7 +158,7 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
                 Integer.MAX_VALUE);
         final ServiceRegistration<?> reg = TestUtil.registerSlingDataFetcher(context.bundleContext(), "missingSlash", new EchoDataFetcher(42));
         try {
-            String json = queryJSON("{ currentResource { missingSlash } }", new String[] {});
+            final String json = queryJSON("{ currentResource { missingSlash } }", new String[] {});
             assertThat(json, hasJsonPath("$.errors[0].message", containsString("Invalid fetcher name missingSlash")));
             assertThat(json, hasJsonPath("$.errors[0].extensions.exception", is(SlingGraphQLException.class.getName())));
         } finally {
@@ -173,7 +173,7 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         final ServiceRegistration<?> reg = TestUtil.registerSlingTypeResolver(context.bundleContext(), "missingSlash",
                 new DummyTypeResolver());
         try {
-            String json = queryJSON("{ currentResource { missingSlash } }", new String[] {});
+            final String json = queryJSON("{ currentResource { missingSlash } }", new String[] {});
             assertThat(json, hasJsonPath("$.errors[0].message", containsString("Invalid type resolver name missingSlash")));
             assertThat(json, hasJsonPath("$.errors[0].extensions.exception", is(SlingGraphQLException.class.getName())));
         } finally {
