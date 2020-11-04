@@ -161,11 +161,13 @@ public class DefaultQueryExecutor implements QueryExecutor {
             LOGGER.debug("ExecutionResult.isDataPresent={}", result.isDataPresent());
             return result.toSpecification();
         } catch (SlingGraphQLException e) {
-            throw e;
+            String message = String.format("Query failed for Resource %s: query=%s", queryResource.getPath(), cleanLog.sanitize(query));
+            LOGGER.error(String.format("%s, schema=%s", message, schemaDef), e);
+            return SlingGraphQLErrorHelper.toSpecification(message, e);
         } catch (Exception e) {
             String message = String.format("Query failed for Resource %s: query=%s", queryResource.getPath(), cleanLog.sanitize(query));
             LOGGER.error(String.format("%s, schema=%s", message, schemaDef), e);
-            return SlingGraphQLErrorHelper.toSpecificaton(message, e);
+            return SlingGraphQLErrorHelper.toSpecification(message, e);
         }
     }
 

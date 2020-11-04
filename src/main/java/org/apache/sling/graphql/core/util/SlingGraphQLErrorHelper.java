@@ -39,13 +39,13 @@ public class SlingGraphQLErrorHelper {
      * @param e exception.
      * @return a map containing error detail.
      */
-    public static Map<String, Object> toSpecificaton(String customMessage, Exception e) {
+    public static Map<String, Object> toSpecification(String customMessage, Exception e) {
         Map<String, Object> additionalExceptionInfo = new LinkedHashMap<>();
         additionalExceptionInfo.put(GRAPHQL_ERROR_MESSAGE, e.getMessage());
 
         Map<String, Object> extensionsMap = new LinkedHashMap<>();
         extensionsMap.put(GRAPHQL_ERROR_DETAIL, customMessage);
-        extensionsMap.put(GRAPHQL_ERROR_EXCEPTION, e.getClass().getSimpleName());
+        extensionsMap.put(GRAPHQL_ERROR_EXCEPTION, e.getClass().getName());
         if (e.getCause() != null) {
             extensionsMap.put(GRAPHQL_ERROR_CAUSE, e.getCause().toString());
             List<String> stacktrace =  new ArrayList<>();

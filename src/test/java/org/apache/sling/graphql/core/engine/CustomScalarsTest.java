@@ -20,6 +20,7 @@ package org.apache.sling.graphql.core.engine;
 
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.hamcrest.Matchers.equalTo;
@@ -52,15 +53,10 @@ public class CustomScalarsTest extends ResourceQueryTestBase {
     }
 
     @Test
-    public void urlSyntaxError() {
+    public void urlSyntaxError() throws Exception {
         final String url = "This is not an URL!";
         final String query = String.format("{ address (url: \"%s\") { url hostname } }", url);
-        try {
-            queryJSON(query);
-            fail("Expecting a parsing exception for URL=" + url);
-        } catch(Exception e) {
-            TestUtil.assertNestedException(e, ScalarConversionException.class, URLScalarConverter.class.getSimpleName() + ":Invalid URL:" + url);
-        }
+        String json = queryJSON(query);
+        assertThat(json, hasJsonPath("$.errors[0].extensions.cause", is(ScalarConversionException.class.getCanonicalName() + ": " + URLScalarConverter.class.getSimpleName() + ":Invalid URL:" + url)));
     }
-
 }

@@ -158,15 +158,14 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
                 Integer.MAX_VALUE);
         final ServiceRegistration<?> reg = TestUtil.registerSlingDataFetcher(context.bundleContext(), "missingSlash", new EchoDataFetcher(42));
         try {
-            queryJSON("{ currentResource { missingSlash } }", new String[] {});
-            fail("Expected query to fail");
-        } catch(Exception e) {
-            TestUtil.assertNestedException(e, SlingGraphQLException.class, "Invalid fetcher name missingSlash");
+            String json = queryJSON("{ currentResource { missingSlash } }", new String[] {});
+            assertThat(json, hasJsonPath("$.errors[0].message", containsString("Invalid fetcher name missingSlash")));
+            assertThat(json, hasJsonPath("$.errors[0].extensions.exception", is(SlingGraphQLException.class.getName())));
         } finally {
             reg.unregister();
         }
     }
-
+    
     @Test
     public void invalidTypeResolverNamesTest() {
         context.registerService(SchemaProvider.class, new MockSchemaProvider("failing-type-resolver-schema"), Constants.SERVICE_RANKING,
@@ -174,10 +173,9 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         final ServiceRegistration<?> reg = TestUtil.registerSlingTypeResolver(context.bundleContext(), "missingSlash",
                 new DummyTypeResolver());
         try {
-            queryJSON("{ currentResource { missingSlash } }", new String[] {});
-            fail("Expected query to fail");
-        } catch(Exception e) {
-            TestUtil.assertNestedException(e, SlingGraphQLException.class, "Invalid type resolver name missingSlash");
+            String json = queryJSON("{ currentResource { missingSlash } }", new String[] {});
+            assertThat(json, hasJsonPath("$.errors[0].message", containsString("Invalid type resolver name missingSlash")));
+            assertThat(json, hasJsonPath("$.errors[0].extensions.exception", is(SlingGraphQLException.class.getName())));
         } finally {
             reg.unregister();
         }
