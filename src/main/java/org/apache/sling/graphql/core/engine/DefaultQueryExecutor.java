@@ -35,6 +35,7 @@ import org.apache.sling.graphql.api.SlingTypeResolver;
 import org.apache.sling.graphql.core.logging.Sanitizer;
 import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
 import org.apache.sling.graphql.core.schema.RankedSchemaProviders;
+import org.apache.sling.graphql.core.util.SlingGraphQLErrorHelper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.annotations.Component;
@@ -156,15 +157,13 @@ public class DefaultQueryExecutor implements QueryExecutor {
                     LOGGER.error("Query failed for Resource {}: query={} Errors:{}, schema={}",
                         queryResource.getPath(), cleanLog.sanitize(query), errors, schemaDef);
                 }
-
             }
             LOGGER.debug("ExecutionResult.isDataPresent={}", result.isDataPresent());
             return result.toSpecification();
-        } catch (SlingGraphQLException e) {
-            throw e;
         } catch (Exception e) {
-            throw new SlingGraphQLException(
-                    String.format("Query failed for Resource %s: schema=%s, query=%s", queryResource.getPath(), schemaDef, query), e);
+            final String message = String.format("Query failed for Resource %s: query=%s", queryResource.getPath(), cleanLog.sanitize(query));
+            LOGGER.error(String.format("%s, schema=%s", message, schemaDef), e);
+            return SlingGraphQLErrorHelper.toSpecification(message, e);
         }
     }
 
