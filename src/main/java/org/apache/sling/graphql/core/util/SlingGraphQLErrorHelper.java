@@ -33,6 +33,9 @@ public class SlingGraphQLErrorHelper {
     public static final String GRAPHQL_ERROR_CAUSE_STACKTRACE = "stacktrace";
     public static final String GRAPHQL_ERROR_ERRORS = "errors";
     
+    /** Keep only this many level of exception stack traces */
+    public static int MAX_STACK_TRACE_DEPTH = 10;
+
     private SlingGraphQLErrorHelper(){
     }
 
@@ -53,8 +56,8 @@ public class SlingGraphQLErrorHelper {
             extensionsMap.put(GRAPHQL_ERROR_CAUSE, e.getCause().toString());
             final List<String> stacktrace =  new ArrayList<>();
             
-            //keep top 10 (max) stacktrace entries
-            for (int i=0; i<e.getCause().getStackTrace().length && i<10; i++) {
+            //keep top MAX_STACK_TRACE_DEPTH stacktrace entries
+            for (int i=0; i<e.getCause().getStackTrace().length && i<MAX_STACK_TRACE_DEPTH; i++) {
                 stacktrace.add(e.getCause().getStackTrace()[i].toString());
             }
             extensionsMap.put(GRAPHQL_ERROR_CAUSE_STACKTRACE, stacktrace);

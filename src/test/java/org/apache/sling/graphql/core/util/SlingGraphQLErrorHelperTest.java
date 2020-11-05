@@ -18,9 +18,6 @@
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 package org.apache.sling.graphql.core.util;
 
-import graphql.GraphqlErrorHelper;
-import org.apache.sling.graphql.core.engine.ResourceQueryTestBase;
-import org.apache.sling.graphql.core.mocks.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -28,8 +25,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.security.InvalidParameterException;
 import java.util.*;
 
-import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 
 @RunWith(MockitoJUnitRunner.class)
