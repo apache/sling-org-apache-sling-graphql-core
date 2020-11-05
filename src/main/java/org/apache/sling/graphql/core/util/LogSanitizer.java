@@ -17,13 +17,13 @@
  * under the License.
  */
 
-package org.apache.sling.graphql.core.logging;
+package org.apache.sling.graphql.core.util;
 
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 
 /** Sanitize strings for logging */
-public class Sanitizer {
+public class LogSanitizer {
 
     /** Character that replaces unwanted ones in input */
     public static final char REPLACEMENT_CHAR = '_';

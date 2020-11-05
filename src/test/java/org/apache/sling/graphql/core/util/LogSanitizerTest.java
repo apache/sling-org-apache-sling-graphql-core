@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.sling.graphql.core.logging;
+package org.apache.sling.graphql.core.util;
 
 import static org.junit.Assert.assertEquals;
 
@@ -30,9 +30,9 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class SanitizerTest {
+public class LogSanitizerTest {
     private static final String UNCHANGED = "\u0451";
-    private final Sanitizer s = new Sanitizer();
+    private final LogSanitizer s = new LogSanitizer();
     private final String in;
     private final String out;
 
@@ -55,7 +55,7 @@ public class SanitizerTest {
         result.add(new Object[] { in, out});
     }
 
-    public SanitizerTest(String in, String out) {
+    public LogSanitizerTest(String in, String out) {
         this.in = in;
         this.out = out;
     }

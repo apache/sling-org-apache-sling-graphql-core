@@ -32,7 +32,7 @@ import org.apache.sling.graphql.api.SlingGraphQLException;
 import org.apache.sling.graphql.api.engine.QueryExecutor;
 import org.apache.sling.graphql.api.engine.ValidationResult;
 import org.apache.sling.graphql.api.SlingTypeResolver;
-import org.apache.sling.graphql.core.logging.Sanitizer;
+import org.apache.sling.graphql.core.util.LogSanitizer;
 import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
 import org.apache.sling.graphql.core.schema.RankedSchemaProviders;
 import org.apache.sling.graphql.core.util.SlingGraphQLErrorHelper;
@@ -80,7 +80,7 @@ public class DefaultQueryExecutor implements QueryExecutor {
     public static final String RESOLVER_OPTIONS = "options";
     public static final String RESOLVER_SOURCE = "source";
 
-    private static final Sanitizer cleanLog = new Sanitizer();
+    private static final LogSanitizer cleanLog = new LogSanitizer();
 
     @Reference
     private RankedSchemaProviders schemaProvider;
