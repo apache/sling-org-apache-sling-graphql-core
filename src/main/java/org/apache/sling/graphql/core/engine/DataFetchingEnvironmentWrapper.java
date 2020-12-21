@@ -21,7 +21,9 @@ package org.apache.sling.graphql.core.engine;
 
 import java.util.Map;
 
+import graphql.schema.DataFetchingFieldSelectionSet;
 import org.apache.sling.api.resource.Resource;
+import org.apache.sling.graphql.api.SelectionSet;
 import org.apache.sling.graphql.api.SlingDataFetcherEnvironment;
 
 import graphql.schema.DataFetchingEnvironment;
@@ -35,12 +37,14 @@ class DataFetchingEnvironmentWrapper implements SlingDataFetcherEnvironment {
     private final Resource currentResource;
     private final String options;
     private final String source;
+    private final SelectionSet selectionSet;
 
     DataFetchingEnvironmentWrapper(DataFetchingEnvironment env, Resource currentResource, String options, String source) {
         this.env = env;
         this.currentResource = currentResource;
         this.options = options;
         this.source = source;
+        this.selectionSet = new SelectionSetWrapper(env.getSelectionSet());
     }
 
     @Override
@@ -76,5 +80,10 @@ class DataFetchingEnvironmentWrapper implements SlingDataFetcherEnvironment {
     @Override
     public String getFetcherSource() {
         return source;
+    }
+
+    @Override
+    public SelectionSet getSelectionSet() {
+        return selectionSet;
     }
 }

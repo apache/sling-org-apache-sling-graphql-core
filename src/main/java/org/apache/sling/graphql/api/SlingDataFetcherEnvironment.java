@@ -20,6 +20,7 @@
 package org.apache.sling.graphql.api;
 
 import java.util.Map;
+
 import org.apache.sling.api.resource.Resource;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
@@ -64,4 +65,7 @@ public interface SlingDataFetcherEnvironment {
     /** @return the source, if set by the schema directive */
     @Nullable
     String getFetcherSource();
+
+    /** @return the selectionSet, mandatory in a graphql query */
+    SelectionSet getSelectionSet();
 }
