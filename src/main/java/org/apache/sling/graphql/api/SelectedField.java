@@ -33,7 +33,12 @@ public interface SelectedField {
     /**
      * @return the sub selected fields.
      */
-    List<SelectedField> getSubSelectedField();
+    List<SelectedField> getSubSelectedFields();
+
+    /**
+     * @return the sub selected field for given name.
+     */
+    SelectedField getSubSelectedField(String name);
 
     /**
      * @return true if the sub selected fields exists.

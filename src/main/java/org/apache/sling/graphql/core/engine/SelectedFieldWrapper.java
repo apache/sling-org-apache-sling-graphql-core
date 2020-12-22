@@ -67,13 +67,18 @@ public class SelectedFieldWrapper implements SelectedField {
     }
 
     @Override
-    public List<SelectedField> getSubSelectedField() {
+    public List<SelectedField> getSubSelectedFields() {
         return subFields;
     }
 
     @Override
+    public SelectedField getSubSelectedField(String name) {
+        return subFieldMap.get(name);
+    }
+
+    @Override
     public boolean hasSubSelectedFields(String... name) {
-        return Arrays.stream(name).allMatch(subFieldMap::containsKey);
+        return Arrays.stream(name).anyMatch(subFieldMap::containsKey);
     }
 
     @Override

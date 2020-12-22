@@ -47,7 +47,7 @@ public class SelectionSetWrapper implements SelectionSet {
         parentList.forEach(s -> {
            String qualifiedName = qualifiedPath + s.getName();
            fieldsMap.put(qualifiedName, s);
-           initFlatMap(s.getSubSelectedField(), qualifiedName + "/");
+           initFlatMap(s.getSubSelectedFields(), qualifiedName + "/");
         });
     }
 
