@@ -23,21 +23,32 @@ import org.apache.sling.graphql.api.SelectedField;
 import org.apache.sling.graphql.api.SelectionSet;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Implement a wrapper for GraphQL DataFetchingFieldSelectionSet.
  */
 public class SelectionSetWrapper implements SelectionSet {
 
-    private List<SelectedField> fields = Collections.EMPTY_LIST;
+    private List<SelectedField> fields = new ArrayList<>();
+
+    private HashMap<String, SelectedField> fieldsMap = new HashMap<>();
 
     public SelectionSetWrapper(@Nullable DataFetchingFieldSelectionSet selectionSet) {
         if (selectionSet != null) {
-            this.fields = selectionSet.getFields().stream().map(SelectedFieldWrapper::new).collect(Collectors.toList());
+            selectionSet.get().getSubFieldsList().stream().forEach(s -> fields.add(new SelectedFieldWrapper(s.getSingleField())));
+            initFlatMap(fields, "");
         }
+    }
+
+    private void initFlatMap(List<SelectedField> parentList, String qualifiedPath) {
+        parentList.forEach(s -> {
+           String qualifiedName = qualifiedPath + s.getName();
+           fieldsMap.put(qualifiedName, s);
+           initFlatMap(s.getSubSelectedField(), qualifiedName + "/");
+        });
     }
 
     @Override
@@ -46,7 +57,12 @@ public class SelectionSetWrapper implements SelectionSet {
     }
 
     @Override
-    public boolean hasFields() {
-        return !fields.isEmpty();
+    public boolean contains(String qualifiedName) {
+        return fieldsMap.containsKey(qualifiedName);
+    }
+
+    @Override
+    public SelectedField get(String qualifiedName) {
+        return fieldsMap.get(qualifiedName);
     }
 }

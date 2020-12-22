@@ -31,7 +31,12 @@ public interface SelectionSet {
     List<SelectedField> getFields();
 
     /**
-     * @return true if it has any fields.
+     * @return true if the field qualified name exist.
      */
-    boolean hasFields();
+    boolean contains(String qualifiedName);
+
+    /**
+     * @return SelectedField for qualified name.
+     */
+    SelectedField get(String qualifiedName);
 }

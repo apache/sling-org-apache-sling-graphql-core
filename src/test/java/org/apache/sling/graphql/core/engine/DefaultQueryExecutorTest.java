@@ -25,6 +25,8 @@ import java.util.Hashtable;
 import java.util.List;
 
 import org.apache.sling.graphql.api.SchemaProvider;
+import org.apache.sling.graphql.api.SelectionSet;
+import org.apache.sling.graphql.api.SlingDataFetcher;
 import org.apache.sling.graphql.api.SlingGraphQLException;
 import org.apache.sling.graphql.api.engine.QueryExecutor;
 import org.apache.sling.graphql.api.engine.ValidationResult;
@@ -39,6 +41,7 @@ import org.apache.sling.graphql.core.mocks.TypeTestDTO;
 import org.apache.sling.graphql.core.mocks.UnionTypeResolver;
 import org.junit.Test;
 import org.osgi.framework.Constants;
+import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
@@ -187,5 +190,31 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         assertThat(json, hasJsonPath("$.data.unionFetcher"));
         assertThat(json, hasJsonPath("$.data.unionFetcher.items[0].testingArgument", equalTo("1, 2, 3")));
         assertThat(json, hasJsonPath("$.data.unionFetcher.items[1].path", equalTo(resource.getPath())));
+    }
+
+    @Test
+    public void selectionSetTest() throws Exception {
+        queryJSON("{ unionFetcher { items { ... on Test { testingArgument }  ... on SlingResource { path }} } }");
+
+        // retrieve the service used
+        ServiceReference<?>[] serviceReferences = context.bundleContext().getServiceReferences(SlingDataFetcher.class.getName(), "(name=union/fetcher)");
+        EchoDataFetcher echoDataFetcher = (EchoDataFetcher) context.bundleContext().getService(serviceReferences[0]);
+
+        // Access the computed SelectionSet
+        SelectionSet selectionSet = echoDataFetcher.getSelectionSet();
+
+        // Assert it contains the expected results
+        assertTrue(selectionSet.contains("items"));
+        assertTrue(selectionSet.contains("items/Test"));
+        assertTrue(selectionSet.contains("items/Test/testingArgument"));
+        assertTrue(selectionSet.contains("items/SlingResource"));
+        assertTrue(selectionSet.contains("items/SlingResource/path"));
+
+        assertFalse(selectionSet.get("items").isInline());
+        assertFalse(selectionSet.get("items/Test/testingArgument").isInline());
+        assertFalse(selectionSet.get("items/SlingResource/path").isInline());
+
+        assertTrue(selectionSet.get("items/Test").isInline());
+        assertTrue(selectionSet.get("items/SlingResource").isInline());
     }
 }

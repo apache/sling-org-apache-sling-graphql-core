@@ -18,25 +18,40 @@
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 package org.apache.sling.graphql.core.engine;
 
-import graphql.schema.DataFetchingFieldSelectionSet;
+import graphql.language.Field;
+import graphql.language.InlineFragment;
+import graphql.language.Selection;
+import graphql.language.SelectionSet;
 import org.apache.sling.graphql.api.SelectedField;
-import org.apache.sling.graphql.api.SelectionSet;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Implement a wrapper for GraphQL SelectedField.
  */
 public class SelectedFieldWrapper implements SelectedField {
 
-    private final String name;
-    private SelectionSetWrapper subSelectionSet;
+    private String name;
+    private boolean isInline;
+    private List<SelectedField> subList = new ArrayList<>();
 
-    public SelectedFieldWrapper(graphql.schema.SelectedField field) {
-        this.name = field.getName();
-        DataFetchingFieldSelectionSet subSelectionSet = field.getSelectionSet();
-        if (subSelectionSet != null) {
-            this.subSelectionSet = new SelectionSetWrapper(subSelectionSet);
+    public SelectedFieldWrapper(Selection selection) {
+        SelectionSet selectionSet = null;
+        if (selection instanceof InlineFragment) {
+            InlineFragment inline = (InlineFragment) selection;
+            this.name = inline.getTypeCondition().getName();
+            this.isInline = true;
+            selectionSet = inline.getSelectionSet();
         }
-
+        if (selection instanceof Field) {
+            Field subField = (Field) selection;
+            this.name = subField.getName();
+            selectionSet = subField.getSelectionSet();
+        }
+        if (selectionSet != null) {
+            selectionSet.getSelections().forEach(s -> subList.add(new SelectedFieldWrapper(s)));
+        }
     }
 
     @Override
@@ -45,7 +60,12 @@ public class SelectedFieldWrapper implements SelectedField {
     }
 
     @Override
-    public SelectionSet getSelectionSet() {
-        return subSelectionSet;
+    public List<SelectedField> getSubSelectedField() {
+        return subList;
+    }
+
+    @Override
+    public boolean isInline() {
+        return isInline;
     }
 }

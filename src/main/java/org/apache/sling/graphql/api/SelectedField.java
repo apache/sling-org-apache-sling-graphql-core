@@ -18,7 +18,7 @@
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 package org.apache.sling.graphql.api;
 
-import org.jetbrains.annotations.Nullable;
+import java.util.List;
 
 /**
  * Interface to wrap GraphQL SelectedField.
@@ -31,8 +31,12 @@ public interface SelectedField {
     String getName();
 
     /**
-     * @return the sub selection set. Null if no sub selection is available.
+     * @return the sub selected fields.
      */
-    @Nullable SelectionSet getSelectionSet();
+    List<SelectedField> getSubSelectedField();
 
+    /**
+     * @return true if this field is an inline (... on Something { }).
+     */
+    boolean isInline();
 }

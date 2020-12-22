@@ -21,7 +21,6 @@ package org.apache.sling.graphql.core.engine;
 
 import java.util.Map;
 
-import graphql.schema.DataFetchingFieldSelectionSet;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.graphql.api.SelectionSet;
 import org.apache.sling.graphql.api.SlingDataFetcherEnvironment;
