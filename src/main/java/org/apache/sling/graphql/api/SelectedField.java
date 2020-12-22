@@ -36,6 +36,11 @@ public interface SelectedField {
     List<SelectedField> getSubSelectedField();
 
     /**
+     * @return true if the sub selected fields exists.
+     */
+    boolean hasSubSelectedFields(String ...name);
+
+    /**
      * @return true if this field is an inline (... on Something { }).
      */
     boolean isInline();

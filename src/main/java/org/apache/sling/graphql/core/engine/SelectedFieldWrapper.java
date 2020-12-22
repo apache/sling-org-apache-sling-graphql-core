@@ -24,8 +24,10 @@ import graphql.language.Selection;
 import graphql.language.SelectionSet;
 import org.apache.sling.graphql.api.SelectedField;
 
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Implement a wrapper for GraphQL SelectedField.
@@ -34,7 +36,8 @@ public class SelectedFieldWrapper implements SelectedField {
 
     private String name;
     private boolean isInline;
-    private List<SelectedField> subList = new ArrayList<>();
+    private HashMap<String, SelectedField> subFieldMap = new HashMap<>();
+    private List<SelectedField> subFields;
 
     public SelectedFieldWrapper(Selection selection) {
         SelectionSet selectionSet = null;
@@ -50,8 +53,12 @@ public class SelectedFieldWrapper implements SelectedField {
             selectionSet = subField.getSelectionSet();
         }
         if (selectionSet != null) {
-            selectionSet.getSelections().forEach(s -> subList.add(new SelectedFieldWrapper(s)));
+            selectionSet.getSelections().forEach(s -> {
+                SelectedFieldWrapper wrappedField = new SelectedFieldWrapper(s);
+                subFieldMap.put(wrappedField.getName(), wrappedField);
+            });
         }
+        subFields = subFieldMap.values().stream().collect(Collectors.toList());
     }
 
     @Override
@@ -61,7 +68,12 @@ public class SelectedFieldWrapper implements SelectedField {
 
     @Override
     public List<SelectedField> getSubSelectedField() {
-        return subList;
+        return subFields;
+    }
+
+    @Override
+    public boolean hasSubSelectedFields(String... name) {
+        return Arrays.stream(name).allMatch(subFieldMap::containsKey);
     }
 
     @Override
