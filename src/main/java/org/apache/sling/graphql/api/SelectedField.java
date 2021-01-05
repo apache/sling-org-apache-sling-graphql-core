@@ -31,7 +31,7 @@ public interface SelectedField {
     /**
      * @return the name as defined in the selection set.
      */
-    @NotNull
+    @Nullable
     String getName();
 
     /**
