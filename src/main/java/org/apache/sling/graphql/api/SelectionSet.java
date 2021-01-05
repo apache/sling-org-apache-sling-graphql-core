@@ -38,6 +38,12 @@ import java.util.List;
  *           }
  *       }
  *       field4
+ *       field5 {
+ *           field6
+ *           field7 {
+ *               field8
+ *           }
+ *       }
  *   }
  * }
  * </pre>
@@ -45,6 +51,7 @@ import java.util.List;
  * <p>Would result in a mapping with corresponding SelectedField(s).</p>
  * <p><b>field1</b> would be accessible with qualified name "field1"
  * while <b>field3</b> would be accessible with qualified name "field2/Type1/field3"
+ * and <b>field8</b> would be accessible with qualified name "field5/field7/field8"
  * </p>
  * <p><b>Type1</b> would be a SelectedField with isInline() returning true</p>
  */
