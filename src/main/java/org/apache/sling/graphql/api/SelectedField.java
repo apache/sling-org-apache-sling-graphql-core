@@ -20,12 +20,17 @@ package org.apache.sling.graphql.api;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
 
 import java.util.List;
 
 /**
- * Interface to wrap GraphQL SelectedField.
+ * Interface to wrap information from <a href="https://javadoc.io/doc/com.graphql-java/graphql-java/latest/graphql/schema/SelectedField.html">GraphQL SelectedField</a>.
+ *
+ * <p>As described in {@link org.apache.sling.graphql.api.SelectionSet SelectionSet}, it is aimed to map the SelectedField to the minimum information
+ * required when processing the query.</p><p>InlineFragment are mapped so that its isInline() is return true.</p>
  */
+@ProviderType
 public interface SelectedField {
 
     /**
@@ -41,18 +46,20 @@ public interface SelectedField {
     List<SelectedField> getSubSelectedFields();
 
     /**
-     * @return the sub selected field for given name.
+     * @param name the sub selected field name.
+     * @return the object or null if that doesn't exist.
      */
     @Nullable
     SelectedField getSubSelectedField(String name);
 
     /**
-     * @return true if the sub selected fields exists.
+     * @param name the sub selected field name(s).
+     * @return true if any of the sub selected fields exists.
      */
     boolean hasSubSelectedFields(String ...name);
 
     /**
-     * @return true if this field is an inline (... on Something { }).
+     * @return true if this field is an inline (i.e: ... on Something { }).
      */
     boolean isInline();
 }

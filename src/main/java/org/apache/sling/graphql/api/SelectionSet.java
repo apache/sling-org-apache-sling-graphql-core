@@ -20,12 +20,35 @@ package org.apache.sling.graphql.api;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
 
 import java.util.List;
 
 /**
- * Interface to wrap GraphQL DataFetchingFieldSelectionSet.
+ * Interface to wrap information from <a href="https://javadoc.io/doc/com.graphql-java/graphql-java/latest/graphql/schema/DataFetchingFieldSelectionSet.html">GraphQL DataFetchingFieldSelectionSet</a>.
+ * <p>Mainly it keeps information about fields name that got selected.</p>
+ * <pre>
+ * For example:
+ * {@code
+ *   queryName {
+ *       field1
+ *       field2 {
+ *           ... on Type1 {
+ *               field3
+ *           }
+ *       }
+ *       field4
+ *   }
+ * }
+ * </pre>
+ *
+ * <p>Would result in a mapping with corresponding SelectedField(s).</p>
+ * <p><b>field1</b> would be accessible with qualified name "field1"
+ * while <b>field3</b> would be accessible with qualified name "field2/Type1/field3"
+ * </p>
+ * <p><b>Type1</b> would be a SelectedField with isInline() returning true</p>
  */
+@ProviderType
 public interface SelectionSet {
 
     /**
