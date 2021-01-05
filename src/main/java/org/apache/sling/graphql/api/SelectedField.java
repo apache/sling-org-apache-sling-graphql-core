@@ -18,6 +18,9 @@
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 package org.apache.sling.graphql.api;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.List;
 
 /**
@@ -28,16 +31,19 @@ public interface SelectedField {
     /**
      * @return the name as defined in the selection set.
      */
+    @NotNull
     String getName();
 
     /**
      * @return the sub selected fields.
      */
+    @NotNull
     List<SelectedField> getSubSelectedFields();
 
     /**
      * @return the sub selected field for given name.
      */
+    @Nullable
     SelectedField getSubSelectedField(String name);
 
     /**

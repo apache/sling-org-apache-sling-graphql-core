@@ -18,6 +18,9 @@
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 package org.apache.sling.graphql.api;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.List;
 
 /**
@@ -28,6 +31,7 @@ public interface SelectionSet {
     /**
      * @return the immediate list of fields in the selection.
      */
+    @NotNull
     List<SelectedField> getFields();
 
     /**
@@ -38,5 +42,6 @@ public interface SelectionSet {
     /**
      * @return SelectedField for qualified name.
      */
+    @Nullable
     SelectedField get(String qualifiedName);
 }
