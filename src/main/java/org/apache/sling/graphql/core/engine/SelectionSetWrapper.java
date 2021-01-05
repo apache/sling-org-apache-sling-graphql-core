@@ -21,9 +21,11 @@ package org.apache.sling.graphql.core.engine;
 import graphql.schema.DataFetchingFieldSelectionSet;
 import org.apache.sling.graphql.api.SelectedField;
 import org.apache.sling.graphql.api.SelectionSet;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -38,7 +40,7 @@ public class SelectionSetWrapper implements SelectionSet {
 
     public SelectionSetWrapper(@Nullable DataFetchingFieldSelectionSet selectionSet) {
         if (selectionSet != null) {
-            selectionSet.get().getSubFieldsList().stream().forEach(s -> fields.add(new SelectedFieldWrapper(s.getSingleField())));
+            selectionSet.get().getSubFieldsList().forEach(s -> fields.add(new SelectedFieldWrapper(s.getSingleField())));
             initFlatMap(fields, "");
         }
     }
@@ -52,8 +54,9 @@ public class SelectionSetWrapper implements SelectionSet {
     }
 
     @Override
+    @NotNull
     public List<SelectedField> getFields() {
-        return fields;
+        return Collections.unmodifiableList(fields);
     }
 
     @Override
