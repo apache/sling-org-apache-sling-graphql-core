@@ -23,8 +23,11 @@ import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.sling.graphql.api.SchemaProvider;
+import org.apache.sling.graphql.api.SelectionSet;
+import org.apache.sling.graphql.api.SlingDataFetcher;
 import org.apache.sling.graphql.api.SlingGraphQLException;
 import org.apache.sling.graphql.api.engine.QueryExecutor;
 import org.apache.sling.graphql.api.engine.ValidationResult;
@@ -39,6 +42,7 @@ import org.apache.sling.graphql.core.mocks.TypeTestDTO;
 import org.apache.sling.graphql.core.mocks.UnionTypeResolver;
 import org.junit.Test;
 import org.osgi.framework.Constants;
+import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
@@ -71,6 +75,7 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "test/static", new EchoDataFetcher(staticData));
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "test/fortyTwo", new EchoDataFetcher(42));
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "sling/digest", new DigestDataFetcher());
+        TestUtil.registerSlingDataFetcher(context.bundleContext(), "combined/fetcher", new EchoDataFetcher(unionData));
     }
 
     @Test
@@ -187,5 +192,66 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         assertThat(json, hasJsonPath("$.data.unionFetcher"));
         assertThat(json, hasJsonPath("$.data.unionFetcher.items[0].testingArgument", equalTo("1, 2, 3")));
         assertThat(json, hasJsonPath("$.data.unionFetcher.items[1].path", equalTo(resource.getPath())));
+    }
+
+    @Test
+    public void selectionSetTest() throws Exception {
+        queryJSON("{ combinedFetcher { boolValue resourcePath aTest { boolValue test resourcePath } allTests { boolValue test resourcePath } items { ... on Test { testingArgument }  ... on SlingResource { path }} } }");
+
+        // retrieve the service used
+        ServiceReference<?>[] serviceReferences = context.bundleContext().getServiceReferences(SlingDataFetcher.class.getName(), "(name=combined/fetcher)");
+        EchoDataFetcher echoDataFetcher = (EchoDataFetcher) context.bundleContext().getService(serviceReferences[0]);
+
+        // Access the computed SelectionSet
+        SelectionSet selectionSet = echoDataFetcher.getSelectionSet();
+
+        // Assert it contains the expected results
+        String[] expectedQualifiedName = new String[] {
+                "boolValue",
+                "resourcePath",
+                "aTest",
+                "aTest/test",
+                "aTest/boolValue",
+                "aTest/resourcePath",
+                "allTests",
+                "allTests/test",
+                "allTests/boolValue",
+                "allTests/resourcePath",
+                "items",
+                "items/Test",
+                "items/Test/testingArgument",
+                "items/SlingResource",
+                "items/SlingResource/path"
+        };
+        for (String expectedQN : expectedQualifiedName) {
+            assertTrue(selectionSet.contains(expectedQN));
+        }
+
+        String[] expectedNonInlineQNs = new String[] {
+                "boolValue",
+                "resourcePath",
+                "aTest",
+                "aTest/test",
+                "aTest/boolValue",
+                "aTest/resourcePath",
+                "allTests",
+                "allTests/test",
+                "allTests/boolValue",
+                "allTests/resourcePath",
+                "items",
+                "items/Test/testingArgument",
+                "items/SlingResource/path"
+        };
+        for (String expectedNonInlineQN : expectedNonInlineQNs) {
+            assertFalse(Objects.requireNonNull(selectionSet.get(expectedNonInlineQN)).isInline());
+        }
+
+        String[] expectedInlineQNs = new String[] {
+                "items/Test",
+                "items/SlingResource"
+        };
+        for (String expectedInlineQN : expectedInlineQNs) {
+            assertTrue(Objects.requireNonNull(selectionSet.get(expectedInlineQN)).isInline());
+        }
     }
 }

@@ -38,6 +38,9 @@ type Query {
 
     # Test union as return type
     unionFetcher: Test2 @fetcher(name:"union/fetcher")
+
+    # Test combined as return type
+    combinedFetcher: Test3 @fetcher(name:"combined/fetcher")
 }
 
 union AllTypes @resolver(name:"union/resolver" source:"AllTypes") = SlingResource | Test
@@ -74,3 +77,10 @@ type Test2 {
     items: [AllTypes]
 }
 
+type Test3 {
+    boolValue: Boolean
+    resourcePath: String
+    aTest: Test
+    allTests: [Test]
+    items: [AllTypes]
+}
