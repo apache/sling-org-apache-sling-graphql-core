@@ -27,6 +27,7 @@ import org.apache.sling.graphql.api.SelectedField;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -36,7 +37,7 @@ public class SelectedFieldWrapper implements SelectedField {
 
     private String name;
     private boolean isInline;
-    private HashMap<String, SelectedField> subFieldMap = new HashMap<>();
+    private Map<String, SelectedField> subFieldMap = new HashMap<>();
     private List<SelectedField> subFields;
 
     public SelectedFieldWrapper(Selection selection) {

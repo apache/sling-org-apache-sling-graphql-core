@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Implement a wrapper for GraphQL DataFetchingFieldSelectionSet.
@@ -36,7 +37,7 @@ public class SelectionSetWrapper implements SelectionSet {
 
     private List<SelectedField> fields = new ArrayList<>();
 
-    private HashMap<String, SelectedField> fieldsMap = new HashMap<>();
+    private Map<String, SelectedField> fieldsMap = new HashMap<>();
 
     public SelectionSetWrapper(@Nullable DataFetchingFieldSelectionSet selectionSet) {
         if (selectionSet != null) {
