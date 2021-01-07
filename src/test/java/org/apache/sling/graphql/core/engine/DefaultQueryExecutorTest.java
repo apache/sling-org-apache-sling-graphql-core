@@ -50,6 +50,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -204,6 +205,8 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
 
         // Access the computed SelectionSet
         SelectionSet selectionSet = echoDataFetcher.getSelectionSet();
+
+        assertEquals(5, selectionSet.getFields().size());
 
         // Assert it contains the expected results
         String[] expectedQualifiedName = new String[] {
