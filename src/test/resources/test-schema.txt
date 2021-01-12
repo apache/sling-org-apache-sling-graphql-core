@@ -36,6 +36,12 @@ type Query {
     # Test some static values
     staticContent: Test @fetcher(name:"test/static")
 
+    # Test union as return type
+##    unionFetcher: Test2 @fetcher(name:"union/fetcher")
+
+    # Test combined as return type
+    combinedFetcher: Test3 @fetcher(name:"combined/fetcher")
+
     # Test union query
     unionQuery: CharactersAsUnion @fetcher(name:"character/fetcher")
 
@@ -48,6 +54,8 @@ interface CharacterInterface @resolver(name:"character/resolver" source:"Charact
 }
 
 union CharacterUnion @resolver(name:"character/resolver" source:"CharacterUnion") = Human | Droid
+
+## union AllTypes @resolver(name:"union/resolver" source:"AllTypes") = SlingResource | Test
 
 # This should be omitted from the SlingResource type description
 #
@@ -75,6 +83,18 @@ type Test {
     boolValue: Boolean
     resourcePath: String
     testingArgument: String
+}
+
+## type Test2 {
+##    items: [AllTypes]
+## }
+
+type Test3 {
+    boolValue: Boolean
+    resourcePath: String
+    aTest: Test
+    allTests: [Test]
+    characters: [CharactersAsUnion]
 }
 
 type CharactersAsUnion {

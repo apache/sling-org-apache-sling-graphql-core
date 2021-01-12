@@ -19,12 +19,14 @@
 
 package org.apache.sling.graphql.core.mocks;
 
+import org.apache.sling.graphql.api.SelectionSet;
 import org.apache.sling.graphql.api.SlingDataFetcher;
 import org.apache.sling.graphql.api.SlingDataFetcherEnvironment;
 
 public class EchoDataFetcher implements SlingDataFetcher<Object> {
 
     private final Object data;
+    private SelectionSet selectionSet;
 
     public EchoDataFetcher(Object data) {
         this.data = data;
@@ -37,6 +39,11 @@ public class EchoDataFetcher implements SlingDataFetcher<Object> {
         } else if(data == null) {
             return e.getCurrentResource();
         }
+        selectionSet = e.getSelectionSet();
         return data;
+    }
+
+    public SelectionSet getSelectionSet() {
+        return selectionSet;
     }
 }

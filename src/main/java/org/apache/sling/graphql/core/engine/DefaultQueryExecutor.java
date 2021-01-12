@@ -34,8 +34,10 @@ import org.apache.sling.graphql.api.SlingGraphQLException;
 import org.apache.sling.graphql.api.engine.QueryExecutor;
 import org.apache.sling.graphql.api.engine.ValidationResult;
 import org.apache.sling.graphql.api.SlingTypeResolver;
+import org.apache.sling.graphql.core.util.LogSanitizer;
 import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
 import org.apache.sling.graphql.core.schema.RankedSchemaProviders;
+import org.apache.sling.graphql.core.util.SlingGraphQLErrorHelper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.annotations.Component;
@@ -79,6 +81,8 @@ public class DefaultQueryExecutor implements QueryExecutor {
     public static final String RESOLVER_NAME = "name";
     public static final String RESOLVER_OPTIONS = "options";
     public static final String RESOLVER_SOURCE = "source";
+
+    private static final LogSanitizer cleanLog = new LogSanitizer();
 
     @Reference
     private RankedSchemaProviders schemaProvider;
@@ -132,7 +136,10 @@ public class DefaultQueryExecutor implements QueryExecutor {
             LOGGER.debug("Resource {} maps to GQL schema {}", queryResource.getPath(), schemaDef);
             final GraphQLSchema schema = buildSchema(schemaDef, queryResource);
             final GraphQL graphQL = GraphQL.newGraphQL(schema).build();
-            LOGGER.debug("Executing query\n[{}]\nat [{}] with variables [{}]", query, queryResource.getPath(), variables);
+            if(LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Executing query\n[{}]\nat [{}] with variables [{}]",
+                    cleanLog.sanitize(query), queryResource.getPath(), cleanLog.sanitize(variables.toString()));
+            }
             ExecutionInput ei = ExecutionInput.newExecutionInput()
                     .query(query)
                     .variables(variables)
@@ -142,20 +149,23 @@ public class DefaultQueryExecutor implements QueryExecutor {
                 StringBuilder errors = new StringBuilder();
                 for (GraphQLError error : result.getErrors()) {
                     errors.append("Error: type=").append(error.getErrorType().toString()).append("; message=").append(error.getMessage()).append(System.lineSeparator());
-                    for (SourceLocation location : error.getLocations()) {
-                        errors.append("location=").append(location.getLine()).append(",").append(location.getColumn()).append(";");
+                    if (error.getLocations() != null) {
+                        for (SourceLocation location : error.getLocations()) {
+                            errors.append("location=").append(location.getLine()).append(",").append(location.getColumn()).append(";");
+                        }
                     }
                 }
-                throw new SlingGraphQLException(String.format("Query failed for Resource %s: schema=%s, query=%s%nErrors:%n%s",
-                        queryResource.getPath(), schemaDef, query, errors.toString()));
+                if(LOGGER.isErrorEnabled()) {
+                    LOGGER.error("Query failed for Resource {}: query={} Errors:{}, schema={}",
+                        queryResource.getPath(), cleanLog.sanitize(query), errors, schemaDef);
+                }
             }
             LOGGER.debug("ExecutionResult.isDataPresent={}", result.isDataPresent());
             return result.toSpecification();
-        } catch (SlingGraphQLException e) {
-            throw e;
         } catch (Exception e) {
-            throw new SlingGraphQLException(
-                    String.format("Query failed for Resource %s: schema=%s, query=%s", queryResource.getPath(), schemaDef, query), e);
+            final String message = String.format("Query failed for Resource %s: query=%s", queryResource.getPath(), cleanLog.sanitize(query));
+            LOGGER.error(String.format("%s, schema=%s", message, schemaDef), e);
+            return SlingGraphQLErrorHelper.toSpecification(message, e);
         }
     }
 

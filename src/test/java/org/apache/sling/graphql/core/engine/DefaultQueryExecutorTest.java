@@ -23,8 +23,12 @@ import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.sling.graphql.api.SchemaProvider;
+import org.apache.sling.graphql.api.SelectedField;
+import org.apache.sling.graphql.api.SelectionSet;
+import org.apache.sling.graphql.api.SlingDataFetcher;
 import org.apache.sling.graphql.api.SlingGraphQLException;
 import org.apache.sling.graphql.api.engine.QueryExecutor;
 import org.apache.sling.graphql.api.engine.ValidationResult;
@@ -39,6 +43,7 @@ import org.apache.sling.graphql.core.mocks.HumanDTO;
 import org.apache.sling.graphql.core.mocks.CharacterTypeResolver;
 import org.junit.Test;
 import org.osgi.framework.Constants;
+import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
@@ -46,6 +51,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -71,6 +77,7 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "test/static", new EchoDataFetcher(staticData));
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "test/fortyTwo", new EchoDataFetcher(42));
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "sling/digest", new DigestDataFetcher());
+        TestUtil.registerSlingDataFetcher(context.bundleContext(), "combined/fetcher", new EchoDataFetcher(data));
     }
 
     @Test
@@ -111,6 +118,15 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
     }
 
     @Test
+    public void queryValidationErrorResponseTest() throws Exception {
+        final String json = queryJSON("{ currentResource_NON_EXISTENT { nullValue } }");
+        assertThat(json, hasJsonPath("$.errors[0].message"));
+        assertThat(json, hasJsonPath("$.errors[0].locations"));
+        assertThat(json, hasJsonPath("$.errors[0].extensions"));
+        assertThat(json, hasJsonPath("$.errors[0].extensions.classification", is("ValidationError")));
+    }
+
+    @Test
     public void dataFetcherFailureTest() {
         try {
             final String stmt = "{ currentResource { failure } }";
@@ -134,7 +150,7 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
     }
 
     @Test
-    public void schemaSelectorsTest() throws Exception {
+    public void schemaSelectorsTest(){
         final String [] selectors = { "selected", "foryou" };
         final String json = queryJSON("{ currentResource { path fortyTwo } }", selectors);
 
@@ -149,15 +165,14 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
                 Integer.MAX_VALUE);
         final ServiceRegistration<?> reg = TestUtil.registerSlingDataFetcher(context.bundleContext(), "missingSlash", new EchoDataFetcher(42));
         try {
-            queryJSON("{ currentResource { missingSlash } }", new String[] {});
-            fail("Expected query to fail");
-        } catch(Exception e) {
-            TestUtil.assertNestedException(e, SlingGraphQLException.class, "Invalid fetcher name missingSlash");
+            final String json = queryJSON("{ currentResource { missingSlash } }", new String[] {});
+            assertThat(json, hasJsonPath("$.errors[0].message", containsString("Invalid fetcher name missingSlash")));
+            assertThat(json, hasJsonPath("$.errors[0].extensions.exception", is(SlingGraphQLException.class.getName())));
         } finally {
             reg.unregister();
         }
     }
-
+    
     @Test
     public void invalidTypeResolverNamesTest() {
         context.registerService(SchemaProvider.class, new MockSchemaProvider("failing-type-resolver-schema"), Constants.SERVICE_RANKING,
@@ -165,10 +180,9 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         final ServiceRegistration<?> reg = TestUtil.registerSlingTypeResolver(context.bundleContext(), "missingSlash",
                 new DummyTypeResolver());
         try {
-            queryJSON("{ currentResource { missingSlash } }", new String[] {});
-            fail("Expected query to fail");
-        } catch(Exception e) {
-            TestUtil.assertNestedException(e, SlingGraphQLException.class, "Invalid type resolver name missingSlash");
+            final String json = queryJSON("{ currentResource { missingSlash } }", new String[] {});
+            assertThat(json, hasJsonPath("$.errors[0].message", containsString("Invalid type resolver name missingSlash")));
+            assertThat(json, hasJsonPath("$.errors[0].extensions.exception", is(SlingGraphQLException.class.getName())));
         } finally {
             reg.unregister();
         }
@@ -194,5 +208,94 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         assertThat(json, hasJsonPath("$.data.interfaceQuery.items[1].id", equalTo("droid-1")));
         assertThat(json, hasJsonPath("$.data.interfaceQuery.items[1].name", equalTo("R2-D2")));
         assertThat(json, hasJsonPath("$.data.interfaceQuery.items[1].primaryFunction", equalTo("whistle")));
+    }
+
+    @Test
+    public void selectionSetTest() throws Exception {
+        queryJSON("{ combinedFetcher { boolValue resourcePath aTest { boolValue test resourcePath } allTests { boolValue test resourcePath } characters { ... on Human { address }  ... on Droid { primaryFunction }} } }");
+
+        // retrieve the service used
+        ServiceReference<?>[] serviceReferences = context.bundleContext().getServiceReferences(SlingDataFetcher.class.getName(), "(name=combined/fetcher)");
+        EchoDataFetcher echoDataFetcher = (EchoDataFetcher) context.bundleContext().getService(serviceReferences[0]);
+
+        // Access the computed SelectionSet
+        SelectionSet selectionSet = echoDataFetcher.getSelectionSet();
+
+        assertEquals(5, selectionSet.getFields().size());
+
+        String[] expectedFieldNames = new String[] {
+                "boolValue",
+                "resourcePath",
+                "aTest",
+                "characters"
+        };
+        final List<SelectedField> selectionSetFields = selectionSet.getFields();
+        for (String expectedFieldname : expectedFieldNames) {
+            assertTrue(selectionSetFields.stream().anyMatch(f -> expectedFieldname.equals(f.getName())));
+        }
+
+        // Assert it contains the expected results
+        String[] expectedQualifiedName = new String[] {
+                "boolValue",
+                "resourcePath",
+                "aTest",
+                "aTest/test",
+                "aTest/boolValue",
+                "aTest/resourcePath",
+                "allTests",
+                "allTests/test",
+                "allTests/boolValue",
+                "allTests/resourcePath",
+                "characters",
+                "characters/Human",
+                "characters/Human/address",
+                "characters/Droid",
+                "characters/Droid/primaryFunction"
+        };
+        for (String expectedQN : expectedQualifiedName) {
+            assertTrue(selectionSet.contains(expectedQN));
+        }
+
+        String[] expectedNonInlineQNs = new String[] {
+                "boolValue",
+                "resourcePath",
+                "aTest",
+                "aTest/test",
+                "aTest/boolValue",
+                "aTest/resourcePath",
+                "allTests",
+                "allTests/test",
+                "allTests/boolValue",
+                "allTests/resourcePath",
+                "characters",
+                "characters/Human/address",
+                "characters/Droid/primaryFunction"
+        };
+        for (String expectedNonInlineQN : expectedNonInlineQNs) {
+            assertFalse(Objects.requireNonNull(selectionSet.get(expectedNonInlineQN)).isInline());
+        }
+
+        String[] expectedInlineQNs = new String[] {
+                "characters/Human",
+                "characters/Droid"
+        };
+        for (String expectedInlineQN : expectedInlineQNs) {
+            assertTrue(Objects.requireNonNull(selectionSet.get(expectedInlineQN)).isInline());
+        }
+
+        String[] expectedSubFieldNames = new String[] {
+                "test",
+                "boolValue",
+                "resourcePath"
+        };
+
+        SelectedField allTests = selectionSet.get("allTests");
+        assert allTests != null;
+        List<SelectedField> subSelectedFields = allTests.getSubSelectedFields();
+        for (String expectedSubFieldname : expectedSubFieldNames) {
+            assertTrue(subSelectedFields.stream().anyMatch(f -> expectedSubFieldname.equals(f.getName())));
+        }
+
+
     }
 }
