@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import org.apache.sling.graphql.api.SchemaProvider;
@@ -56,19 +57,19 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
 
     protected void setupAdditionalServices() {
-        final Dictionary<String, Object> staticData = new Hashtable<>();
+        final Map<String, Object> staticData = new Hashtable<>();
         staticData.put("test", true);
 
+        final List<Object> characters = new ArrayList<>();
+        characters.add(new HumanDTO("human-1", "Luke", "Tatooine"));
+        characters.add(new DroidDTO("droid-1", "R2-D2", "whistle"));
+
         final Dictionary<String, Object> data = new Hashtable<>();
-        final List<Object> items = new ArrayList<>();
-        items.add(new HumanDTO("human-1", "Luke", "Tatooine"));
-        items.add(new DroidDTO("droid-1", "R2-D2", "whistle"));
-        data.put("items", items);
+        data.put("characters", characters);
 
         TestUtil.registerSlingTypeResolver(context.bundleContext(), "character/resolver", new CharacterTypeResolver());
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "character/fetcher", new EchoDataFetcher(data));
@@ -190,29 +191,29 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
 
     @Test
     public void unionQueryTest() throws Exception {
-        final String json = queryJSON("{ unionQuery { items { ... on Human { name address }  ... on Droid { name primaryFunction } } } }");
+        final String json = queryJSON("{ unionQuery { characters { ... on Human { name address }  ... on Droid { name primaryFunction } } } }");
         assertThat(json, hasJsonPath("$.data.unionQuery"));
-        assertThat(json, hasJsonPath("$.data.unionQuery.items[0].name", equalTo("Luke")));
-        assertThat(json, hasJsonPath("$.data.unionQuery.items[0].address", equalTo("Tatooine")));
-        assertThat(json, hasJsonPath("$.data.unionQuery.items[1].name", equalTo("R2-D2")));
-        assertThat(json, hasJsonPath("$.data.unionQuery.items[1].primaryFunction", equalTo("whistle")));
+        assertThat(json, hasJsonPath("$.data.unionQuery.characters[0].name", equalTo("Luke")));
+        assertThat(json, hasJsonPath("$.data.unionQuery.characters[0].address", equalTo("Tatooine")));
+        assertThat(json, hasJsonPath("$.data.unionQuery.characters[1].name", equalTo("R2-D2")));
+        assertThat(json, hasJsonPath("$.data.unionQuery.characters[1].primaryFunction", equalTo("whistle")));
     }
 
     @Test
     public void interfaceQueryTest() throws Exception {
-        final String json = queryJSON("{ interfaceQuery { items { id ... on Human { name address }  ... on Droid { name primaryFunction } } } }");
+        final String json = queryJSON("{ interfaceQuery { characters { id ... on Human { name address }  ... on Droid { name primaryFunction } } } }");
         assertThat(json, hasJsonPath("$.data.interfaceQuery"));
-        assertThat(json, hasJsonPath("$.data.interfaceQuery.items[0].id", equalTo("human-1")));
-        assertThat(json, hasJsonPath("$.data.interfaceQuery.items[0].name", equalTo("Luke")));
-        assertThat(json, hasJsonPath("$.data.interfaceQuery.items[0].address", equalTo("Tatooine")));
-        assertThat(json, hasJsonPath("$.data.interfaceQuery.items[1].id", equalTo("droid-1")));
-        assertThat(json, hasJsonPath("$.data.interfaceQuery.items[1].name", equalTo("R2-D2")));
-        assertThat(json, hasJsonPath("$.data.interfaceQuery.items[1].primaryFunction", equalTo("whistle")));
+        assertThat(json, hasJsonPath("$.data.interfaceQuery.characters[0].id", equalTo("human-1")));
+        assertThat(json, hasJsonPath("$.data.interfaceQuery.characters[0].name", equalTo("Luke")));
+        assertThat(json, hasJsonPath("$.data.interfaceQuery.characters[0].address", equalTo("Tatooine")));
+        assertThat(json, hasJsonPath("$.data.interfaceQuery.characters[1].id", equalTo("droid-1")));
+        assertThat(json, hasJsonPath("$.data.interfaceQuery.characters[1].name", equalTo("R2-D2")));
+        assertThat(json, hasJsonPath("$.data.interfaceQuery.characters[1].primaryFunction", equalTo("whistle")));
     }
 
     @Test
     public void selectionSetTest() throws Exception {
-        queryJSON("{ combinedFetcher { boolValue resourcePath aTest { boolValue test resourcePath } allTests { boolValue test resourcePath } characters { ... on Human { address }  ... on Droid { primaryFunction }} } }");
+        final String json = queryJSON("{ combinedFetcher { boolValue resourcePath aTest { boolValue test resourcePath } allTests { boolValue test resourcePath } characters { ... on Human { address }  ... on Droid { primaryFunction }} } }");
 
         // retrieve the service used
         ServiceReference<?>[] serviceReferences = context.bundleContext().getServiceReferences(SlingDataFetcher.class.getName(), "(name=combined/fetcher)");
@@ -295,7 +296,6 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         for (String expectedSubFieldname : expectedSubFieldNames) {
             assertTrue(subSelectedFields.stream().anyMatch(f -> expectedSubFieldname.equals(f.getName())));
         }
-
-
     }
+
 }
