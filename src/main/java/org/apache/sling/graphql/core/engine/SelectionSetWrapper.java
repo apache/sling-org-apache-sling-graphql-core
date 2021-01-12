@@ -41,7 +41,13 @@ public class SelectionSetWrapper implements SelectionSet {
 
     public SelectionSetWrapper(@Nullable DataFetchingFieldSelectionSet selectionSet) {
         if (selectionSet != null) {
-            selectionSet.get().getSubFieldsList().forEach(s -> fields.add(new SelectedFieldWrapper(s.getSingleField())));
+            selectionSet.get().getSubFields().forEach((k, v) -> {
+                SelectedFieldWrapper selectedField = new SelectedFieldWrapper(v.getSingleField());
+                fieldsMap.put(k, selectedField);
+                if (!k.contains("/")) {
+                    fields.add(selectedField);
+                }
+            });
             initFlatMap(fields, "");
         }
     }
@@ -49,7 +55,9 @@ public class SelectionSetWrapper implements SelectionSet {
     private void initFlatMap(List<SelectedField> parentList, String qualifiedPath) {
         parentList.forEach(s -> {
            String qualifiedName = qualifiedPath + s.getName();
-           fieldsMap.put(qualifiedName, s);
+           if (!fieldsMap.containsKey(qualifiedName)) {
+               fieldsMap.put(qualifiedName, s);
+           }
            initFlatMap(s.getSubSelectedFields(), qualifiedName + "/");
         });
     }

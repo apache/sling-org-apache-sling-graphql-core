@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Objects;
 
 import org.apache.sling.graphql.api.SchemaProvider;
+import org.apache.sling.graphql.api.SelectedField;
 import org.apache.sling.graphql.api.SelectionSet;
 import org.apache.sling.graphql.api.SlingDataFetcher;
 import org.apache.sling.graphql.api.SlingGraphQLException;
@@ -50,6 +51,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -205,6 +207,19 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         // Access the computed SelectionSet
         SelectionSet selectionSet = echoDataFetcher.getSelectionSet();
 
+        assertEquals(5, selectionSet.getFields().size());
+
+        String[] expectedFieldNames = new String[] {
+                "boolValue",
+                "resourcePath",
+                "aTest",
+                "items"
+        };
+        final List<SelectedField> selectionSetFields = selectionSet.getFields();
+        for (String expectedFieldname : expectedFieldNames) {
+            assertTrue(selectionSetFields.stream().anyMatch(f -> expectedFieldname.equals(f.getName())));
+        }
+
         // Assert it contains the expected results
         String[] expectedQualifiedName = new String[] {
                 "boolValue",
@@ -253,5 +268,20 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         for (String expectedInlineQN : expectedInlineQNs) {
             assertTrue(Objects.requireNonNull(selectionSet.get(expectedInlineQN)).isInline());
         }
+
+        String[] expectedSubFieldNames = new String[] {
+                "test",
+                "boolValue",
+                "resourcePath"
+        };
+
+        SelectedField allTests = selectionSet.get("allTests");
+        assert allTests != null;
+        List<SelectedField> subSelectedFields = allTests.getSubSelectedFields();
+        for (String expectedSubFieldname : expectedSubFieldNames) {
+            assertTrue(subSelectedFields.stream().anyMatch(f -> expectedSubFieldname.equals(f.getName())));
+        }
+
+
     }
 }
