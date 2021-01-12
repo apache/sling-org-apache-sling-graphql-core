@@ -23,7 +23,6 @@ import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 import org.apache.sling.graphql.api.SchemaProvider;
@@ -61,7 +60,7 @@ import static org.junit.Assert.assertTrue;
 public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
 
     protected void setupAdditionalServices() {
-        final Map<String, Object> staticData = new Hashtable<>();
+        final Dictionary<String, Object> staticData = new Hashtable<>();
         staticData.put("test", true);
 
         final List<Object> characters = new ArrayList<>();
@@ -213,7 +212,7 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
 
     @Test
     public void selectionSetTest() throws Exception {
-        final String json = queryJSON("{ combinedFetcher { boolValue resourcePath aTest { boolValue test resourcePath } allTests { boolValue test resourcePath } characters { ... on Human { address }  ... on Droid { primaryFunction }} } }");
+        queryJSON("{ combinedFetcher { boolValue resourcePath aTest { boolValue test resourcePath } allTests { boolValue test resourcePath } characters { ... on Human { address }  ... on Droid { primaryFunction }} } }");
 
         // retrieve the service used
         ServiceReference<?>[] serviceReferences = context.bundleContext().getServiceReferences(SlingDataFetcher.class.getName(), "(name=combined/fetcher)");
