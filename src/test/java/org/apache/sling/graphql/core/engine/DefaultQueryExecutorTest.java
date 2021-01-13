@@ -219,7 +219,7 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
 
     @Test
     public void selectionSetTest() throws Exception {
-        queryJSON("{ combinedFetcher { boolValue resourcePath aTest { boolValue test resourcePath } allTests { boolValue test resourcePath } unionTest { ... on Human { id address }  ... on Droid { id primaryFunction } } interfaceTest { id ... on Human { address }  ... on Droid { primaryFunction } }} }");
+        queryJSON("{ combinedFetcher { boolValue resourcePath aTest { boolValue test resourcePath } allTests { boolValue test resourcePath } unionTest { ... on Human { id address } ... on Droid { id primaryFunction } } interfaceTest { id ... on Human { address } ... on Droid { primaryFunction } } } }");
 
         // retrieve the service used
         ServiceReference<?>[] serviceReferences = context.bundleContext().getServiceReferences(SlingDataFetcher.class.getName(), "(name=combined/fetcher)");
