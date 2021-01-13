@@ -26,27 +26,26 @@ import java.util.List;
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 
 import static org.junit.Assert.assertThat;
-import static org.hamcrest.Matchers.contains;
 
 import org.apache.sling.graphql.core.mocks.EchoDataFetcher;
 import org.apache.sling.graphql.core.mocks.TestUtil;
-import org.apache.sling.graphql.core.mocks.TypeSlingResourceDTO;
-import org.apache.sling.graphql.core.mocks.TypeTestDTO;
-import org.apache.sling.graphql.core.mocks.UnionTypeResolver;
+import org.apache.sling.graphql.core.mocks.DroidDTO;
+import org.apache.sling.graphql.core.mocks.HumanDTO;
+import org.apache.sling.graphql.core.mocks.CharacterTypeResolver;
 import org.junit.Test;
 
 public class IntrospectionQueryTest extends ResourceQueryTestBase {
 
     @Override
     protected void setupAdditionalServices() {
-        final Dictionary<String, Object> unionData = new Hashtable<>();
+        final Dictionary<String, Object> data = new Hashtable<>();
         final List<Object> items = new ArrayList<>();
-        items.add(new TypeTestDTO(true, false, "path/to/resource", "1, 2, 3"));
-        items.add(new TypeSlingResourceDTO(resource.getPath(), resource.getResourceType()));
-        unionData.put("items", items);
+        items.add(new HumanDTO("human-1", "Luke", "Tatooine"));
+        items.add(new DroidDTO("droid-1", "R2-D2", "whistle"));
+        data.put("items", items);
 
-        TestUtil.registerSlingTypeResolver(context.bundleContext(), "union/resolver", new UnionTypeResolver());
-        TestUtil.registerSlingDataFetcher(context.bundleContext(), "union/fetcher", new EchoDataFetcher(unionData));
+        TestUtil.registerSlingTypeResolver(context.bundleContext(), "character/resolver", new CharacterTypeResolver());
+        TestUtil.registerSlingDataFetcher(context.bundleContext(), "character/fetcher", new EchoDataFetcher(data));
     }
 
     @Test
