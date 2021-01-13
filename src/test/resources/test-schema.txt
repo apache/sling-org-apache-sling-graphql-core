@@ -85,7 +85,8 @@ type Test2 {
     resourcePath: String
     aTest: Test
     allTests: [Test]
-    characters: [CharacterUnion]
+    unionTest: [CharacterUnion]
+    interfaceTest: [CharacterInterface]
 }
 
 type CharactersAsUnion {

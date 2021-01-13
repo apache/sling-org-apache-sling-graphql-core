@@ -63,9 +63,12 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         final Dictionary<String, Object> staticData = new Hashtable<>();
         staticData.put("test", true);
 
+        HumanDTO human = new HumanDTO("human-1", "Luke", "Tatooine");
+        DroidDTO droid = new DroidDTO("droid-1", "R2-D2", "whistle");
+
         final List<Object> characters = new ArrayList<>();
-        characters.add(new HumanDTO("human-1", "Luke", "Tatooine"));
-        characters.add(new DroidDTO("droid-1", "R2-D2", "whistle"));
+        characters.add(human);
+        characters.add(droid);
 
         final Dictionary<String, Object> data = new Hashtable<>();
         data.put("characters", characters);
@@ -77,7 +80,11 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "test/static", new EchoDataFetcher(staticData));
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "test/fortyTwo", new EchoDataFetcher(42));
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "sling/digest", new DigestDataFetcher());
-        TestUtil.registerSlingDataFetcher(context.bundleContext(), "combined/fetcher", new EchoDataFetcher(data));
+
+        final Dictionary<String, Object> dataCombined = new Hashtable<>();
+        dataCombined.put("unionTest", characters);
+        dataCombined.put("interfaceTest", characters);
+        TestUtil.registerSlingDataFetcher(context.bundleContext(), "combined/fetcher", new EchoDataFetcher(dataCombined));
     }
 
     @Test
@@ -212,7 +219,7 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
 
     @Test
     public void selectionSetTest() throws Exception {
-        queryJSON("{ combinedFetcher { boolValue resourcePath aTest { boolValue test resourcePath } allTests { boolValue test resourcePath } characters { ... on Human { address }  ... on Droid { primaryFunction }} } }");
+        queryJSON("{ combinedFetcher { boolValue resourcePath aTest { boolValue test resourcePath } allTests { boolValue test resourcePath } unionTest { ... on Human { id address }  ... on Droid { id primaryFunction } } interfaceTest { id ... on Human { address }  ... on Droid { primaryFunction } }} }");
 
         // retrieve the service used
         ServiceReference<?>[] serviceReferences = context.bundleContext().getServiceReferences(SlingDataFetcher.class.getName(), "(name=combined/fetcher)");
@@ -221,13 +228,14 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         // Access the computed SelectionSet
         SelectionSet selectionSet = echoDataFetcher.getSelectionSet();
 
-        assertEquals(5, selectionSet.getFields().size());
+        assertEquals(6, selectionSet.getFields().size());
 
         String[] expectedFieldNames = new String[] {
                 "boolValue",
                 "resourcePath",
                 "aTest",
-                "characters"
+                "unionTest",
+                "interfaceTest"
         };
         final List<SelectedField> selectionSetFields = selectionSet.getFields();
         for (String expectedFieldname : expectedFieldNames) {
@@ -246,11 +254,19 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
                 "allTests/test",
                 "allTests/boolValue",
                 "allTests/resourcePath",
-                "characters",
-                "characters/Human",
-                "characters/Human/address",
-                "characters/Droid",
-                "characters/Droid/primaryFunction"
+                "unionTest",
+                "unionTest/Human",
+                "unionTest/Human/id",
+                "unionTest/Human/address",
+                "unionTest/Droid",
+                "unionTest/Droid/id",
+                "unionTest/Droid/primaryFunction",
+                "interfaceTest",
+                "interfaceTest/id",
+                "interfaceTest/Human",
+                "interfaceTest/Human/address",
+                "interfaceTest/Droid",
+                "interfaceTest/Droid/primaryFunction"
         };
         for (String expectedQN : expectedQualifiedName) {
             assertTrue(selectionSet.contains(expectedQN));
@@ -267,17 +283,25 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
                 "allTests/test",
                 "allTests/boolValue",
                 "allTests/resourcePath",
-                "characters",
-                "characters/Human/address",
-                "characters/Droid/primaryFunction"
+                "unionTest",
+                "unionTest/Human/id",
+                "unionTest/Human/address",
+                "unionTest/Droid/id",
+                "unionTest/Droid/primaryFunction",
+                "interfaceTest",
+                "interfaceTest/id",
+                "interfaceTest/Human/address",
+                "interfaceTest/Droid/primaryFunction"
         };
         for (String expectedNonInlineQN : expectedNonInlineQNs) {
             assertFalse(Objects.requireNonNull(selectionSet.get(expectedNonInlineQN)).isInline());
         }
 
         String[] expectedInlineQNs = new String[] {
-                "characters/Human",
-                "characters/Droid"
+                "unionTest/Human",
+                "unionTest/Droid",
+                "interfaceTest/Human",
+                "interfaceTest/Droid"
         };
         for (String expectedInlineQN : expectedInlineQNs) {
             assertTrue(Objects.requireNonNull(selectionSet.get(expectedInlineQN)).isInline());
