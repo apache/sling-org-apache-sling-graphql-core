@@ -22,7 +22,7 @@ import org.apache.sling.graphql.api.SlingTypeResolver;
 import org.apache.sling.graphql.api.SlingTypeResolverEnvironment;
 import org.apache.sling.graphql.core.mocks.DummyTypeResolver;
 import org.apache.sling.graphql.core.mocks.TestUtil;
-import org.apache.sling.graphql.core.mocks.UnionTypeResolver;
+import org.apache.sling.graphql.core.mocks.CharacterTypeResolver;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -36,7 +36,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
 public class SlingTypeResolverSelectorTest {
@@ -51,11 +50,11 @@ public class SlingTypeResolverSelectorTest {
         context.registerInjectActivateService(new SlingTypeResolverSelector());
         selector = context.getService(SlingTypeResolverSelector.class);
 
-        TestUtil.registerSlingTypeResolver(context.bundleContext(), "sling/union", new UnionTypeResolver());
+        TestUtil.registerSlingTypeResolver(context.bundleContext(), "sling/character", new CharacterTypeResolver());
         TestUtil.registerSlingTypeResolver(context.bundleContext(), "sling/shouldFail", new DoNothingTypeResolver());
         TestUtil.registerSlingTypeResolver(context.bundleContext(), "example/ok", new DoNothingTypeResolver());
         TestUtil.registerSlingTypeResolver(context.bundleContext(), "sling/duplicate", 1, new DummyTypeResolver());
-        TestUtil.registerSlingTypeResolver(context.bundleContext(), "sling/duplicate", 0, new UnionTypeResolver());
+        TestUtil.registerSlingTypeResolver(context.bundleContext(), "sling/duplicate", 0, new CharacterTypeResolver());
     }
 
     @Test
@@ -66,7 +65,7 @@ public class SlingTypeResolverSelectorTest {
 
     @Test
     public void reservedNameOk() {
-        final SlingTypeResolver<Object> sdf = selector.getSlingTypeResolver("sling/union");
+        final SlingTypeResolver<Object> sdf = selector.getSlingTypeResolver("sling/character");
         assertThat(sdf, not(nullValue()));
     }
 

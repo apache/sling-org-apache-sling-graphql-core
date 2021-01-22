@@ -24,17 +24,17 @@ import org.apache.sling.graphql.api.SlingTypeResolverEnvironment;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class UnionTypeResolver implements SlingTypeResolver<Object> {
+public class CharacterTypeResolver implements SlingTypeResolver<Object> {
 
     @Nullable
     @Override
     public Object getType(@NotNull SlingTypeResolverEnvironment e) {
         Object resultItem = e.getObject();
-        if (resultItem instanceof TypeTestDTO) {
-            return e.getObjectType("Test");
+        if (resultItem instanceof HumanDTO) {
+            return e.getObjectType("Human");
         }
-        if (resultItem instanceof TypeSlingResourceDTO) {
-            return e.getObjectType("SlingResource");
+        if (resultItem instanceof DroidDTO) {
+            return e.getObjectType("Droid");
         }
         return null;
     }

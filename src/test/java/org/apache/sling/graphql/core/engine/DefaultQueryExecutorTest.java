@@ -38,9 +38,9 @@ import org.apache.sling.graphql.core.mocks.EchoDataFetcher;
 import org.apache.sling.graphql.core.mocks.FailingDataFetcher;
 import org.apache.sling.graphql.core.mocks.MockSchemaProvider;
 import org.apache.sling.graphql.core.mocks.TestUtil;
-import org.apache.sling.graphql.core.mocks.TypeSlingResourceDTO;
-import org.apache.sling.graphql.core.mocks.TypeTestDTO;
-import org.apache.sling.graphql.core.mocks.UnionTypeResolver;
+import org.apache.sling.graphql.core.mocks.DroidDTO;
+import org.apache.sling.graphql.core.mocks.HumanDTO;
+import org.apache.sling.graphql.core.mocks.CharacterTypeResolver;
 import org.junit.Test;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceReference;
@@ -56,7 +56,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
 
@@ -64,20 +63,28 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         final Dictionary<String, Object> staticData = new Hashtable<>();
         staticData.put("test", true);
 
-        final Dictionary<String, Object> unionData = new Hashtable<>();
-        final List<Object> items = new ArrayList<>();
-        items.add(new TypeTestDTO(true, false, "path/to/resource", "1, 2, 3"));
-        items.add(new TypeSlingResourceDTO(resource.getPath(), resource.getResourceType()));
-        unionData.put("items", items);
+        HumanDTO human = new HumanDTO("human-1", "Luke", "Tatooine");
+        DroidDTO droid = new DroidDTO("droid-1", "R2-D2", "whistle");
 
-        TestUtil.registerSlingTypeResolver(context.bundleContext(), "union/resolver", new UnionTypeResolver());
-        TestUtil.registerSlingDataFetcher(context.bundleContext(), "union/fetcher", new EchoDataFetcher(unionData));
+        final List<Object> characters = new ArrayList<>();
+        characters.add(human);
+        characters.add(droid);
+
+        final Dictionary<String, Object> data = new Hashtable<>();
+        data.put("characters", characters);
+
+        TestUtil.registerSlingTypeResolver(context.bundleContext(), "character/resolver", new CharacterTypeResolver());
+        TestUtil.registerSlingDataFetcher(context.bundleContext(), "character/fetcher", new EchoDataFetcher(data));
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "echoNS/echo", new EchoDataFetcher(null));
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "failure/fail", new FailingDataFetcher());
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "test/static", new EchoDataFetcher(staticData));
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "test/fortyTwo", new EchoDataFetcher(42));
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "sling/digest", new DigestDataFetcher());
-        TestUtil.registerSlingDataFetcher(context.bundleContext(), "combined/fetcher", new EchoDataFetcher(unionData));
+
+        final Dictionary<String, Object> dataCombined = new Hashtable<>();
+        dataCombined.put("unionTest", characters);
+        dataCombined.put("interfaceTest", characters);
+        TestUtil.registerSlingDataFetcher(context.bundleContext(), "combined/fetcher", new EchoDataFetcher(dataCombined));
     }
 
     @Test
@@ -189,16 +196,30 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
     }
 
     @Test
-    public void unionFetcherTest() throws Exception {
-        final String json = queryJSON("{ unionFetcher { items { ... on Test { testingArgument }  ... on SlingResource { path }} } }");
-        assertThat(json, hasJsonPath("$.data.unionFetcher"));
-        assertThat(json, hasJsonPath("$.data.unionFetcher.items[0].testingArgument", equalTo("1, 2, 3")));
-        assertThat(json, hasJsonPath("$.data.unionFetcher.items[1].path", equalTo(resource.getPath())));
+    public void unionQueryTest() throws Exception {
+        final String json = queryJSON("{ unionQuery { characters { ... on Human { name address }  ... on Droid { name primaryFunction } } } }");
+        assertThat(json, hasJsonPath("$.data.unionQuery"));
+        assertThat(json, hasJsonPath("$.data.unionQuery.characters[0].name", equalTo("Luke")));
+        assertThat(json, hasJsonPath("$.data.unionQuery.characters[0].address", equalTo("Tatooine")));
+        assertThat(json, hasJsonPath("$.data.unionQuery.characters[1].name", equalTo("R2-D2")));
+        assertThat(json, hasJsonPath("$.data.unionQuery.characters[1].primaryFunction", equalTo("whistle")));
+    }
+
+    @Test
+    public void interfaceQueryTest() throws Exception {
+        final String json = queryJSON("{ interfaceQuery { characters { id ... on Human { name address }  ... on Droid { name primaryFunction } } } }");
+        assertThat(json, hasJsonPath("$.data.interfaceQuery"));
+        assertThat(json, hasJsonPath("$.data.interfaceQuery.characters[0].id", equalTo("human-1")));
+        assertThat(json, hasJsonPath("$.data.interfaceQuery.characters[0].name", equalTo("Luke")));
+        assertThat(json, hasJsonPath("$.data.interfaceQuery.characters[0].address", equalTo("Tatooine")));
+        assertThat(json, hasJsonPath("$.data.interfaceQuery.characters[1].id", equalTo("droid-1")));
+        assertThat(json, hasJsonPath("$.data.interfaceQuery.characters[1].name", equalTo("R2-D2")));
+        assertThat(json, hasJsonPath("$.data.interfaceQuery.characters[1].primaryFunction", equalTo("whistle")));
     }
 
     @Test
     public void selectionSetTest() throws Exception {
-        queryJSON("{ combinedFetcher { boolValue resourcePath aTest { boolValue test resourcePath } allTests { boolValue test resourcePath } items { ... on Test { testingArgument }  ... on SlingResource { path }} } }");
+        queryJSON("{ combinedFetcher { boolValue resourcePath aTest { boolValue test resourcePath } allTests { boolValue test resourcePath } unionTest { ... on Human { id address } ... on Droid { id primaryFunction } } interfaceTest { id ... on Human { address } ... on Droid { primaryFunction } } } }");
 
         // retrieve the service used
         ServiceReference<?>[] serviceReferences = context.bundleContext().getServiceReferences(SlingDataFetcher.class.getName(), "(name=combined/fetcher)");
@@ -207,13 +228,14 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         // Access the computed SelectionSet
         SelectionSet selectionSet = echoDataFetcher.getSelectionSet();
 
-        assertEquals(5, selectionSet.getFields().size());
+        assertEquals(6, selectionSet.getFields().size());
 
         String[] expectedFieldNames = new String[] {
                 "boolValue",
                 "resourcePath",
                 "aTest",
-                "items"
+                "unionTest",
+                "interfaceTest"
         };
         final List<SelectedField> selectionSetFields = selectionSet.getFields();
         for (String expectedFieldname : expectedFieldNames) {
@@ -232,11 +254,19 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
                 "allTests/test",
                 "allTests/boolValue",
                 "allTests/resourcePath",
-                "items",
-                "items/Test",
-                "items/Test/testingArgument",
-                "items/SlingResource",
-                "items/SlingResource/path"
+                "unionTest",
+                "unionTest/Human",
+                "unionTest/Human/id",
+                "unionTest/Human/address",
+                "unionTest/Droid",
+                "unionTest/Droid/id",
+                "unionTest/Droid/primaryFunction",
+                "interfaceTest",
+                "interfaceTest/id",
+                "interfaceTest/Human",
+                "interfaceTest/Human/address",
+                "interfaceTest/Droid",
+                "interfaceTest/Droid/primaryFunction"
         };
         for (String expectedQN : expectedQualifiedName) {
             assertTrue(selectionSet.contains(expectedQN));
@@ -253,17 +283,25 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
                 "allTests/test",
                 "allTests/boolValue",
                 "allTests/resourcePath",
-                "items",
-                "items/Test/testingArgument",
-                "items/SlingResource/path"
+                "unionTest",
+                "unionTest/Human/id",
+                "unionTest/Human/address",
+                "unionTest/Droid/id",
+                "unionTest/Droid/primaryFunction",
+                "interfaceTest",
+                "interfaceTest/id",
+                "interfaceTest/Human/address",
+                "interfaceTest/Droid/primaryFunction"
         };
         for (String expectedNonInlineQN : expectedNonInlineQNs) {
             assertFalse(Objects.requireNonNull(selectionSet.get(expectedNonInlineQN)).isInline());
         }
 
         String[] expectedInlineQNs = new String[] {
-                "items/Test",
-                "items/SlingResource"
+                "unionTest/Human",
+                "unionTest/Droid",
+                "interfaceTest/Human",
+                "interfaceTest/Droid"
         };
         for (String expectedInlineQN : expectedInlineQNs) {
             assertTrue(Objects.requireNonNull(selectionSet.get(expectedInlineQN)).isInline());
@@ -281,7 +319,6 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         for (String expectedSubFieldname : expectedSubFieldNames) {
             assertTrue(subSelectedFields.stream().anyMatch(f -> expectedSubFieldname.equals(f.getName())));
         }
-
-
     }
+
 }

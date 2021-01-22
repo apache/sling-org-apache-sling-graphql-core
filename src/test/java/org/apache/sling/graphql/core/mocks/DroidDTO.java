@@ -18,33 +18,26 @@
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 package org.apache.sling.graphql.core.mocks;
 
-public class TypeTestDTO {
-    private final boolean test;
-    private final boolean boolValue;
-    private final String resourcePath;
-    private final String testingArgument;
+public class DroidDTO {
+    private final String id;
+    private final String name;
+    private final String primaryFunction;
 
-    public TypeTestDTO(boolean test, boolean boolValue, String resourcePath, String testingArgument) {
-        this.test = test;
-        this.boolValue = boolValue;
-        this.resourcePath = resourcePath;
-        this.testingArgument = testingArgument;
+    public DroidDTO(String id, String name, String primaryFunction) {
+        this.id = id;
+        this.name = name;
+        this.primaryFunction = primaryFunction;
     }
 
-    public boolean isTest() {
-        return test;
+    public String getId() {
+        return id;
     }
 
-    public boolean isBoolValue() {
-        return boolValue;
+    public String getName() {
+        return name;
     }
 
-    public String getResourcePath() {
-        return resourcePath;
+    public String getPrimaryFunction() {
+        return primaryFunction;
     }
-
-    public String getTestingArgument() {
-        return testingArgument;
-    }
-
 }

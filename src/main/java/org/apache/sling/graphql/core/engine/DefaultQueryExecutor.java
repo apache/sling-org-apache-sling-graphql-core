@@ -23,6 +23,8 @@ import java.util.Map;
 
 import javax.script.ScriptException;
 
+import graphql.language.InterfaceTypeDefinition;
+import graphql.language.TypeDefinition;
 import graphql.language.UnionTypeDefinition;
 import graphql.schema.TypeResolver;
 import org.apache.sling.api.resource.Resource;
@@ -196,21 +198,29 @@ public class DefaultQueryExecutor implements QueryExecutor {
             });
         }
         scalars.forEach(builder::scalar);
-
         List<UnionTypeDefinition> unionTypes = typeRegistry.getTypes(UnionTypeDefinition.class);
         for (UnionTypeDefinition type : unionTypes) {
-            try {
-                TypeResolver resolver = getTypeResolver(type, r);
-                if (resolver != null) {
-                    builder.type(type.getName(), typeWriting -> typeWriting.typeResolver(resolver));
-                }
-            } catch (SlingGraphQLException e) {
-                throw e;
-            } catch(Exception e) {
-                throw new SlingGraphQLException("Exception while building wiring.", e);
-            }
+            wireTypeResolver(builder, type, r);
         }
+        List<InterfaceTypeDefinition> interfaceTypes = typeRegistry.getTypes(InterfaceTypeDefinition.class);
+        for (InterfaceTypeDefinition type : interfaceTypes) {
+            wireTypeResolver(builder, type, r);
+        }
+
         return builder.build();
+    }
+
+    private <T extends TypeDefinition<T>> void wireTypeResolver(RuntimeWiring.Builder builder, TypeDefinition<T> type, Resource r) {
+        try {
+            TypeResolver resolver = getTypeResolver(type, r);
+            if (resolver != null) {
+                builder.type(type.getName(), typeWriting -> typeWriting.typeResolver(resolver));
+            }
+        } catch (SlingGraphQLException e) {
+            throw e;
+        } catch(Exception e) {
+            throw new SlingGraphQLException("Exception while building wiring.", e);
+        }
     }
 
     private String getDirectiveArgumentValue(Directive d, String name) {
@@ -237,8 +247,7 @@ public class DefaultQueryExecutor implements QueryExecutor {
                 name, SlingTypeResolverSelector.RESOLVER_NAME_PATTERN));
     }
 
-    private DataFetcher<Object> getDataFetcher(FieldDefinition field, Resource currentResource)
-            {
+    private DataFetcher<Object> getDataFetcher(FieldDefinition field, Resource currentResource) {
         DataFetcher<Object> result = null;
         final Directive d =field.getDirective(FETCHER_DIRECTIVE);
         if(d != null) {
@@ -253,7 +262,7 @@ public class DefaultQueryExecutor implements QueryExecutor {
         return result;
     }
 
-    private TypeResolver getTypeResolver(UnionTypeDefinition typeDefinition, Resource currentResource) {
+    private <T extends TypeDefinition<T>> TypeResolver getTypeResolver(TypeDefinition<T> typeDefinition, Resource currentResource) {
         TypeResolver resolver = null;
         final Directive d = typeDefinition.getDirective(RESOLVER_DIRECTIVE);
         if(d != null) {

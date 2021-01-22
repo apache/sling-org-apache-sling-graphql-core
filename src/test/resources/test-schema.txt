@@ -27,7 +27,7 @@ directive @resolver(
     name : String,
     options : String = "",
     source : String = ""
-) on UNION
+) on UNION | INTERFACE
 
 # GraphQL Schema used for our tests
 type Query {
@@ -36,14 +36,21 @@ type Query {
     # Test some static values
     staticContent: Test @fetcher(name:"test/static")
 
-    # Test union as return type
-    unionFetcher: Test2 @fetcher(name:"union/fetcher")
-
     # Test combined as return type
-    combinedFetcher: Test3 @fetcher(name:"combined/fetcher")
+    combinedFetcher: Test2 @fetcher(name:"combined/fetcher")
+
+    # Test union query
+    unionQuery: CharactersAsUnion @fetcher(name:"character/fetcher")
+
+    # Test interface query
+    interfaceQuery: CharactersAsInterface @fetcher(name:"character/fetcher")
 }
 
-union AllTypes @resolver(name:"union/resolver" source:"AllTypes") = SlingResource | Test
+interface CharacterInterface @resolver(name:"character/resolver" source:"CharacterInterface") {
+  id: ID!
+}
+
+union CharacterUnion @resolver(name:"character/resolver" source:"CharacterUnion") = Human | Droid
 
 # This should be omitted from the SlingResource type description
 #
@@ -74,13 +81,31 @@ type Test {
 }
 
 type Test2 {
-    items: [AllTypes]
-}
-
-type Test3 {
     boolValue: Boolean
     resourcePath: String
     aTest: Test
     allTests: [Test]
-    items: [AllTypes]
+    unionTest: [CharacterUnion]
+    interfaceTest: [CharacterInterface]
 }
+
+type CharactersAsUnion {
+    characters: [CharacterUnion]
+}
+
+type CharactersAsInterface {
+    characters: [CharacterInterface]
+}
+
+type Human implements CharacterInterface {
+  id: ID!
+  name: String!
+  address: String
+}
+
+type Droid implements CharacterInterface {
+  id: ID!
+  name: String!
+  primaryFunction: String
+}
+
