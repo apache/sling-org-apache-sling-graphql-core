@@ -120,11 +120,10 @@ public class DefaultQueryExecutor implements QueryExecutor {
     @interface Config {
         @AttributeDefinition(
                 name = "Schema Cache Size",
-                description = "The number of schemas to cache. Since a schema normally doesn't change often, they can be cached and " +
-                        "reused, rather than parsed by the engine all the time. The cache is a LRU and will store up to this number of " +
-                        "schemas."
+                description = "The number of compiled GraphQL schemas to cache. Since a schema normally doesn't change often, they can be" +
+                        " cached and reused, rather than parsed by the engine all the time. The cache is a LRU and will store up to this number of schemas."
         )
-        int schemaCacheSize() default 512;
+        int schemaCacheSize() default 128;
     }
 
     @Activate
@@ -336,6 +335,13 @@ public class DefaultQueryExecutor implements QueryExecutor {
     GraphQLSchema getSchema(@NotNull String sdl, @NotNull Resource currentResource, @NotNull String[] selectors) {
         readLock.lock();
         String newHash = SHA256Hasher.getHash(sdl);
+        /*
+        Since the SchemaProviders that generate the SDL can dynamically change, but also since the resource is passed to the RuntimeWiring,
+        there's a two stage cache:
+
+        1. a mapping between the resource, selectors and the SDL's hash
+        2. a mapping between the hash and the compiled GraphQL schema
+         */
         String resourceToHashMapKey = getCacheKey(currentResource, selectors);
         String oldHash = resourceToHashMap.get(resourceToHashMapKey);
         if (!newHash.equals(oldHash)) {
@@ -349,7 +355,9 @@ public class DefaultQueryExecutor implements QueryExecutor {
                     Iterable<GraphQLScalarType> scalars = scalarsProvider.getCustomScalars(typeRegistry.scalars());
                     RuntimeWiring runtimeWiring = buildWiring(typeRegistry, scalars, currentResource);
                     SchemaGenerator schemaGenerator = new SchemaGenerator();
-                    hashToSchemaMap.put(newHash, schemaGenerator.makeExecutableSchema(typeRegistry, runtimeWiring));
+                    GraphQLSchema schema = schemaGenerator.makeExecutableSchema(typeRegistry, runtimeWiring);
+                    hashToSchemaMap.put(newHash, schema);
+                    return schema;
                 }
                 readLock.lock();
             } finally {
@@ -361,7 +369,6 @@ public class DefaultQueryExecutor implements QueryExecutor {
         } finally {
             readLock.unlock();
         }
-
     }
 
     private String getCacheKey(@NotNull Resource resource, @NotNull String[] selectors) {
@@ -378,7 +385,7 @@ public class DefaultQueryExecutor implements QueryExecutor {
 
         @Override
         protected boolean removeEldestEntry(Map.Entry<String, T> eldest) {
-            return capacity > 0 && size() == capacity;
+            return size() > capacity;
         }
 
         @Override
