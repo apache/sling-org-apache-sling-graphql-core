@@ -97,10 +97,11 @@ public class DefaultQueryExecutor implements QueryExecutor {
     private static final LogSanitizer cleanLog = new LogSanitizer();
 
     private Map<String, String> resourceToHashMap;
-    private Map<String, GraphQLSchema> hashToSchemaMap;
+    private Map<String, TypeDefinitionRegistry> hashToSchemaMap;
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
     private final Lock readLock = readWriteLock.readLock();
     private final Lock writeLock = readWriteLock.writeLock();
+    private final SchemaGenerator schemaGenerator = new SchemaGenerator();
 
     @Reference
     private RankedSchemaProviders schemaProvider;
@@ -146,7 +147,8 @@ public class DefaultQueryExecutor implements QueryExecutor {
                         Arrays.toString(selectors)));
             }
             LOGGER.debug("Resource {} maps to GQL schema {}", queryResource.getPath(), schemaDef);
-            final GraphQLSchema schema = getSchema(schemaDef, queryResource, selectors);
+            final TypeDefinitionRegistry typeDefinitionRegistry = getTypeDefinitionRegistry(schemaDef, queryResource, selectors);
+            final GraphQLSchema schema = buildSchema(typeDefinitionRegistry, queryResource);
             ExecutionInput executionInput = ExecutionInput.newExecutionInput()
                     .query(query)
                     .variables(variables)
@@ -182,7 +184,8 @@ public class DefaultQueryExecutor implements QueryExecutor {
                         Arrays.toString(selectors)));
             }
             LOGGER.debug("Resource {} maps to GQL schema {}", queryResource.getPath(), schemaDef);
-            final GraphQLSchema schema = getSchema(schemaDef, queryResource, selectors);
+            final TypeDefinitionRegistry typeDefinitionRegistry = getTypeDefinitionRegistry(schemaDef, queryResource, selectors);
+            final GraphQLSchema schema = buildSchema(typeDefinitionRegistry, queryResource);
             final GraphQL graphQL = GraphQL.newGraphQL(schema).build();
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Executing query\n[{}]\nat [{}] with variables [{}]",
@@ -332,7 +335,7 @@ public class DefaultQueryExecutor implements QueryExecutor {
         }
     }
 
-    GraphQLSchema getSchema(@NotNull String sdl, @NotNull Resource currentResource, @NotNull String[] selectors) {
+    TypeDefinitionRegistry getTypeDefinitionRegistry(@NotNull String sdl, @NotNull Resource currentResource, @NotNull String[] selectors) {
         readLock.lock();
         String newHash = SHA256Hasher.getHash(sdl);
         /*
@@ -352,12 +355,8 @@ public class DefaultQueryExecutor implements QueryExecutor {
                 if (!newHash.equals(oldHash)) {
                     resourceToHashMap.put(resourceToHashMapKey, newHash);
                     TypeDefinitionRegistry typeRegistry = new SchemaParser().parse(sdl);
-                    Iterable<GraphQLScalarType> scalars = scalarsProvider.getCustomScalars(typeRegistry.scalars());
-                    RuntimeWiring runtimeWiring = buildWiring(typeRegistry, scalars, currentResource);
-                    SchemaGenerator schemaGenerator = new SchemaGenerator();
-                    GraphQLSchema schema = schemaGenerator.makeExecutableSchema(typeRegistry, runtimeWiring);
-                    hashToSchemaMap.put(newHash, schema);
-                    return schema;
+                    hashToSchemaMap.put(newHash, typeRegistry);
+                    return typeRegistry;
                 }
                 readLock.lock();
             } finally {
@@ -369,6 +368,12 @@ public class DefaultQueryExecutor implements QueryExecutor {
         } finally {
             readLock.unlock();
         }
+    }
+
+    private GraphQLSchema buildSchema(@NotNull TypeDefinitionRegistry typeRegistry, @NotNull Resource currentResource) {
+        Iterable<GraphQLScalarType> scalars = scalarsProvider.getCustomScalars(typeRegistry.scalars());
+        RuntimeWiring runtimeWiring = buildWiring(typeRegistry, scalars, currentResource);
+        return schemaGenerator.makeExecutableSchema(typeRegistry, runtimeWiring);
     }
 
     private String getCacheKey(@NotNull Resource resource, @NotNull String[] selectors) {
