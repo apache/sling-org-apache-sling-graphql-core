@@ -18,11 +18,14 @@
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 package org.apache.sling.graphql.core.engine;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Dictionary;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import org.apache.sling.graphql.api.SchemaProvider;
@@ -32,19 +35,23 @@ import org.apache.sling.graphql.api.SlingDataFetcher;
 import org.apache.sling.graphql.api.SlingGraphQLException;
 import org.apache.sling.graphql.api.engine.QueryExecutor;
 import org.apache.sling.graphql.api.engine.ValidationResult;
+import org.apache.sling.graphql.core.mocks.CharacterTypeResolver;
 import org.apache.sling.graphql.core.mocks.DigestDataFetcher;
+import org.apache.sling.graphql.core.mocks.DroidDTO;
 import org.apache.sling.graphql.core.mocks.DummyTypeResolver;
 import org.apache.sling.graphql.core.mocks.EchoDataFetcher;
 import org.apache.sling.graphql.core.mocks.FailingDataFetcher;
+import org.apache.sling.graphql.core.mocks.HumanDTO;
 import org.apache.sling.graphql.core.mocks.MockSchemaProvider;
 import org.apache.sling.graphql.core.mocks.TestUtil;
-import org.apache.sling.graphql.core.mocks.DroidDTO;
-import org.apache.sling.graphql.core.mocks.HumanDTO;
-import org.apache.sling.graphql.core.mocks.CharacterTypeResolver;
+import org.apache.sling.graphql.core.schema.RankedSchemaProviders;
+import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.junit.Test;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
+
+import graphql.schema.GraphQLSchema;
 
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 import static org.hamcrest.Matchers.containsString;
@@ -53,6 +60,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -319,6 +327,53 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         for (String expectedSubFieldname : expectedSubFieldNames) {
             assertTrue(subSelectedFields.stream().anyMatch(f -> expectedSubFieldname.equals(f.getName())));
         }
+    }
+
+    @Test
+    public void testCachedSchemas() throws IOException {
+        // by default we'll get the test-schema
+        final DefaultQueryExecutor queryExecutor = (DefaultQueryExecutor) context.getService(QueryExecutor.class);
+        final RankedSchemaProviders schemaProvider = context.getService(RankedSchemaProviders.class);
+        assertNotNull(queryExecutor);
+        assertNotNull(schemaProvider);
+        String[] selectors = new String[]{};
+        GraphQLSchema schema1 = queryExecutor.getSchema(schemaProvider.getSchema(resource, selectors), resource, selectors);
+        GraphQLSchema schema2 = queryExecutor.getSchema(schemaProvider.getSchema(resource, selectors), resource, selectors);
+        assertEquals(schema1, schema2);
+
+        // change the schema provider
+        context.registerService(SchemaProvider.class, new MockSchemaProvider("test-schema-selected-foryou"), Constants.SERVICE_RANKING,
+                Integer.MAX_VALUE);
+        GraphQLSchema schema3 = queryExecutor.getSchema(schemaProvider.getSchema(resource, selectors), resource, selectors);
+        GraphQLSchema schema4 = queryExecutor.getSchema(schemaProvider.getSchema(resource, selectors), resource, selectors);
+        assertEquals(schema3, schema4);
+        assertNotEquals(schema1, schema3);
+    }
+
+    @Test
+    public void testSchemasWithTheCacheDisabled() throws IOException {
+        Map<String, Object> properties = new HashMap<>();
+        properties.put("schemaCacheSize", 0);
+
+        DefaultQueryExecutor queryExecutor = (DefaultQueryExecutor) context.registerService(QueryExecutor.class, new DefaultQueryExecutor(),
+                properties);
+        MockOsgi.injectServices(queryExecutor, context.bundleContext(), properties);
+        MockOsgi.activate(queryExecutor, context.bundleContext(), properties);
+
+        final RankedSchemaProviders schemaProvider = context.getService(RankedSchemaProviders.class);
+        assertNotNull(queryExecutor);
+        assertNotNull(schemaProvider);
+        String[] selectors = new String[]{};
+        GraphQLSchema schema1 = queryExecutor.getSchema(schemaProvider.getSchema(resource, selectors), resource, selectors);
+        GraphQLSchema schema2 = queryExecutor.getSchema(schemaProvider.getSchema(resource, selectors), resource, selectors);
+        assertNotEquals(schema1, schema2);
+
+        // change the schema provider
+        context.registerService(SchemaProvider.class, new MockSchemaProvider("test-schema-selected-foryou"), Constants.SERVICE_RANKING,
+                Integer.MAX_VALUE);
+        GraphQLSchema schema3 = queryExecutor.getSchema(schemaProvider.getSchema(resource, selectors), resource, selectors);
+        GraphQLSchema schema4 = queryExecutor.getSchema(schemaProvider.getSchema(resource, selectors), resource, selectors);
+        assertNotEquals(schema3, schema4);
     }
 
 }

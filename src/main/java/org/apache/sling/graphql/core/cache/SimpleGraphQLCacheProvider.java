@@ -18,9 +18,6 @@
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 package org.apache.sling.graphql.core.cache;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -37,7 +34,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.commons.metrics.Counter;
 import org.apache.sling.commons.metrics.MetricsService;
 import org.apache.sling.graphql.api.cache.GraphQLCacheProvider;
-import org.apache.sling.graphql.api.SlingGraphQLException;
+import org.apache.sling.graphql.core.hash.SHA256Hasher;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.framework.BundleContext;
@@ -157,7 +154,7 @@ public class SimpleGraphQLCacheProvider implements GraphQLCacheProvider {
     public String cacheQuery(@NotNull String query, @NotNull String resourceType, @Nullable String selectorString) {
         writeLock.lock();
         try {
-            String hash = getHash(query);
+            String hash = SHA256Hasher.getHash(query);
             String key = getCacheKey(hash, resourceType, selectorString);
             persistedQueriesCache.put(key, query);
             if (persistedQueriesCache.containsKey(key)) {
@@ -177,25 +174,6 @@ public class SimpleGraphQLCacheProvider implements GraphQLCacheProvider {
         }
         key.append("_").append(hash);
         return key.toString();
-    }
-
-    @NotNull String getHash(@NotNull String query) {
-        StringBuilder buffer = new StringBuilder();
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(query.getBytes(StandardCharsets.UTF_8));
-
-            for (byte b : hash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) {
-                    buffer.append('0');
-                }
-                buffer.append(hex);
-            }
-        } catch (NoSuchAlgorithmException e) {
-            throw new SlingGraphQLException("Failed hashing query - " + e.getMessage());
-        }
-        return buffer.toString();
     }
 
     /**

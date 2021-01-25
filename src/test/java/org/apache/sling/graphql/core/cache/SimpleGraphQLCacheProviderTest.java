@@ -22,6 +22,7 @@ import org.apache.sling.commons.metrics.Counter;
 import org.apache.sling.commons.metrics.MetricsService;
 import org.apache.sling.commons.metrics.Timer;
 import org.apache.sling.graphql.api.cache.GraphQLCacheProvider;
+import org.apache.sling.graphql.core.hash.SHA256Hasher;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -60,7 +61,7 @@ public class SimpleGraphQLCacheProviderTest {
         context.registerInjectActivateService(new SimpleGraphQLCacheProvider());
         SimpleGraphQLCacheProvider provider = (SimpleGraphQLCacheProvider) context.getService(GraphQLCacheProvider.class);
         assertNotNull(provider);
-        assertEquals("b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9", provider.getHash("hello world"));
+        assertEquals("b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9", SHA256Hasher.getHash("hello world"));
     }
 
     @Test

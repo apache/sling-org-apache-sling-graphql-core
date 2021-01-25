@@ -18,30 +18,37 @@
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 package org.apache.sling.graphql.core.engine;
 
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.script.ScriptException;
 
-import graphql.language.InterfaceTypeDefinition;
-import graphql.language.TypeDefinition;
-import graphql.language.UnionTypeDefinition;
-import graphql.schema.TypeResolver;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.api.SlingDataFetcher;
 import org.apache.sling.graphql.api.SlingGraphQLException;
+import org.apache.sling.graphql.api.SlingTypeResolver;
 import org.apache.sling.graphql.api.engine.QueryExecutor;
 import org.apache.sling.graphql.api.engine.ValidationResult;
-import org.apache.sling.graphql.api.SlingTypeResolver;
-import org.apache.sling.graphql.core.util.LogSanitizer;
+import org.apache.sling.graphql.core.hash.SHA256Hasher;
 import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
 import org.apache.sling.graphql.core.schema.RankedSchemaProviders;
+import org.apache.sling.graphql.core.util.LogSanitizer;
 import org.apache.sling.graphql.core.util.SlingGraphQLErrorHelper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,12 +61,16 @@ import graphql.ParseAndValidateResult;
 import graphql.language.Argument;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
+import graphql.language.InterfaceTypeDefinition;
 import graphql.language.ObjectTypeDefinition;
 import graphql.language.SourceLocation;
 import graphql.language.StringValue;
+import graphql.language.TypeDefinition;
+import graphql.language.UnionTypeDefinition;
 import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchema;
+import graphql.schema.TypeResolver;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
@@ -68,6 +79,7 @@ import graphql.schema.idl.TypeDefinitionRegistry;
 @Component(
         service = QueryExecutor.class
 )
+@Designate(ocd = DefaultQueryExecutor.Config.class)
 public class DefaultQueryExecutor implements QueryExecutor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultQueryExecutor.class);
@@ -84,6 +96,12 @@ public class DefaultQueryExecutor implements QueryExecutor {
 
     private static final LogSanitizer cleanLog = new LogSanitizer();
 
+    private Map<String, String> resourceToHashMap;
+    private Map<String, GraphQLSchema> hashToSchemaMap;
+    private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+    private final Lock readLock = readWriteLock.readLock();
+    private final Lock writeLock = readWriteLock.writeLock();
+
     @Reference
     private RankedSchemaProviders schemaProvider;
 
@@ -96,13 +114,39 @@ public class DefaultQueryExecutor implements QueryExecutor {
     @Reference
     private SlingScalarsProvider scalarsProvider;
 
+    @ObjectClassDefinition(
+            name = "Apache Sling Default GraphQL Query Executor"
+    )
+    @interface Config {
+        @AttributeDefinition(
+                name = "Schema Cache Size",
+                description = "The number of compiled GraphQL schemas to cache. Since a schema normally doesn't change often, they can be" +
+                        " cached and reused, rather than parsed by the engine all the time. The cache is a LRU and will store up to this number of schemas."
+        )
+        int schemaCacheSize() default 128;
+    }
+
+    @Activate
+    public void activate(Config config) {
+        int schemaCacheSize = config.schemaCacheSize();
+        if (schemaCacheSize < 0) {
+            schemaCacheSize = 0;
+        }
+        resourceToHashMap = new LRUCache<>(schemaCacheSize);
+        hashToSchemaMap = new LRUCache<>(schemaCacheSize);
+    }
+
     @Override
     public ValidationResult validate(@NotNull String query, @NotNull Map<String, Object> variables, @NotNull Resource queryResource,
                                      @NotNull String[] selectors) {
         try {
             String schemaDef = prepareSchemaDefinition(schemaProvider, queryResource, selectors);
+            if (schemaDef == null) {
+                throw new SlingGraphQLException(String.format("Cannot get a schema for resource %s and selectors %s.", queryResource,
+                        Arrays.toString(selectors)));
+            }
             LOGGER.debug("Resource {} maps to GQL schema {}", queryResource.getPath(), schemaDef);
-            final GraphQLSchema schema = buildSchema(schemaDef, queryResource);
+            final GraphQLSchema schema = getSchema(schemaDef, queryResource, selectors);
             ExecutionInput executionInput = ExecutionInput.newExecutionInput()
                     .query(query)
                     .variables(variables)
@@ -133,12 +177,16 @@ public class DefaultQueryExecutor implements QueryExecutor {
         String schemaDef = null;
         try {
             schemaDef = prepareSchemaDefinition(schemaProvider, queryResource, selectors);
+            if (schemaDef == null) {
+                throw new SlingGraphQLException(String.format("Cannot get a schema for resource %s and selectors %s.", queryResource,
+                        Arrays.toString(selectors)));
+            }
             LOGGER.debug("Resource {} maps to GQL schema {}", queryResource.getPath(), schemaDef);
-            final GraphQLSchema schema = buildSchema(schemaDef, queryResource);
+            final GraphQLSchema schema = getSchema(schemaDef, queryResource, selectors);
             final GraphQL graphQL = GraphQL.newGraphQL(schema).build();
-            if(LOGGER.isDebugEnabled()) {
+            if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Executing query\n[{}]\nat [{}] with variables [{}]",
-                    cleanLog.sanitize(query), queryResource.getPath(), cleanLog.sanitize(variables.toString()));
+                        cleanLog.sanitize(query), queryResource.getPath(), cleanLog.sanitize(variables.toString()));
             }
             ExecutionInput ei = ExecutionInput.newExecutionInput()
                     .query(query)
@@ -148,33 +196,27 @@ public class DefaultQueryExecutor implements QueryExecutor {
             if (!result.getErrors().isEmpty()) {
                 StringBuilder errors = new StringBuilder();
                 for (GraphQLError error : result.getErrors()) {
-                    errors.append("Error: type=").append(error.getErrorType().toString()).append("; message=").append(error.getMessage()).append(System.lineSeparator());
+                    errors.append("Error: type=").append(error.getErrorType().toString()).append("; message=").append(error.getMessage())
+                            .append(System.lineSeparator());
                     if (error.getLocations() != null) {
                         for (SourceLocation location : error.getLocations()) {
                             errors.append("location=").append(location.getLine()).append(",").append(location.getColumn()).append(";");
                         }
                     }
                 }
-                if(LOGGER.isErrorEnabled()) {
+                if (LOGGER.isErrorEnabled()) {
                     LOGGER.error("Query failed for Resource {}: query={} Errors:{}, schema={}",
-                        queryResource.getPath(), cleanLog.sanitize(query), errors, schemaDef);
+                            queryResource.getPath(), cleanLog.sanitize(query), errors, schemaDef);
                 }
             }
             LOGGER.debug("ExecutionResult.isDataPresent={}", result.isDataPresent());
             return result.toSpecification();
         } catch (Exception e) {
-            final String message = String.format("Query failed for Resource %s: query=%s", queryResource.getPath(), cleanLog.sanitize(query));
+            final String message =
+                    String.format("Query failed for Resource %s: query=%s", queryResource.getPath(), cleanLog.sanitize(query));
             LOGGER.error(String.format("%s, schema=%s", message, schemaDef), e);
             return SlingGraphQLErrorHelper.toSpecification(message, e);
         }
-    }
-
-    private GraphQLSchema buildSchema(String sdl, Resource currentResource) {
-        TypeDefinitionRegistry typeRegistry = new SchemaParser().parse(sdl);
-        Iterable<GraphQLScalarType> scalars = scalarsProvider.getCustomScalars(typeRegistry.scalars());
-        RuntimeWiring runtimeWiring = buildWiring(typeRegistry, scalars, currentResource);
-        SchemaGenerator schemaGenerator = new SchemaGenerator();
-        return schemaGenerator.makeExecutableSchema(typeRegistry, runtimeWiring);
     }
 
     private RuntimeWiring buildWiring(TypeDefinitionRegistry typeRegistry, Iterable<GraphQLScalarType> scalars, Resource r) {
@@ -189,7 +231,7 @@ public class DefaultQueryExecutor implements QueryExecutor {
                             typeWiring.dataFetcher(field.getName(), fetcher);
                         }
                     } catch (SlingGraphQLException e) {
-                        throw  e;
+                        throw e;
                     } catch (Exception e) {
                         throw new SlingGraphQLException("Exception while building wiring.", e);
                     }
@@ -218,15 +260,15 @@ public class DefaultQueryExecutor implements QueryExecutor {
             }
         } catch (SlingGraphQLException e) {
             throw e;
-        } catch(Exception e) {
+        } catch (Exception e) {
             throw new SlingGraphQLException("Exception while building wiring.", e);
         }
     }
 
     private String getDirectiveArgumentValue(Directive d, String name) {
         final Argument a = d.getArgument(name);
-        if(a != null && a.getValue() instanceof StringValue) {
-            return ((StringValue)a.getValue()).getValue();
+        if (a != null && a.getValue() instanceof StringValue) {
+            return ((StringValue) a.getValue()).getValue();
         }
         return null;
     }
@@ -249,13 +291,13 @@ public class DefaultQueryExecutor implements QueryExecutor {
 
     private DataFetcher<Object> getDataFetcher(FieldDefinition field, Resource currentResource) {
         DataFetcher<Object> result = null;
-        final Directive d =field.getDirective(FETCHER_DIRECTIVE);
-        if(d != null) {
+        final Directive d = field.getDirective(FETCHER_DIRECTIVE);
+        if (d != null) {
             final String name = validateFetcherName(getDirectiveArgumentValue(d, FETCHER_NAME));
             final String options = getDirectiveArgumentValue(d, FETCHER_OPTIONS);
             final String source = getDirectiveArgumentValue(d, FETCHER_SOURCE);
             SlingDataFetcher<Object> f = dataFetcherSelector.getSlingFetcher(name);
-            if(f != null) {
+            if (f != null) {
                 result = new SlingDataFetcherWrapper<>(f, currentResource, options, source);
             }
         }
@@ -265,12 +307,12 @@ public class DefaultQueryExecutor implements QueryExecutor {
     private <T extends TypeDefinition<T>> TypeResolver getTypeResolver(TypeDefinition<T> typeDefinition, Resource currentResource) {
         TypeResolver resolver = null;
         final Directive d = typeDefinition.getDirective(RESOLVER_DIRECTIVE);
-        if(d != null) {
+        if (d != null) {
             final String name = validateResolverName(getDirectiveArgumentValue(d, RESOLVER_NAME));
             final String options = getDirectiveArgumentValue(d, RESOLVER_OPTIONS);
             final String source = getDirectiveArgumentValue(d, RESOLVER_SOURCE);
             SlingTypeResolver<Object> r = typeResolverSelector.getSlingTypeResolver(name);
-            if(r != null) {
+            if (r != null) {
                 resolver = new SlingTypeResolverWrapper(r, currentResource, options, source);
             }
         }
@@ -278,8 +320,8 @@ public class DefaultQueryExecutor implements QueryExecutor {
     }
 
     private @Nullable String prepareSchemaDefinition(@NotNull SchemaProvider schemaProvider,
-                                                            @NotNull org.apache.sling.api.resource.Resource resource,
-                                                            @NotNull String[] selectors) throws ScriptException {
+                                                     @NotNull org.apache.sling.api.resource.Resource resource,
+                                                     @NotNull String[] selectors) throws ScriptException {
         try {
             return schemaProvider.getSchema(resource, selectors);
         } catch (Exception e) {
@@ -289,4 +331,79 @@ public class DefaultQueryExecutor implements QueryExecutor {
             throw up;
         }
     }
+
+    GraphQLSchema getSchema(@NotNull String sdl, @NotNull Resource currentResource, @NotNull String[] selectors) {
+        readLock.lock();
+        String newHash = SHA256Hasher.getHash(sdl);
+        /*
+        Since the SchemaProviders that generate the SDL can dynamically change, but also since the resource is passed to the RuntimeWiring,
+        there's a two stage cache:
+
+        1. a mapping between the resource, selectors and the SDL's hash
+        2. a mapping between the hash and the compiled GraphQL schema
+         */
+        String resourceToHashMapKey = getCacheKey(currentResource, selectors);
+        String oldHash = resourceToHashMap.get(resourceToHashMapKey);
+        if (!newHash.equals(oldHash)) {
+            readLock.unlock();
+            writeLock.lock();
+            try {
+                oldHash = resourceToHashMap.get(resourceToHashMapKey);
+                if (!newHash.equals(oldHash)) {
+                    resourceToHashMap.put(resourceToHashMapKey, newHash);
+                    TypeDefinitionRegistry typeRegistry = new SchemaParser().parse(sdl);
+                    Iterable<GraphQLScalarType> scalars = scalarsProvider.getCustomScalars(typeRegistry.scalars());
+                    RuntimeWiring runtimeWiring = buildWiring(typeRegistry, scalars, currentResource);
+                    SchemaGenerator schemaGenerator = new SchemaGenerator();
+                    GraphQLSchema schema = schemaGenerator.makeExecutableSchema(typeRegistry, runtimeWiring);
+                    hashToSchemaMap.put(newHash, schema);
+                    return schema;
+                }
+                readLock.lock();
+            } finally {
+                writeLock.unlock();
+            }
+        }
+        try {
+            return hashToSchemaMap.get(newHash);
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    private String getCacheKey(@NotNull Resource resource, @NotNull String[] selectors) {
+        return resource.getPath() + ":" + String.join(".", selectors);
+    }
+
+    private static class LRUCache<T> extends LinkedHashMap<String, T> {
+
+        private final int capacity;
+
+        public LRUCache(int capacity) {
+            this.capacity = capacity;
+        }
+
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, T> eldest) {
+            return size() > capacity;
+        }
+
+        @Override
+        public int hashCode() {
+            return super.hashCode() + Objects.hashCode(capacity);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == this) {
+                return true;
+            }
+            if (o instanceof LRUCache) {
+                LRUCache<T> other = (LRUCache<T>) o;
+                return super.equals(o) && capacity == other.capacity;
+            }
+            return false;
+        }
+    }
+
 }
