@@ -51,7 +51,7 @@ import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 
-import graphql.schema.GraphQLSchema;
+import graphql.schema.idl.TypeDefinitionRegistry;
 
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 import static org.hamcrest.Matchers.containsString;
@@ -330,28 +330,33 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
     }
 
     @Test
-    public void testCachedSchemas() throws IOException {
+    public void testCachedTypeRegistry() throws IOException {
         // by default we'll get the test-schema
         final DefaultQueryExecutor queryExecutor = (DefaultQueryExecutor) context.getService(QueryExecutor.class);
         final RankedSchemaProviders schemaProvider = context.getService(RankedSchemaProviders.class);
         assertNotNull(queryExecutor);
         assertNotNull(schemaProvider);
         String[] selectors = new String[]{};
-        GraphQLSchema schema1 = queryExecutor.getSchema(schemaProvider.getSchema(resource, selectors), resource, selectors);
-        GraphQLSchema schema2 = queryExecutor.getSchema(schemaProvider.getSchema(resource, selectors), resource, selectors);
-        assertEquals(schema1, schema2);
+        TypeDefinitionRegistry
+                registry1 = queryExecutor.getTypeDefinitionRegistry(schemaProvider.getSchema(resource, selectors), resource, selectors);
+        TypeDefinitionRegistry registry2 =
+                queryExecutor.getTypeDefinitionRegistry(schemaProvider.getSchema(resource, selectors), resource, selectors);
+        assertEquals(registry1, registry2);
 
         // change the schema provider
         context.registerService(SchemaProvider.class, new MockSchemaProvider("test-schema-selected-foryou"), Constants.SERVICE_RANKING,
                 Integer.MAX_VALUE);
-        GraphQLSchema schema3 = queryExecutor.getSchema(schemaProvider.getSchema(resource, selectors), resource, selectors);
-        GraphQLSchema schema4 = queryExecutor.getSchema(schemaProvider.getSchema(resource, selectors), resource, selectors);
-        assertEquals(schema3, schema4);
-        assertNotEquals(schema1, schema3);
+        TypeDefinitionRegistry
+                registry3 = queryExecutor.getTypeDefinitionRegistry(schemaProvider.getSchema(resource, selectors), resource, selectors);
+        TypeDefinitionRegistry registry4 =
+                queryExecutor.getTypeDefinitionRegistry(schemaProvider.getSchema(resource, selectors), resource, selectors);
+        assertEquals(registry1, registry2);
+        assertEquals(registry3, registry4);
+        assertNotEquals(registry1, registry3);
     }
 
     @Test
-    public void testSchemasWithTheCacheDisabled() throws IOException {
+    public void testTypeRegistryWithTheCacheDisabled() throws IOException {
         Map<String, Object> properties = new HashMap<>();
         properties.put("schemaCacheSize", 0);
 
@@ -364,16 +369,20 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         assertNotNull(queryExecutor);
         assertNotNull(schemaProvider);
         String[] selectors = new String[]{};
-        GraphQLSchema schema1 = queryExecutor.getSchema(schemaProvider.getSchema(resource, selectors), resource, selectors);
-        GraphQLSchema schema2 = queryExecutor.getSchema(schemaProvider.getSchema(resource, selectors), resource, selectors);
-        assertNotEquals(schema1, schema2);
+        TypeDefinitionRegistry
+                registry1 = queryExecutor.getTypeDefinitionRegistry(schemaProvider.getSchema(resource, selectors), resource, selectors);
+        TypeDefinitionRegistry registry2 =
+                queryExecutor.getTypeDefinitionRegistry(schemaProvider.getSchema(resource, selectors), resource, selectors);
+        assertNotEquals(registry1, registry2);
 
         // change the schema provider
         context.registerService(SchemaProvider.class, new MockSchemaProvider("test-schema-selected-foryou"), Constants.SERVICE_RANKING,
                 Integer.MAX_VALUE);
-        GraphQLSchema schema3 = queryExecutor.getSchema(schemaProvider.getSchema(resource, selectors), resource, selectors);
-        GraphQLSchema schema4 = queryExecutor.getSchema(schemaProvider.getSchema(resource, selectors), resource, selectors);
-        assertNotEquals(schema3, schema4);
+        TypeDefinitionRegistry
+                registry3 = queryExecutor.getTypeDefinitionRegistry(schemaProvider.getSchema(resource, selectors), resource, selectors);
+        TypeDefinitionRegistry registry4 =
+                queryExecutor.getTypeDefinitionRegistry(schemaProvider.getSchema(resource, selectors), resource, selectors);
+        assertNotEquals(registry3, registry4);
     }
 
 }
