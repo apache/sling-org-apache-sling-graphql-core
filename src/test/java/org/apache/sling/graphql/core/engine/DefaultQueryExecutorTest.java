@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import graphql.schema.GraphQLSchema;
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.api.SelectedField;
 import org.apache.sling.graphql.api.SelectionSet;
@@ -337,22 +338,23 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         assertNotNull(queryExecutor);
         assertNotNull(schemaProvider);
         String[] selectors = new String[]{};
-        TypeDefinitionRegistry
-                registry1 = queryExecutor.getTypeDefinitionRegistry(schemaProvider.getSchema(resource, selectors), resource, selectors);
-        TypeDefinitionRegistry registry2 =
-                queryExecutor.getTypeDefinitionRegistry(schemaProvider.getSchema(resource, selectors), resource, selectors);
-        assertEquals(registry1, registry2);
+        String schema = Objects.requireNonNull(schemaProvider.getSchema(resource, selectors));
+        GraphQLSchema
+                schema1 = queryExecutor.getSchema(schema, resource, selectors);
+        GraphQLSchema schema2 =
+                queryExecutor.getSchema(schema, resource, selectors);
+        assertEquals(schema1, schema2);
 
         // change the schema provider
         context.registerService(SchemaProvider.class, new MockSchemaProvider("test-schema-selected-foryou"), Constants.SERVICE_RANKING,
                 Integer.MAX_VALUE);
-        TypeDefinitionRegistry
-                registry3 = queryExecutor.getTypeDefinitionRegistry(schemaProvider.getSchema(resource, selectors), resource, selectors);
-        TypeDefinitionRegistry registry4 =
-                queryExecutor.getTypeDefinitionRegistry(schemaProvider.getSchema(resource, selectors), resource, selectors);
-        assertEquals(registry1, registry2);
-        assertEquals(registry3, registry4);
-        assertNotEquals(registry1, registry3);
+        GraphQLSchema
+                schema3 = queryExecutor.getSchema(schema, resource, selectors);
+        GraphQLSchema schema4 =
+                queryExecutor.getSchema(schema, resource, selectors);
+        assertEquals(schema1, schema2);
+        assertEquals(schema3, schema4);
+        assertNotEquals(schema1, schema3);
     }
 
     @Test
@@ -369,20 +371,21 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         assertNotNull(queryExecutor);
         assertNotNull(schemaProvider);
         String[] selectors = new String[]{};
-        TypeDefinitionRegistry
-                registry1 = queryExecutor.getTypeDefinitionRegistry(schemaProvider.getSchema(resource, selectors), resource, selectors);
-        TypeDefinitionRegistry registry2 =
-                queryExecutor.getTypeDefinitionRegistry(schemaProvider.getSchema(resource, selectors), resource, selectors);
-        assertNotEquals(registry1, registry2);
+        String schema = Objects.requireNonNull(schemaProvider.getSchema(resource, selectors));
+        GraphQLSchema
+                schema1 = queryExecutor.getSchema(schema, resource, selectors);
+        GraphQLSchema schema2 =
+                queryExecutor.getSchema(schema, resource, selectors);
+        assertNotEquals(schema1, schema2);
 
         // change the schema provider
         context.registerService(SchemaProvider.class, new MockSchemaProvider("test-schema-selected-foryou"), Constants.SERVICE_RANKING,
                 Integer.MAX_VALUE);
-        TypeDefinitionRegistry
-                registry3 = queryExecutor.getTypeDefinitionRegistry(schemaProvider.getSchema(resource, selectors), resource, selectors);
-        TypeDefinitionRegistry registry4 =
-                queryExecutor.getTypeDefinitionRegistry(schemaProvider.getSchema(resource, selectors), resource, selectors);
-        assertNotEquals(registry3, registry4);
+        GraphQLSchema
+                schema3 = queryExecutor.getSchema(schema, resource, selectors);
+        GraphQLSchema schema4 =
+                queryExecutor.getSchema(schema, resource, selectors);
+        assertNotEquals(schema3, schema4);
     }
 
 }

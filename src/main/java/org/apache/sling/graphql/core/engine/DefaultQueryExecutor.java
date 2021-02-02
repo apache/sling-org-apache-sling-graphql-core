@@ -19,6 +19,9 @@
 package org.apache.sling.graphql.core.engine;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +33,9 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.script.ScriptException;
 
 import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceMetadata;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ValueMap;
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.api.SlingDataFetcher;
 import org.apache.sling.graphql.api.SlingGraphQLException;
@@ -97,7 +103,7 @@ public class DefaultQueryExecutor implements QueryExecutor {
     private static final LogSanitizer cleanLog = new LogSanitizer();
 
     private Map<String, String> resourceToHashMap;
-    private Map<String, TypeDefinitionRegistry> hashToSchemaMap;
+    private Map<String, GraphQLSchema> hashToSchemaMap;
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
     private final Lock readLock = readWriteLock.readLock();
     private final Lock writeLock = readWriteLock.writeLock();
@@ -147,8 +153,8 @@ public class DefaultQueryExecutor implements QueryExecutor {
                         Arrays.toString(selectors)));
             }
             LOGGER.debug("Resource {} maps to GQL schema {}", queryResource.getPath(), schemaDef);
-            final TypeDefinitionRegistry typeDefinitionRegistry = getTypeDefinitionRegistry(schemaDef, queryResource, selectors);
-            final GraphQLSchema schema = buildSchema(typeDefinitionRegistry, queryResource);
+            CurrentThreadResource.setCurrentResource(queryResource);
+            final GraphQLSchema schema = getSchema(schemaDef, queryResource, selectors);
             ExecutionInput executionInput = ExecutionInput.newExecutionInput()
                     .query(query)
                     .variables(variables)
@@ -170,6 +176,8 @@ public class DefaultQueryExecutor implements QueryExecutor {
             return validationResultBuilder.build();
         } catch (Exception e) {
             return DefaultValidationResult.Builder.newBuilder().withValidFlag(false).withErrorMessage(e.getMessage()).build();
+        } finally {
+            CurrentThreadResource.dispose();
         }
     }
 
@@ -184,8 +192,8 @@ public class DefaultQueryExecutor implements QueryExecutor {
                         Arrays.toString(selectors)));
             }
             LOGGER.debug("Resource {} maps to GQL schema {}", queryResource.getPath(), schemaDef);
-            final TypeDefinitionRegistry typeDefinitionRegistry = getTypeDefinitionRegistry(schemaDef, queryResource, selectors);
-            final GraphQLSchema schema = buildSchema(typeDefinitionRegistry, queryResource);
+            CurrentThreadResource.setCurrentResource(queryResource);
+            final GraphQLSchema schema = getSchema(schemaDef, queryResource, selectors);
             final GraphQL graphQL = GraphQL.newGraphQL(schema).build();
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Executing query\n[{}]\nat [{}] with variables [{}]",
@@ -219,6 +227,8 @@ public class DefaultQueryExecutor implements QueryExecutor {
                     String.format("Query failed for Resource %s: query=%s", queryResource.getPath(), cleanLog.sanitize(query));
             LOGGER.error(String.format("%s, schema=%s", message, schemaDef), e);
             return SlingGraphQLErrorHelper.toSpecification(message, e);
+        } finally {
+            CurrentThreadResource.dispose();
         }
     }
 
@@ -335,7 +345,7 @@ public class DefaultQueryExecutor implements QueryExecutor {
         }
     }
 
-    TypeDefinitionRegistry getTypeDefinitionRegistry(@NotNull String sdl, @NotNull Resource currentResource, @NotNull String[] selectors) {
+    GraphQLSchema getSchema(@NotNull String sdl, @NotNull Resource currentResource, @NotNull String[] selectors) {
         readLock.lock();
         String newHash = SHA256Hasher.getHash(sdl);
         /*
@@ -355,8 +365,9 @@ public class DefaultQueryExecutor implements QueryExecutor {
                 if (!newHash.equals(oldHash)) {
                     resourceToHashMap.put(resourceToHashMapKey, newHash);
                     TypeDefinitionRegistry typeRegistry = new SchemaParser().parse(sdl);
-                    hashToSchemaMap.put(newHash, typeRegistry);
-                    return typeRegistry;
+                    GraphQLSchema schema = buildSchema(typeRegistry, currentResource);
+                    hashToSchemaMap.put(newHash, schema);
+                    return schema;
                 }
                 readLock.lock();
             } finally {
@@ -411,4 +422,99 @@ public class DefaultQueryExecutor implements QueryExecutor {
         }
     }
 
+    private static class CurrentThreadResource implements Resource {
+
+        private static final Map<Thread, Resource> mappedResources = Collections.synchronizedMap(new HashMap<>());
+
+        /**
+         * @return the resource assigned to current thread
+         */
+        private static Resource getCurrentResource() {
+            return mappedResources.get(Thread.currentThread());
+        }
+
+        /**
+         * @param resource the resource assigned to current thread
+         */
+        private static void setCurrentResource(final Resource resource) {
+            mappedResources.putIfAbsent(Thread.currentThread(), resource);
+        }
+
+        /**
+         * Remove existing map entry for current thread
+         */
+        private static void dispose() {
+            mappedResources.remove(Thread.currentThread());
+        }
+
+        @Override
+        public @NotNull String getPath() {
+            return getCurrentResource().getPath();
+        }
+
+        @Override
+        public @NotNull String getName() {
+            return getCurrentResource().getName();
+        }
+
+        @Override
+        public @Nullable Resource getParent() {
+            return getCurrentResource().getParent();
+        }
+
+        @Override
+        public @NotNull Iterator<Resource> listChildren() {
+            return getCurrentResource().listChildren();
+        }
+
+        @Override
+        public @NotNull Iterable<Resource> getChildren() {
+            return getCurrentResource().getChildren();
+        }
+
+        @Override
+        public @Nullable Resource getChild(@NotNull String s) {
+            return getCurrentResource().getChild(s);
+        }
+
+        @Override
+        public @NotNull String getResourceType() {
+            return getCurrentResource().getResourceType();
+        }
+
+        @Override
+        public @Nullable String getResourceSuperType() {
+            return getCurrentResource().getResourceSuperType();
+        }
+
+        @Override
+        public boolean hasChildren() {
+            return getCurrentResource().hasChildren();
+        }
+
+        @Override
+        public boolean isResourceType(String s) {
+            return getCurrentResource().isResourceType(s);
+        }
+
+        @Override
+        public @NotNull ResourceMetadata getResourceMetadata() {
+            return getCurrentResource().getResourceMetadata();
+        }
+
+        @Override
+        public @NotNull ResourceResolver getResourceResolver() {
+            return getCurrentResource().getResourceResolver();
+        }
+
+        @Override
+        public @NotNull ValueMap getValueMap() {
+            return getCurrentResource().getValueMap();
+        }
+
+        @Override
+        public <AdapterType> @Nullable AdapterType adaptTo(@NotNull Class<AdapterType> aClass) {
+            return getCurrentResource().adaptTo(aClass);
+        }
+    }
 }
