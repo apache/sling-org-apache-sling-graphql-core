@@ -331,14 +331,14 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
     }
 
     @Test
-    public void testCachedTypeRegistry() throws IOException {
+    public void testCachedSchema() throws IOException {
         // by default we'll get the test-schema
         final DefaultQueryExecutor queryExecutor = (DefaultQueryExecutor) context.getService(QueryExecutor.class);
         final RankedSchemaProviders schemaProvider = context.getService(RankedSchemaProviders.class);
         assertNotNull(queryExecutor);
         assertNotNull(schemaProvider);
         String[] selectors = new String[]{};
-        String schema = Objects.requireNonNull(schemaProvider.getSchema(resource, selectors));
+        final String schema = Objects.requireNonNull(schemaProvider.getSchema(resource, selectors));
         GraphQLSchema
                 schema1 = queryExecutor.getSchema(schema, resource, selectors);
         GraphQLSchema schema2 =
@@ -348,17 +348,18 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         // change the schema provider
         context.registerService(SchemaProvider.class, new MockSchemaProvider("test-schema-selected-foryou"), Constants.SERVICE_RANKING,
                 Integer.MAX_VALUE);
+        final String schemaNewProvider = Objects.requireNonNull(schemaProvider.getSchema(resource, selectors));
         GraphQLSchema
-                schema3 = queryExecutor.getSchema(schema, resource, selectors);
+                schema3 = queryExecutor.getSchema(schemaNewProvider, resource, selectors);
         GraphQLSchema schema4 =
-                queryExecutor.getSchema(schema, resource, selectors);
+                queryExecutor.getSchema(schemaNewProvider, resource, selectors);
         assertEquals(schema1, schema2);
         assertEquals(schema3, schema4);
         assertNotEquals(schema1, schema3);
     }
 
     @Test
-    public void testTypeRegistryWithTheCacheDisabled() throws IOException {
+    public void testSchemaWithTheCacheDisabled() throws IOException {
         Map<String, Object> properties = new HashMap<>();
         properties.put("schemaCacheSize", 0);
 
