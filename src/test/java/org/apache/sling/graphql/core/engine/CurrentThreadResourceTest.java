@@ -20,6 +20,7 @@ package org.apache.sling.graphql.core.engine;
 
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.collections4.IteratorUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceMetadata;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -30,6 +31,8 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import javax.jcr.Value;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -70,8 +73,8 @@ public class CurrentThreadResourceTest {
         when(mockedResource.getParent()).thenReturn(parentResourceMock);
         when(mockedResource.getResourceType()).thenReturn(MOCKED_RT);
         when(mockedResource.getResourceSuperType()).thenReturn(MOCKED_SUPER_RT);
-        when(mockedResource.getChildren()).thenReturn(List.of(mockedChildResource));
-        when(mockedResource.listChildren()).thenReturn(List.of(mockedChildResource).iterator());
+        when(mockedResource.getChildren()).thenReturn(Collections.singletonList(mockedChildResource));
+        when(mockedResource.listChildren()).thenReturn(Collections.singletonList(mockedChildResource).iterator());
         when(mockedResource.hasChildren()).thenReturn(MOCKED_HAS_CHILDREN);
         when(mockedResource.isResourceType(anyString())).thenReturn(MOCKED_IS_RT);
         when(mockedResource.getChild(anyString())).thenReturn(mockedChildResource);
