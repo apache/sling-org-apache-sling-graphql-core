@@ -127,6 +127,28 @@ public class DefaultQueryExecutor implements QueryExecutor {
         int schemaCacheSize() default 128;
     }
 
+    private class ExecutionContext {
+        final GraphQLSchema schema;
+        final ExecutionInput input;
+
+        ExecutionContext(@NotNull String query, @NotNull Map<String, Object> variables, @NotNull Resource queryResource, @NotNull String[] selectors) 
+        throws ScriptException {
+            final String schemaSdl = prepareSchemaDefinition(schemaProvider, queryResource, selectors);
+            if (schemaSdl == null) {
+                throw new SlingGraphQLException(String.format("Cannot get a schema for resource %s and selectors %s.", queryResource,
+                        Arrays.toString(selectors)));
+            }
+            LOGGER.debug("Resource {} maps to GQL schema {}", queryResource.getPath(), schemaSdl);
+            final TypeDefinitionRegistry typeDefinitionRegistry = getTypeDefinitionRegistry(schemaSdl, queryResource, selectors);
+            schema = buildSchema(typeDefinitionRegistry, queryResource);
+            input = ExecutionInput.newExecutionInput()
+                    .query(query)
+                    .variables(variables)
+                    .build();
+
+        }
+    }
+
     @Activate
     public void activate(Config config) {
         int schemaCacheSize = config.schemaCacheSize();
@@ -141,19 +163,8 @@ public class DefaultQueryExecutor implements QueryExecutor {
     public ValidationResult validate(@NotNull String query, @NotNull Map<String, Object> variables, @NotNull Resource queryResource,
                                      @NotNull String[] selectors) {
         try {
-            String schemaDef = prepareSchemaDefinition(schemaProvider, queryResource, selectors);
-            if (schemaDef == null) {
-                throw new SlingGraphQLException(String.format("Cannot get a schema for resource %s and selectors %s.", queryResource,
-                        Arrays.toString(selectors)));
-            }
-            LOGGER.debug("Resource {} maps to GQL schema {}", queryResource.getPath(), schemaDef);
-            final TypeDefinitionRegistry typeDefinitionRegistry = getTypeDefinitionRegistry(schemaDef, queryResource, selectors);
-            final GraphQLSchema schema = buildSchema(typeDefinitionRegistry, queryResource);
-            ExecutionInput executionInput = ExecutionInput.newExecutionInput()
-                    .query(query)
-                    .variables(variables)
-                    .build();
-            ParseAndValidateResult parseAndValidateResult = ParseAndValidate.parseAndValidate(schema, executionInput);
+            final ExecutionContext ctx = new ExecutionContext(query, variables, queryResource, selectors);
+            ParseAndValidateResult parseAndValidateResult = ParseAndValidate.parseAndValidate(ctx.schema, ctx.input);
             if (!parseAndValidateResult.isFailure()) {
                 return DefaultValidationResult.Builder.newBuilder().withValidFlag(true).build();
             }
@@ -178,24 +189,13 @@ public class DefaultQueryExecutor implements QueryExecutor {
                                                 @NotNull Resource queryResource, @NotNull String[] selectors) {
         String schemaDef = null;
         try {
-            schemaDef = prepareSchemaDefinition(schemaProvider, queryResource, selectors);
-            if (schemaDef == null) {
-                throw new SlingGraphQLException(String.format("Cannot get a schema for resource %s and selectors %s.", queryResource,
-                        Arrays.toString(selectors)));
-            }
-            LOGGER.debug("Resource {} maps to GQL schema {}", queryResource.getPath(), schemaDef);
-            final TypeDefinitionRegistry typeDefinitionRegistry = getTypeDefinitionRegistry(schemaDef, queryResource, selectors);
-            final GraphQLSchema schema = buildSchema(typeDefinitionRegistry, queryResource);
-            final GraphQL graphQL = GraphQL.newGraphQL(schema).build();
+            final ExecutionContext ctx = new ExecutionContext(query, variables, queryResource, selectors);
+            final GraphQL graphQL = GraphQL.newGraphQL(ctx.schema).build();
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Executing query\n[{}]\nat [{}] with variables [{}]",
                         cleanLog.sanitize(query), queryResource.getPath(), cleanLog.sanitize(variables.toString()));
             }
-            ExecutionInput ei = ExecutionInput.newExecutionInput()
-                    .query(query)
-                    .variables(variables)
-                    .build();
-            final ExecutionResult result = graphQL.execute(ei);
+            final ExecutionResult result = graphQL.execute(ctx.input);
             if (!result.getErrors().isEmpty()) {
                 StringBuilder errors = new StringBuilder();
                 for (GraphQLError error : result.getErrors()) {
