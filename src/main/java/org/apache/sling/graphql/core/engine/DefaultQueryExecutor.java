@@ -148,7 +148,7 @@ public class DefaultQueryExecutor implements QueryExecutor {
             }
             LOGGER.debug("Resource {} maps to GQL schema {}", queryResource.getPath(), schemaDef);
             CurrentThreadResource.setCurrentResource(queryResource);
-            final GraphQLSchema schema = getSchema(schemaDef, queryResource, selectors);
+            final GraphQLSchema schema = getSchema(schemaDef, new CurrentThreadResource(), selectors);
             ExecutionInput executionInput = ExecutionInput.newExecutionInput()
                     .query(query)
                     .variables(variables)
@@ -187,7 +187,7 @@ public class DefaultQueryExecutor implements QueryExecutor {
             }
             LOGGER.debug("Resource {} maps to GQL schema {}", queryResource.getPath(), schemaDef);
             CurrentThreadResource.setCurrentResource(queryResource);
-            final GraphQLSchema schema = getSchema(schemaDef, queryResource, selectors);
+            final GraphQLSchema schema = getSchema(schemaDef, new CurrentThreadResource(), selectors);
             final GraphQL graphQL = GraphQL.newGraphQL(schema).build();
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Executing query\n[{}]\nat [{}] with variables [{}]",
