@@ -39,6 +39,24 @@ The GraphQL requests hit a Sling resource in all cases, there's no need for path
 
 See also the _caching_ section later in this file.
 
+## Configuring the GraphQL Servlet
+Here's an excerpt from an OSGi feature model file which uses the GraphQL Servlet provided by this module
+to serve `.json` requests for resources which have the `samples/graphql` resource type:
+
+    "configurations":{
+      "org.apache.sling.graphql.core.GraphQLServlet~default" : {
+        "sling.servlet.resourceTypes" : "samples/graphql",
+        "sling.servlet.extensions": "json",
+        "sling.servlet.methods": [ "GET", "POST" ]
+      },
+      "org.apache.sling.servlets.get.DefaultGetServlet" : {
+        "aliases" : [ "json:rawjson" ]
+      },
+      
+The `rawjson` selector is configured to provide Sling's default JSON output.
+
+See the `GraphQLServlet` class for more info.
+
 ## Resource-specific GraphQL schemas
 
 Schemas are provided by `SchemaProvider` services:
