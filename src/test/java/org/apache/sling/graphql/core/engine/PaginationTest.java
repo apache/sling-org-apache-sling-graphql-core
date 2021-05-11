@@ -41,10 +41,10 @@ import org.junit.Test;
 
 public class PaginationTest extends ResourceQueryTestBase {
 
-    static class ConnectionDataFetcher implements SlingDataFetcher<Object> {
+    static class HumansPageFetcher implements SlingDataFetcher<Object> {
         private List<HumanDTO> humans = new ArrayList<>();
 
-        ConnectionDataFetcher(List<HumanDTO> humans) {
+        HumansPageFetcher(List<HumanDTO> humans) {
             this.humans = humans;
         }
 
@@ -56,6 +56,9 @@ public class PaginationTest extends ResourceQueryTestBase {
         }
     }
 
+    // TODO this class should be generalized so that data can be provided as 
+    // a data source (Stream?) with "skip after cursor" functionality, and the
+    // rest of this class is then generic.
     static class HumansResultPage implements ResultsPage<HumanDTO>,PageInfo {
 
         private final Cursor startCursor;
@@ -67,9 +70,6 @@ public class PaginationTest extends ResourceQueryTestBase {
         HumansResultPage(List<HumanDTO> humans, String cursor, int limit) {
             this.startCursor = new Cursor(Cursor.decode(cursor));
 
-            // TODO this should be generalized so that data can be provided as 
-            // a data source with "skip after cursor" functionality, and the
-            // rest of this class is then generic
             boolean inRange = false;
             int remaining = limit;
             for(HumanDTO dto : humans) {
@@ -142,7 +142,7 @@ public class PaginationTest extends ResourceQueryTestBase {
             humans.add(new HumanDTO("human-" + i, "Luke-" + i, "Tatooine"));
         }
         TestUtil.registerSlingTypeResolver(context.bundleContext(), "character/resolver", new CharacterTypeResolver());
-        TestUtil.registerSlingDataFetcher(context.bundleContext(), "humans/paginated", new ConnectionDataFetcher(humans));
+        TestUtil.registerSlingDataFetcher(context.bundleContext(), "humans/paginated", new HumansPageFetcher(humans));
     }
 
     private void assertPageInfo(String json, Cursor startCursor, Cursor endCursor, Boolean hasPreviousPage, Boolean hasNextPage) {

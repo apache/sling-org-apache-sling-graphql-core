@@ -24,7 +24,10 @@ import java.util.Base64;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
-/** Edges provide paginated data as per https://relay.dev/graphql/connections.htm */
+/** Cursor for our paginated results.
+ *  Base64-encoded to express the fact that it's meant to
+ *  be opaque.
+ */
  @ProviderType
 public class Cursor {
     private final String rawValue;
