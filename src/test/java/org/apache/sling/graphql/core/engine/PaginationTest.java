@@ -33,6 +33,7 @@ import org.apache.sling.graphql.core.mocks.CharacterTypeResolver;
 import org.apache.sling.graphql.core.mocks.HumanDTO;
 import org.apache.sling.graphql.api.SlingDataFetcher;
 import org.apache.sling.graphql.api.SlingDataFetcherEnvironment;
+import org.apache.sling.graphql.api.pagination.Cursor;
 import org.apache.sling.graphql.api.pagination.Edge;
 import org.apache.sling.graphql.api.pagination.PageInfo;
 import org.apache.sling.graphql.api.pagination.ResultsPage;
@@ -49,7 +50,7 @@ public class PaginationTest extends ResourceQueryTestBase {
 
         @Override
         public @Nullable Object get(@NotNull SlingDataFetcherEnvironment e) throws Exception {
-            final String cursor = e.getArgument("after", null);
+            final String cursor = e.getArgument("after", "");
             final int limit = e.getArgument("limit", 2);
             return new HumansResultPage(humans, cursor, limit);
         }
@@ -57,14 +58,14 @@ public class PaginationTest extends ResourceQueryTestBase {
 
     static class HumansResultPage implements ResultsPage<HumanDTO>,PageInfo {
 
-        private final String startCursor;
-        private String endCursor;
+        private final Cursor startCursor;
+        private Cursor endCursor;
         private boolean hasPreviousPage;
         private boolean hasNextPage;
         private final List<Edge<HumanDTO>> edges = new ArrayList<>();
 
         HumansResultPage(List<HumanDTO> humans, String cursor, int limit) {
-            this.startCursor = cursor == null ? "" : cursor;
+            this.startCursor = new Cursor(Cursor.decode(cursor));
 
             // TODO this should be generalized so that data can be provided as 
             // a data source with "skip after cursor" functionality, and the
@@ -86,16 +87,16 @@ public class PaginationTest extends ResourceQueryTestBase {
                         }
 
                         @Override
-                        public String getCursor() {
-                            return dto.getId();
+                        public Cursor getCursor() {
+                            return new Cursor(dto.getId());
                         }
 
                     });
-                    endCursor = dto.getId();
+                    endCursor = new Cursor(dto.getId());
                 } else if(startCursor.isEmpty()) {
                     inRange = true;
                     hasPreviousPage = false;
-                } else if(startCursor.toString().equals(dto.getId())) {
+                } else if(startCursor.getRawValue().equals(dto.getId())) {
                     inRange = true;
                     hasPreviousPage = true;
                 }
@@ -113,12 +114,12 @@ public class PaginationTest extends ResourceQueryTestBase {
         }
 
         @Override
-        public String getStartCursor() {
+        public Cursor getStartCursor() {
             return startCursor;
         }
 
         @Override
-        public String getEndCursor() {
+        public Cursor getEndCursor() {
             return endCursor;
         }
 
@@ -144,9 +145,9 @@ public class PaginationTest extends ResourceQueryTestBase {
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "humans/paginated", new ConnectionDataFetcher(humans));
     }
 
-    private void assertPageInfo(String json, String startCursor, String endCursor, Boolean hasPreviousPage, Boolean hasNextPage) {
-        assertThat(json, hasJsonPath("$.data.paginatedQuery.pageInfo.startCursor", equalTo(startCursor)));
-        assertThat(json, hasJsonPath("$.data.paginatedQuery.pageInfo.endCursor", equalTo(endCursor)));
+    private void assertPageInfo(String json, Cursor startCursor, Cursor endCursor, Boolean hasPreviousPage, Boolean hasNextPage) {
+        assertThat(json, hasJsonPath("$.data.paginatedQuery.pageInfo.startCursor", equalTo(startCursor.toString())));
+        assertThat(json, hasJsonPath("$.data.paginatedQuery.pageInfo.endCursor", equalTo(endCursor.toString())));
         assertThat(json, hasJsonPath("$.data.paginatedQuery.pageInfo.hasPreviousPage", equalTo(hasPreviousPage)));
         assertThat(json, hasJsonPath("$.data.paginatedQuery.pageInfo.hasNextPage", equalTo(hasNextPage)));
     }
@@ -155,8 +156,9 @@ public class PaginationTest extends ResourceQueryTestBase {
         int dataIndex = 0;
         for(int i=startIndex; i <= endIndex; i++) {
             final String id = "human-" + i;
+            final Cursor c = new Cursor(id);
             final String name = "Luke-" + i;
-            assertThat(json, hasJsonPath("$.data.paginatedQuery.edges[" + dataIndex + "].cursor", equalTo(id)));
+            assertThat(json, hasJsonPath("$.data.paginatedQuery.edges[" + dataIndex + "].cursor", equalTo(c.toString())));
             assertThat(json, hasJsonPath("$.data.paginatedQuery.edges[" + dataIndex + "].node.id", equalTo(id)));
             assertThat(json, hasJsonPath("$.data.paginatedQuery.edges[" + dataIndex + "].node.name", equalTo(name)));
             dataIndex++;
@@ -171,27 +173,29 @@ public class PaginationTest extends ResourceQueryTestBase {
             + " pageInfo { startCursor endCursor hasPreviousPage hasNextPage }"
             + " edges { cursor node { id name }}"
             +"}}");
-        assertPageInfo(json, "", "human-2", false, true );
+        assertPageInfo(json, new Cursor(null), new Cursor("human-2"), false, true );
         assertEdges(json, 1, 2);
     }
 
     @Test
     public void startCursorAndLimit() throws Exception {
-        final String json = queryJSON("{ paginatedQuery(after:\"human-5\", limit:6) {"
+        final Cursor start = new Cursor("human-5");
+        final String json = queryJSON("{ paginatedQuery(after:\"" + start + "\", limit:6) {"
             + " pageInfo { startCursor endCursor hasPreviousPage hasNextPage }"
             + " edges { cursor node { id name }}"
             +"}}");
-        assertPageInfo(json, "human-5", "human-11", true, true);
+        assertPageInfo(json, new Cursor("human-5"), new Cursor("human-11"), true, true);
         assertEdges(json, 6, 11);
     }
 
     @Test
     public void startCursorNearEnd() throws Exception {
-        final String json = queryJSON("{ paginatedQuery(after:\"human-94\", limit:60) {"
+        final Cursor start = new Cursor("human-94");
+        final String json = queryJSON("{ paginatedQuery(after:\"" + start + "\", limit:60) {"
             + " pageInfo { startCursor endCursor hasPreviousPage hasNextPage }"
             + " edges { cursor node { id name }}"
             +"}}");
-        assertPageInfo(json, "human-94", "human-99", true, false);
+        assertPageInfo(json, new Cursor("human-94"), new Cursor("human-99"), true, false);
         assertEdges(json, 95, 99);
     }
 }

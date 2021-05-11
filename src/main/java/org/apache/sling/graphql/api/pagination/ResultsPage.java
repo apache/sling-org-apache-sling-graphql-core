@@ -21,9 +21,12 @@
 
 import java.util.List;
 
+import org.osgi.annotation.versioning.ConsumerType;
+
 /** This is what https://relay.dev/graphql/connections.htm calls a "connection".
  *  It actually represents a page of results, so why not call it that?
 */
+@ConsumerType
 public interface ResultsPage<T> {
     List<Edge<T>> getEdges();
     PageInfo getPageInfo();

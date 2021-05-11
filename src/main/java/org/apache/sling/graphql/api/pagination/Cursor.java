@@ -19,11 +19,42 @@
 
  package org.apache.sling.graphql.api.pagination;
 
-import org.osgi.annotation.versioning.ConsumerType;
+import java.util.Base64;
+
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 /** Edges provide paginated data as per https://relay.dev/graphql/connections.htm */
-@ConsumerType
-public interface Edge<T> {
-    T getNode();
-    Cursor getCursor();
+ @ProviderType
+public class Cursor {
+    private final String rawValue;
+    private final String encoded;
+
+    public Cursor(String rawValue) {
+        this.rawValue = rawValue == null ? "" : rawValue;
+        this.encoded = encode(this.rawValue);
+    }
+
+    public boolean isEmpty() {
+        return rawValue == null || rawValue.length() == 0;
+    }
+
+    @NotNull
+    public static String encode(String rawValue) {
+        return Base64.getEncoder().encodeToString(rawValue.getBytes());
+    }
+
+    @NotNull
+    public static String decode(String encodedValue) {
+        return new String(Base64.getDecoder().decode(encodedValue));
+    }
+
+    @Override
+    public String toString() {
+        return encoded;
+    }
+
+    public String getRawValue() {
+        return rawValue;
+    }
 }
