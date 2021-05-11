@@ -22,6 +22,7 @@
 import java.util.Base64;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /** Cursor for our paginated results.
@@ -33,9 +34,24 @@ public class Cursor {
     private final String rawValue;
     private final String encoded;
 
+    /** These constants can be used to identify uninitialized cursors */
+    public static final String INVALID_CURSOR_KEY = "$INVALID$CURSOR$" + Cursor.class.getName();
+    public static final String ENCODED_INVALID_CURSOR_KEY = Cursor.encode(INVALID_CURSOR_KEY);
+
     public Cursor(String rawValue) {
         this.rawValue = rawValue == null ? "" : rawValue;
         this.encoded = encode(this.rawValue);
+    }
+
+    public static Cursor fromEncodedString(@Nullable String encoded) {
+        if(encoded == null) {
+            return null;
+        }
+        encoded = encoded.trim();
+        if(encoded.length() == 0) {
+            return null;
+        }
+        return new Cursor(decode(encoded));
     }
 
     public boolean isEmpty() {

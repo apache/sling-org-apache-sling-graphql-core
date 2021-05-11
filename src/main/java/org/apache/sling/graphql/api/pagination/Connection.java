@@ -17,17 +17,15 @@
  * under the License.
  */
 
- package org.apache.sling.graphql.api.pagination;
-
-import java.util.List;
+package org.apache.sling.graphql.api.pagination;
 
 import org.osgi.annotation.versioning.ConsumerType;
 
-/** This is what https://relay.dev/graphql/connections.htm calls a "connection".
- *  It actually represents a page of results, so why not call it that?
+/** As per https://relay.dev/graphql/connections.htm a "connection"
+ *  is a page of results for a paginated query.
 */
 @ConsumerType
-public interface ResultsPage<T> {
-    List<Edge<T>> getEdges();
+public interface Connection<T> {
+    Iterable<Edge<T>> getEdges();
     PageInfo getPageInfo();
 }

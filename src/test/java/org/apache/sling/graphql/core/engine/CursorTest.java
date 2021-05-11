@@ -21,6 +21,7 @@ package org.apache.sling.graphql.core.engine;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
 
 import java.util.UUID;
 
@@ -62,5 +63,19 @@ public class CursorTest {
     @Test
     public void testEmptyValue() {
         assertWithValue("", true);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testInvalidValueDecoding() {
+        Cursor.decode("This is not base64");
+    }
+
+    @Test
+    public void testfromEncodedString() {
+        final String key = UUID.randomUUID().toString();
+        final String encoded = Cursor.encode(key);
+        assertEquals(encoded, Cursor.fromEncodedString("   " + encoded + "   ").toString());
+        assertNull(Cursor.fromEncodedString(null));
+        assertNull(Cursor.fromEncodedString("\t\n  "));
     }
 }

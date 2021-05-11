@@ -44,9 +44,6 @@ type Query {
 
     # Test interface query
     interfaceQuery: CharactersAsInterface @fetcher(name:"character/fetcher")
-
-    # Test pagination
-    paginatedQuery (after : String, limit : Int) : PaginatedHumans @fetcher(name:"humans/paginated")
 }
 
 interface CharacterInterface @resolver(name:"character/resolver" source:"CharacterInterface") {
@@ -112,19 +109,3 @@ type Droid implements CharacterInterface {
   primaryFunction: String
 }
 
-type PageInfo {
-    startCursor : String
-    endCursor : String
-    hasPreviousPage : Boolean
-    hasNextPage : Boolean
-}
-
-type HumanEdge {
-    cursor: String
-    node: Human
-}
-
-type PaginatedHumans {
-    edges : [HumanEdge]
-    pageInfo : PageInfo
-}
