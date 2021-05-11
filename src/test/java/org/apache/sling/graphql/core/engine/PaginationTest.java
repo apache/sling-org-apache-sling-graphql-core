@@ -23,8 +23,8 @@ import java.util.List;
 
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 
-import static org.junit.Assert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.apache.sling.graphql.core.mocks.TestUtil;
 import org.jetbrains.annotations.NotNull;
@@ -33,16 +33,14 @@ import org.apache.sling.graphql.core.mocks.CharacterTypeResolver;
 import org.apache.sling.graphql.core.mocks.HumanDTO;
 import org.apache.sling.graphql.api.SlingDataFetcher;
 import org.apache.sling.graphql.api.SlingDataFetcherEnvironment;
+import org.apache.sling.graphql.api.pagination.Edge;
+import org.apache.sling.graphql.api.pagination.PageInfo;
+import org.apache.sling.graphql.api.pagination.ResultsPage;
 import org.junit.Test;
-
-import graphql.relay.Connection;
-import graphql.relay.ConnectionCursor;
-import graphql.relay.Edge;
-import graphql.relay.PageInfo;
 
 public class PaginationTest extends ResourceQueryTestBase {
 
-    static class ConnectionDataFetcher implements SlingDataFetcher<Connection<HumanDTO>> {
+    static class ConnectionDataFetcher implements SlingDataFetcher<Object> {
         private List<HumanDTO> humans = new ArrayList<>();
 
         ConnectionDataFetcher(List<HumanDTO> humans) {
@@ -50,49 +48,27 @@ public class PaginationTest extends ResourceQueryTestBase {
         }
 
         @Override
-        public @Nullable Connection<HumanDTO> get(@NotNull SlingDataFetcherEnvironment e) throws Exception {
+        public @Nullable Object get(@NotNull SlingDataFetcherEnvironment e) throws Exception {
             final String cursor = e.getArgument("after", null);
             final int limit = e.getArgument("limit", 2);
-            return new DataConnection(humans, cursor, limit);
+            return new HumansResultPage(humans, cursor, limit);
         }
     }
 
-    static class Cursor implements ConnectionCursor {
-        private final String value;
-        Cursor(HumanDTO dto) {
-            value = dto.getId();
-        }
-        Cursor(String c) {
-            value = c;
-        }
-        @Override
-        public String getValue() {
-            return value == null ? "" : value;
-        }
-        @Override
-        public String toString() {
-            return getValue();
-        }
-        public boolean isEmpty() {
-            return value == null || value.length() == 0;
-        }
-    }
+    static class HumansResultPage implements ResultsPage<HumanDTO>,PageInfo {
 
-    static class DataConnection implements Connection<HumanDTO> {
-
-        private final Cursor startCursor;
-        private Cursor endCursor;
+        private final String startCursor;
+        private String endCursor;
         private boolean hasPreviousPage;
         private boolean hasNextPage;
-        private final int limit; 
-        private final List<Edge<HumanDTO>> edges = new ArrayList();
-        private final PageInfo pageInfo;
+        private final List<Edge<HumanDTO>> edges = new ArrayList<>();
 
-        DataConnection(List<HumanDTO> humans, String cursor, int limit) {
-            this.startCursor = new Cursor(cursor);
-            this.limit = limit;
+        HumansResultPage(List<HumanDTO> humans, String cursor, int limit) {
+            this.startCursor = cursor == null ? "" : cursor;
 
-            // skip to cursor and add the following humanDTOs as edges
+            // TODO this should be generalized so that data can be provided as 
+            // a data source with "skip after cursor" functionality, and the
+            // rest of this class is then generic
             boolean inRange = false;
             int remaining = limit;
             for(HumanDTO dto : humans) {
@@ -110,12 +86,12 @@ public class PaginationTest extends ResourceQueryTestBase {
                         }
 
                         @Override
-                        public ConnectionCursor getCursor() {
-                            return new Cursor(dto);
+                        public String getCursor() {
+                            return dto.getId();
                         }
 
                     });
-                    endCursor = new Cursor(dto);
+                    endCursor = dto.getId();
                 } else if(startCursor.isEmpty()) {
                     inRange = true;
                     hasPreviousPage = false;
@@ -124,30 +100,6 @@ public class PaginationTest extends ResourceQueryTestBase {
                     hasPreviousPage = true;
                 }
             }
-
-            // setup page info
-            pageInfo = new PageInfo() {
-                @Override
-                public ConnectionCursor getStartCursor() {
-                    return startCursor;
-                }
-
-                @Override
-                public ConnectionCursor getEndCursor() {
-                    return endCursor;
-                }
-
-                @Override
-                public boolean isHasPreviousPage() {
-                    return hasPreviousPage;
-                }
-
-                @Override
-                public boolean isHasNextPage() {
-                    return hasNextPage;
-                }
-
-            };
         }
 
         @Override
@@ -157,9 +109,29 @@ public class PaginationTest extends ResourceQueryTestBase {
 
         @Override
         public PageInfo getPageInfo() {
-            return pageInfo;
+            return this;
         }
-    }
+
+        @Override
+        public String getStartCursor() {
+            return startCursor;
+        }
+
+        @Override
+        public String getEndCursor() {
+            return endCursor;
+        }
+
+        @Override
+        public boolean isHasPreviousPage() {
+            return hasPreviousPage;
+        }
+
+        @Override
+        public boolean isHasNextPage() {
+            return hasNextPage;
+        }
+}
 
     @Override
     protected void setupAdditionalServices() {
