@@ -34,10 +34,6 @@ public class Cursor {
     private final String rawValue;
     private final String encoded;
 
-    /** These constants can be used to identify uninitialized cursors */
-    public static final String INVALID_CURSOR_KEY = "$INVALID$CURSOR$" + Cursor.class.getName();
-    public static final String ENCODED_INVALID_CURSOR_KEY = Cursor.encode(INVALID_CURSOR_KEY);
-
     public Cursor(String rawValue) {
         this.rawValue = rawValue == null ? "" : rawValue;
         this.encoded = encode(this.rawValue);

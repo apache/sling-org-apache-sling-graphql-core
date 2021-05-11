@@ -124,7 +124,7 @@ public class GenericConnection<T> implements Connection<T> {
             }
         }
 
-        if(!inRange) {
+        if(!inRange && maxItemsReturned > 0) {
             throw new RuntimeException("Start cursor not found in supplied data:" + startAfter);
         }
         pageInfo.hasNextPage = dataIterator.hasNext();
