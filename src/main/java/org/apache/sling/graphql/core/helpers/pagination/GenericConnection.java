@@ -28,6 +28,8 @@ import org.apache.sling.graphql.api.pagination.Connection;
 import org.apache.sling.graphql.api.pagination.Cursor;
 import org.apache.sling.graphql.api.pagination.Edge;
 import org.apache.sling.graphql.api.pagination.PageInfo;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ConsumerType;
 
 /** As per https://relay.dev/graphql/connections.htm a "connection"
@@ -37,6 +39,9 @@ import org.osgi.annotation.versioning.ConsumerType;
 public class GenericConnection<T> implements Connection<T>, PageInfo {
 
     public static final int DEFAULT_LIMIT = 10;
+
+    /** We might make this configurable but for now let's stay on the safe side */
+    public static final int MAX_LIMIT = 100;
 
     private final List<Edge<T>> edges;
     private final Iterator<T> dataIterator;
@@ -57,7 +62,10 @@ public class GenericConnection<T> implements Connection<T>, PageInfo {
      *  @param startAfter if not null, data up to and including the item which has this cursor is ignored
      *  @param maxItemsReturned at most this many items are considered
     */
-    private GenericConnection(Iterator<T> dataIterator, Function<T, String> cursorStringProvider) {
+    private GenericConnection(@NotNull Iterator<T> dataIterator, @NotNull Function<T, String> cursorStringProvider) {
+        checkNotNull(dataIterator, "Data iterator");
+        checkNotNull(cursorStringProvider, "Cursor string provider function");
+
         edges = new ArrayList<>();
         this.dataIterator = dataIterator;
         this.cursorStringProvider = cursorStringProvider;
@@ -116,6 +124,12 @@ public class GenericConnection<T> implements Connection<T>, PageInfo {
         }
     }
 
+    static private void checkNotNull(Object o, String whatIsThat) {
+        if(o == null) {
+            throw new IllegalArgumentException(whatIsThat + " is null");
+        }
+    }
+
     private Edge<T> newEdge(final T node, final Function<T, String> cursorStringProvider) {
         return new Edge<T>() {
             @Override
@@ -168,11 +182,17 @@ public class GenericConnection<T> implements Connection<T>, PageInfo {
         }
 
         public Builder<T> withLimit(int limit) {
+            if(limit < 0) {
+                limit = 0;
+            }
+            if(limit > MAX_LIMIT) {
+                throw new IllegalArgumentException("Invalid limit " + limit + ", the maximum value is " + MAX_LIMIT);
+            }
             connection.limit = limit;
             return this;
         }
 
-        public Builder<T> withStartAfter(Cursor c) {
+        public Builder<T> withStartAfter(@Nullable Cursor c) {
             connection.startAfter = c;
             return this;
         }

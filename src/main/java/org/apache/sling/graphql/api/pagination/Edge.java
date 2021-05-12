@@ -19,11 +19,12 @@
 
  package org.apache.sling.graphql.api.pagination;
 
+import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ConsumerType;
 
 /** Edges provide paginated data as per https://relay.dev/graphql/connections.htm */
 @ConsumerType
 public interface Edge<T> {
-    T getNode();
-    Cursor getCursor();
+    @NotNull T getNode();
+    @NotNull Cursor getCursor();
 }

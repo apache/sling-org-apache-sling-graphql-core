@@ -34,7 +34,7 @@ public class Cursor {
     private final String rawValue;
     private final String encoded;
 
-    public Cursor(String rawValue) {
+    public Cursor(@Nullable String rawValue) {
         this.rawValue = rawValue == null ? "" : rawValue;
         this.encoded = encode(this.rawValue);
     }

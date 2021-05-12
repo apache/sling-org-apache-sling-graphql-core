@@ -66,7 +66,7 @@ public class PaginatedHumansTest extends ResourceQueryTestBase {
     @Override
     protected void setupAdditionalServices() {
         final List<HumanDTO> humans = new ArrayList<>();
-        for(int i=1 ; i < 100 ; i++) {
+        for(int i=1 ; i < 90 ; i++) {
             humans.add(new HumanDTO("human-" + i, "Luke-" + i, "Tatooine"));
         }
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "humans/connection", new HumansPageFetcher(humans));
@@ -117,13 +117,13 @@ public class PaginatedHumansTest extends ResourceQueryTestBase {
 
     @Test
     public void startCursorNearEnd() throws Exception {
-        final Cursor start = new Cursor("human-94");
+        final Cursor start = new Cursor("human-84");
         final String json = queryJSON("{ paginatedHumans(after:\"" + start + "\", limit:60) {"
             + " pageInfo { startCursor endCursor hasPreviousPage hasNextPage }"
             + " edges { cursor node { id name }}"
             +"}}");
-        assertEdges(json, 95, 99);
-        assertPageInfo(json, new Cursor("human-95"), new Cursor("human-99"), true, false);
+        assertEdges(json, 85, 89);
+        assertPageInfo(json, new Cursor("human-85"), new Cursor("human-89"), true, false);
     }
 
     @Test

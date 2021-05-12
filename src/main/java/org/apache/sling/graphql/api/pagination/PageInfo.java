@@ -19,13 +19,14 @@
 
  package org.apache.sling.graphql.api.pagination;
 
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ConsumerType;
 
 /** Information about a results page as per https://relay.dev/graphql/connections.htm */
  @ConsumerType
  public interface PageInfo {
-    Cursor getStartCursor();
-    Cursor getEndCursor();
+    @Nullable Cursor getStartCursor();
+    @Nullable Cursor getEndCursor();
     boolean isHasPreviousPage();
     boolean isHasNextPage();
 }

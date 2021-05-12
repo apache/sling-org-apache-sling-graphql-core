@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
 import org.apache.sling.graphql.api.pagination.Connection;
@@ -36,6 +37,7 @@ import org.apache.sling.graphql.core.helpers.pagination.GenericConnection;
 import org.junit.Test;
 
 public class GenericConnectionTest {
+    private static final int HIGH_LIMIT = 99;
     private static final List<Integer> data = Arrays.asList(1,2,3,4,5 );
     private static final Function<Integer, String> cursorize = (i) -> "cursor-" + i;
 
@@ -85,7 +87,7 @@ public class GenericConnectionTest {
     @Test
     public void largeLimit() {
         final Connection<Integer> c = new GenericConnection.Builder<>(data.iterator(), cursorize)
-            .withLimit(999)
+            .withLimit(HIGH_LIMIT)
             .build();
         assertValues(c, 1, 5, false, false);
     }
@@ -93,7 +95,7 @@ public class GenericConnectionTest {
     @Test
     public void forcePreviousPage() {
         final Connection<Integer> c = new GenericConnection.Builder<>(data.iterator(), cursorize)
-            .withLimit(999)
+            .withLimit(HIGH_LIMIT)
             .withPreviousPage(true)
             .build();
         assertValues(c, 1, 5, true, false);
@@ -102,7 +104,7 @@ public class GenericConnectionTest {
     @Test
     public void forceNextPage() {
         final Connection<Integer> c = new GenericConnection.Builder<>(data.iterator(), cursorize)
-            .withLimit(999)
+            .withLimit(HIGH_LIMIT)
             .withNextPage(true)
             .build();
         assertValues(c, 1, 5, false, true);
@@ -120,7 +122,7 @@ public class GenericConnectionTest {
     @Test
     public void startAtFourLargeLimit() {
         final Connection<Integer> c = new GenericConnection.Builder<>(data.iterator(), cursorize)
-            .withLimit(999)
+            .withLimit(HIGH_LIMIT)
             .withStartAfter(new Cursor(cursorize.apply(3)))
             .build();
         assertValues(c, 4, 5, true, false);
@@ -140,11 +142,41 @@ public class GenericConnectionTest {
         try {
             new GenericConnection.Builder<>(data.iterator(), cursorize)
                 .withLimit(2)
-                .withStartAfter(new Cursor(cursorize.apply(999)))
+                .withStartAfter(new Cursor(cursorize.apply(HIGH_LIMIT)))
                 .build();
             fail("Expecting a RuntimeException");
         } catch(RuntimeException rex) {
             assertTrue(rex.getMessage().contains("Start cursor not found"));
+        }
+    }
+
+    private static void assertSupplierException(Supplier<?> s) {
+        try {
+            s.get();
+            fail("Expected an Exception");
+        } catch(IllegalArgumentException iarg) {
+            // as expcted
+        }
+    }
+
+    @Test
+    public void testNullValues() {
+        assertSupplierException(() -> new GenericConnection.Builder<Integer>(data.iterator(), null));
+        assertSupplierException(() -> new GenericConnection.Builder<Integer>(null, cursorize));
+    }
+
+    @Test
+    public void testMaxLimit() {
+        final GenericConnection.Builder<Integer> b = new GenericConnection.Builder<Integer>(data.iterator(), cursorize);
+        b.withLimit(-100);
+        b.withLimit(0);
+        b.withLimit(42);
+        b.withLimit(100);
+        try {
+            b.withLimit(101);
+            fail("Expecting an exception, over limit");
+        } catch(IllegalArgumentException iex) {
+            assertTrue(iex.getMessage().contains("aximum"));
         }
     }
 }
