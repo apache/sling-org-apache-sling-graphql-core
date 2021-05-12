@@ -23,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -62,10 +63,13 @@ import graphql.language.Argument;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.InterfaceTypeDefinition;
+import graphql.language.ListType;
+import graphql.language.NonNullType;
 import graphql.language.ObjectTypeDefinition;
 import graphql.language.SourceLocation;
 import graphql.language.StringValue;
 import graphql.language.TypeDefinition;
+import graphql.language.TypeName;
 import graphql.language.UnionTypeDefinition;
 import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLScalarType;
@@ -93,6 +97,12 @@ public class DefaultQueryExecutor implements QueryExecutor {
     public static final String RESOLVER_NAME = "name";
     public static final String RESOLVER_OPTIONS = "options";
     public static final String RESOLVER_SOURCE = "source";
+
+    public static final String CONNECTION_FOR = "for";
+    public static final String CONNECTION_FETCHER = "fetcher";
+    public static final String TYPE_STRING = "String";
+    public static final String TYPE_BOOLEAN = "Boolean";
+    public static final String TYPE_PAGE_INFO = "PageInfo";
 
     private static final LogSanitizer cleanLog = new LogSanitizer();
 
@@ -239,6 +249,7 @@ public class DefaultQueryExecutor implements QueryExecutor {
                         throw new SlingGraphQLException("Exception while building wiring.", e);
                     }
                 }
+                handleConnectionTypes(type, typeRegistry);
                 return typeWiring;
             });
         }
@@ -251,7 +262,6 @@ public class DefaultQueryExecutor implements QueryExecutor {
         for (InterfaceTypeDefinition type : interfaceTypes) {
             wireTypeResolver(builder, type, r);
         }
-
         return builder.build();
     }
 
@@ -378,6 +388,44 @@ public class DefaultQueryExecutor implements QueryExecutor {
 
     private String getCacheKey(@NotNull Resource resource, @NotNull String[] selectors) {
         return resource.getPath() + ":" + String.join(".", selectors);
+    }
+
+    private void handleConnectionTypes(ObjectTypeDefinition typeDefinition, TypeDefinitionRegistry typeRegistry) {
+        for (FieldDefinition fieldDefinition : typeDefinition.getFieldDefinitions()) {
+            Directive directive = fieldDefinition.getDirective("connection");
+            if (directive != null) {
+                if (directive.getArgument(CONNECTION_FOR) != null) {
+                    String forType = ((StringValue) directive.getArgument(CONNECTION_FOR).getValue()).getValue();
+                    Optional<TypeDefinition> forTypeDefinition = typeRegistry.getType(forType);
+                    if (!forTypeDefinition.isPresent()) {
+                        throw new SlingGraphQLException("Type '" + forType + "' has not been defined.");
+                    }
+                    ObjectTypeDefinition forOTD = (ObjectTypeDefinition) forTypeDefinition.get();
+                    ObjectTypeDefinition edge = ObjectTypeDefinition.newObjectTypeDefinition().name(forOTD.getName() + "Edge")
+                            .fieldDefinition(new FieldDefinition("cursor", new TypeName(TYPE_STRING)))
+                            .fieldDefinition(new FieldDefinition("node", new TypeName(forOTD.getName())))
+                            .build();
+                    ObjectTypeDefinition connection = ObjectTypeDefinition.newObjectTypeDefinition().name(forOTD.getName() +
+                            "Connection")
+                            .fieldDefinition(new FieldDefinition("edges", new ListType(new TypeName(forType + "Edge"))))
+                            .fieldDefinition(new FieldDefinition("pageInfo", new TypeName(TYPE_PAGE_INFO)))
+                            .build();
+                    if (!typeRegistry.getType(TYPE_PAGE_INFO).isPresent()) {
+                        ObjectTypeDefinition pageInfo = ObjectTypeDefinition.newObjectTypeDefinition().name(TYPE_PAGE_INFO)
+                                .fieldDefinition(new FieldDefinition("hasPreviousPage", new NonNullType(new TypeName(TYPE_BOOLEAN))))
+                                .fieldDefinition(new FieldDefinition("hasNextPage", new NonNullType(new TypeName(TYPE_BOOLEAN))))
+                                .fieldDefinition(new FieldDefinition("startCursor", new TypeName(TYPE_STRING)))
+                                .fieldDefinition(new FieldDefinition("endCursor", new TypeName(TYPE_STRING)))
+                                .build();
+                        typeRegistry.add(pageInfo);
+                    }
+                    typeRegistry.add(edge);
+                    typeRegistry.add(connection);
+                } else {
+                    throw new SlingGraphQLException("The connection directive requires a 'for' argument.");
+                }
+            }
+        }
     }
 
     private static class LRUCache<T> extends LinkedHashMap<String, T> {
