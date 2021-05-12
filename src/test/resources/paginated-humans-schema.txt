@@ -23,7 +23,7 @@ directive @fetcher(
 ) on FIELD_DEFINITION
 
 type Query {
-    paginatedHumans (after : String, limit : Int) : PaginatedHumans @fetcher(name:"humans/paginated")
+    paginatedHumans (after : String, limit : Int) : HumanConnection @fetcher(name:"humans/connection")
 }
 
 type Human {
@@ -31,6 +31,10 @@ type Human {
   name: String!
   address: String
 }
+
+# The connection-specific parts of the schema might be
+# generated based on a schema directive later, but
+# writing them "by hand" also works
 
 type PageInfo {
     startCursor : String
@@ -44,7 +48,7 @@ type HumanEdge {
     node: Human
 }
 
-type PaginatedHumans {
+type HumanConnection {
     edges : [HumanEdge]
     pageInfo : PageInfo
 }

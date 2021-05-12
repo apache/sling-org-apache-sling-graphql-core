@@ -78,4 +78,18 @@ public class CursorTest {
         assertNull(Cursor.fromEncodedString(null));
         assertNull(Cursor.fromEncodedString("\t\n  "));
     }
+
+    @Test
+    public void testEquals() {
+        final String key = UUID.randomUUID().toString();
+        assertEquals(new Cursor(key), new Cursor(key));
+        assertNotEquals(new Cursor(key), new Cursor("something else"));
+    }
+
+    @Test
+    public void testHashCode() {
+        final String key = UUID.randomUUID().toString();
+        final Cursor c = new Cursor(key);
+        assertEquals(key.hashCode(), c.hashCode());
+    }
 }

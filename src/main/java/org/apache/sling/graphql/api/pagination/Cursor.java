@@ -39,6 +39,20 @@ public class Cursor {
         this.encoded = encode(this.rawValue);
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if(!(obj instanceof Cursor)) {
+            return false;
+        }
+        final Cursor other = (Cursor)obj;
+        return other.rawValue.equals(this.rawValue);
+    }
+
+    @Override
+    public int hashCode() {
+        return rawValue == null ? null : rawValue.hashCode();
+    }
+
     public static Cursor fromEncodedString(@Nullable String encoded) {
         if(encoded == null) {
             return null;

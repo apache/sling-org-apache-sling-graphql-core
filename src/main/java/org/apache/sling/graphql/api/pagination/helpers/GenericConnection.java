@@ -34,52 +34,13 @@ import org.osgi.annotation.versioning.ConsumerType;
  *  is a page of results for a paginated query.
 */
 @ConsumerType
-public class GenericConnection<T> implements Connection<T> {
+public class GenericConnection<T> implements Connection<T>, PageInfo {
 
     private final List<Edge<T>> edges;
-
-    static class LocalPageInfo implements PageInfo {
-        Cursor startCursor = null;
-        Cursor endCursor = null;
-        boolean hasPreviousPage;
-        boolean hasNextPage;
-
-        @Override
-        public Cursor getStartCursor() {
-            return startCursor;
-        }
-
-        @Override
-        public Cursor getEndCursor() {
-            return endCursor;
-        }
-
-        @Override
-        public boolean isHasPreviousPage() {
-            return hasPreviousPage;
-        }
-
-        @Override
-        public boolean isHasNextPage() {
-            return hasNextPage;
-        }
-    };
-
-    private final LocalPageInfo pageInfo = new LocalPageInfo();
-
-    private Edge<T> newEdge(final T node, final Function<T, String> cursorStringFunction) {
-        return new Edge<T>() {
-            @Override
-            public T getNode() {
-                return node;
-            }
-
-            @Override
-            public Cursor getCursor() {
-                return new Cursor(cursorStringFunction.apply(node));
-            }
-        };
-    }
+    private Cursor startCursor = null;
+    private Cursor endCursor = null;
+    private boolean hasPreviousPage;
+    private boolean hasNextPage;
 
     /** Build a Connection that will output the supplied data, optionally skipping items
      *  at the beginning and considering a set maximum of items.
@@ -103,11 +64,11 @@ public class GenericConnection<T> implements Connection<T> {
                 if(startAfter == null) {
                     inRange = true;
                     addThisNode = true;
-                    pageInfo.hasPreviousPage = false;
+                    hasPreviousPage = false;
                 } else {
                     final String rawCursor = cursorStringFunction.apply(node);
                     inRange = startAfter.getRawValue().equals(rawCursor);
-                    pageInfo.hasPreviousPage = true;
+                    hasPreviousPage = true;
                 }
             } else {
                 addThisNode = true;
@@ -115,10 +76,10 @@ public class GenericConnection<T> implements Connection<T> {
 
             if(addThisNode) {
                 final Edge<T> toAdd = newEdge(node, cursorStringFunction);
-                if(pageInfo.startCursor == null) {
-                    pageInfo.startCursor = toAdd.getCursor();
+                if(startCursor == null) {
+                    startCursor = toAdd.getCursor();
                 }
-                pageInfo.endCursor = toAdd.getCursor();
+                endCursor = toAdd.getCursor();
                 edges.add(toAdd);
                 itemsToAdd--;
             }
@@ -127,14 +88,50 @@ public class GenericConnection<T> implements Connection<T> {
         if(!inRange && maxItemsReturned > 0) {
             throw new RuntimeException("Start cursor not found in supplied data:" + startAfter);
         }
-        pageInfo.hasNextPage = dataIterator.hasNext();
+        hasNextPage = dataIterator.hasNext();
     }
 
+    private Edge<T> newEdge(final T node, final Function<T, String> cursorStringFunction) {
+        return new Edge<T>() {
+            @Override
+            public T getNode() {
+                return node;
+            }
+
+            @Override
+            public Cursor getCursor() {
+                return new Cursor(cursorStringFunction.apply(node));
+            }
+        };
+    }
+
+    @Override
     public Iterable<Edge<T>> getEdges() {
         return edges::iterator;
     }
 
+    @Override
     public PageInfo getPageInfo() {
-        return pageInfo;
+        return this;
+    }
+
+    @Override
+    public Cursor getStartCursor() {
+        return startCursor;
+    }
+
+    @Override
+    public Cursor getEndCursor() {
+        return endCursor;
+    }
+
+    @Override
+    public boolean isHasPreviousPage() {
+        return hasPreviousPage;
+    }
+
+    @Override
+    public boolean isHasNextPage() {
+        return hasNextPage;
     }
 }

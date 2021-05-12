@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.sling.graphql.core.engine;
+package org.apache.sling.graphql.core.pagination;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +30,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import org.apache.sling.graphql.core.mocks.TestUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.apache.sling.graphql.core.engine.ResourceQueryTestBase;
 import org.apache.sling.graphql.core.mocks.HumanDTO;
 import org.apache.sling.graphql.api.SlingDataFetcher;
 import org.apache.sling.graphql.api.SlingDataFetcherEnvironment;
@@ -62,11 +63,10 @@ public class PaginatedHumansTest extends ResourceQueryTestBase {
     @Override
     protected void setupAdditionalServices() {
         final List<HumanDTO> humans = new ArrayList<>();
-
         for(int i=1 ; i < 100 ; i++) {
             humans.add(new HumanDTO("human-" + i, "Luke-" + i, "Tatooine"));
         }
-        TestUtil.registerSlingDataFetcher(context.bundleContext(), "humans/paginated", new HumansPageFetcher(humans));
+        TestUtil.registerSlingDataFetcher(context.bundleContext(), "humans/connection", new HumansPageFetcher(humans));
     }
 
     private void assertPageInfo(String json, Cursor startCursor, Cursor endCursor, Boolean hasPreviousPage, Boolean hasNextPage) {
