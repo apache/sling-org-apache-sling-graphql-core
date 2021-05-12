@@ -36,27 +36,43 @@ import org.osgi.annotation.versioning.ConsumerType;
 @ConsumerType
 public class GenericConnection<T> implements Connection<T>, PageInfo {
 
+    public static final int DEFAULT_LIMIT = 10;
+
     private final List<Edge<T>> edges;
+    private final Iterator<T> dataIterator;
+    private final Function<T, String> cursorStringProvider;
+    private boolean initialized;
+    private Cursor startAfter = null;
     private Cursor startCursor = null;
     private Cursor endCursor = null;
-    private boolean hasPreviousPage;
-    private boolean hasNextPage;
+    private Boolean hasPreviousPage;
+    private Boolean hasNextPage;
+    private int limit = DEFAULT_LIMIT;
 
     /** Build a Connection that will output the supplied data, optionally skipping items
      *  at the beginning and considering a set maximum of items.
      * 
      *  @param dataIterator the connection's data - must include the item that startAfter points to
-     *  @param cursorStringFunction extracts a String from an object of type T to create a Cursor
+     *  @param cursorStringProvider extracts a String from an object of type T to create a Cursor
      *  @param startAfter if not null, data up to and including the item which has this cursor is ignored
      *  @param maxItemsReturned at most this many items are considered
     */
-    public GenericConnection(Iterator<T> dataIterator, Function<T, String> cursorStringFunction, final Cursor startAfter, int maxItemsReturned) {
+    private GenericConnection(Iterator<T> dataIterator, Function<T, String> cursorStringProvider) {
+        edges = new ArrayList<>();
+        this.dataIterator = dataIterator;
+        this.cursorStringProvider = cursorStringProvider;
+    }
+
+    private void initialize() {
+        if(initialized) {
+            throw new IllegalStateException("Already initialized");
+        }
+        initialized = true;
 
         // Need to visit the stream first to setup the PageInfo, which graphql-java
         // apparently uses before visiting all the edges
-        edges = new ArrayList<>();
         boolean inRange = false;
-        int itemsToAdd = maxItemsReturned;
+        int itemsToAdd = limit;
         while(itemsToAdd > 0 && dataIterator.hasNext()) {
             final T node = dataIterator.next();
             boolean addThisNode = false;
@@ -64,18 +80,22 @@ public class GenericConnection<T> implements Connection<T>, PageInfo {
                 if(startAfter == null) {
                     inRange = true;
                     addThisNode = true;
-                    hasPreviousPage = false;
+                    if(hasPreviousPage == null) {
+                        hasPreviousPage = false;
+                    }
                 } else {
-                    final String rawCursor = cursorStringFunction.apply(node);
+                    final String rawCursor = cursorStringProvider.apply(node);
                     inRange = startAfter.getRawValue().equals(rawCursor);
-                    hasPreviousPage = true;
+                    if(hasPreviousPage == null) {
+                        hasPreviousPage = true;
+                    }
                 }
             } else {
                 addThisNode = true;
             }
 
             if(addThisNode) {
-                final Edge<T> toAdd = newEdge(node, cursorStringFunction);
+                final Edge<T> toAdd = newEdge(node, cursorStringProvider);
                 if(startCursor == null) {
                     startCursor = toAdd.getCursor();
                 }
@@ -85,13 +105,18 @@ public class GenericConnection<T> implements Connection<T>, PageInfo {
             }
         }
 
-        if(!inRange && maxItemsReturned > 0) {
+        if(!inRange && limit > 0) {
             throw new RuntimeException("Start cursor not found in supplied data:" + startAfter);
         }
-        hasNextPage = dataIterator.hasNext();
+        if(hasPreviousPage == null) {
+            hasPreviousPage = false;
+        }
+        if(hasNextPage == null) {
+            hasNextPage = dataIterator.hasNext();
+        }
     }
 
-    private Edge<T> newEdge(final T node, final Function<T, String> cursorStringFunction) {
+    private Edge<T> newEdge(final T node, final Function<T, String> cursorStringProvider) {
         return new Edge<T>() {
             @Override
             public T getNode() {
@@ -100,7 +125,7 @@ public class GenericConnection<T> implements Connection<T>, PageInfo {
 
             @Override
             public Cursor getCursor() {
-                return new Cursor(cursorStringFunction.apply(node));
+                return new Cursor(cursorStringProvider.apply(node));
             }
         };
     }
@@ -133,5 +158,44 @@ public class GenericConnection<T> implements Connection<T>, PageInfo {
     @Override
     public boolean isHasNextPage() {
         return hasNextPage;
+    }
+
+    public static class Builder<T> {
+        private final GenericConnection<T> connection;
+
+        public Builder(Iterator<T> dataIterator, Function<T, String> cursorStringProvider) {
+            connection = new GenericConnection<>(dataIterator, cursorStringProvider);
+        }
+
+        public Builder<T> withLimit(int limit) {
+            connection.limit = limit;
+            return this;
+        }
+
+        public Builder<T> withStartAfter(Cursor c) {
+            connection.startAfter = c;
+            return this;
+        }
+
+        /** Force the "has previous page" value, in case the supplied
+         *  data doesn't expose that but a new query would find it
+         */
+        public Builder<T> withPreviousPage(boolean b) {
+            connection.hasPreviousPage = b;
+            return this;
+        }
+
+        /** Force the "has next page" value, in case the supplied
+         *  data doesn't expose that but a new query would find it
+         */
+        public Builder<T> withNextPage(boolean b) {
+            connection.hasNextPage = b;
+            return this;
+        }
+
+        public Connection<T> build() {
+            connection.initialize();
+            return connection;
+        }
     }
 }

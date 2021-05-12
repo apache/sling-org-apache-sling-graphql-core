@@ -56,7 +56,10 @@ public class PaginatedHumansTest extends ResourceQueryTestBase {
         public @Nullable Connection<HumanDTO> get(@NotNull SlingDataFetcherEnvironment e) throws Exception {
             final Cursor afterCursor = Cursor.fromEncodedString(e.getArgument("after"));
             final int limit = e.getArgument("limit", 2);
-            return new GenericConnection<>(humans.iterator(), HumanDTO::getId, afterCursor, limit);
+            return new GenericConnection.Builder<>(humans.iterator(), HumanDTO::getId)
+                .withStartAfter(afterCursor)
+                .withLimit(limit)
+                .build();
         }
     }
 

@@ -68,34 +68,80 @@ public class GenericConnectionTest {
 
     @Test
     public void minimalArguments() {
-        final GenericConnection<Integer> c = new GenericConnection<>(data.iterator(), cursorize, null, 2);
+        final Connection<Integer> c = new GenericConnection.Builder<>(data.iterator(), cursorize)
+            .withLimit(2)
+            .build();
         assertValues(c, 1, 2, false, true);
     }
 
     @Test
     public void zeroLimit() {
-        final GenericConnection<Integer> c = new GenericConnection<>(data.iterator(), cursorize, null, 0);
+        final Connection<Integer> c = new GenericConnection.Builder<>(data.iterator(), cursorize)
+            .withLimit(0)
+            .build();
         assertValues(c, -1, -1, false, true);
     }
 
     @Test
     public void largeLimit() {
-        final GenericConnection<Integer> c = new GenericConnection<>(data.iterator(), cursorize, null, 999);
+        final Connection<Integer> c = new GenericConnection.Builder<>(data.iterator(), cursorize)
+            .withLimit(999)
+            .build();
         assertValues(c, 1, 5, false, false);
     }
 
     @Test
+    public void forcePreviousPage() {
+        final Connection<Integer> c = new GenericConnection.Builder<>(data.iterator(), cursorize)
+            .withLimit(999)
+            .withPreviousPage(true)
+            .build();
+        assertValues(c, 1, 5, true, false);
+    }
+
+    @Test
+    public void forceNextPage() {
+        final Connection<Integer> c = new GenericConnection.Builder<>(data.iterator(), cursorize)
+            .withLimit(999)
+            .withNextPage(true)
+            .build();
+        assertValues(c, 1, 5, false, true);
+    }
+
+    @Test
     public void startAtThree() {
-        final Cursor startAfter = new Cursor(cursorize.apply(2));
-        final GenericConnection<Integer> c = new GenericConnection<>(data.iterator(), cursorize, startAfter, 2);
+        final Connection<Integer> c = new GenericConnection.Builder<>(data.iterator(), cursorize)
+            .withLimit(2)
+            .withStartAfter(new Cursor(cursorize.apply(2)))
+            .build();
         assertValues(c, 3, 4, true, true);
     }
 
     @Test
+    public void startAtFourLargeLimit() {
+        final Connection<Integer> c = new GenericConnection.Builder<>(data.iterator(), cursorize)
+            .withLimit(999)
+            .withStartAfter(new Cursor(cursorize.apply(3)))
+            .build();
+        assertValues(c, 4, 5, true, false);
+    }
+
+    @Test
+    public void justTwo() {
+        final Connection<Integer> c = new GenericConnection.Builder<>(data.iterator(), cursorize)
+            .withLimit(1)
+            .withStartAfter(new Cursor(cursorize.apply(1)))
+            .build();
+        assertValues(c, 2, 2, true, true);
+    }
+
+    @Test
     public void startCursorNotFound() {
-        final Cursor startAfter = new Cursor(cursorize.apply(999));
         try {
-            new GenericConnection<>(data.iterator(), cursorize, startAfter, 2);
+            new GenericConnection.Builder<>(data.iterator(), cursorize)
+                .withLimit(2)
+                .withStartAfter(new Cursor(cursorize.apply(999)))
+                .build();
             fail("Expecting a RuntimeException");
         } catch(RuntimeException rex) {
             assertTrue(rex.getMessage().contains("Start cursor not found"));
