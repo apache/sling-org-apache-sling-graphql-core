@@ -151,6 +151,16 @@ which have Java package names that start with `org.apache.sling`.
 The `<options>` and `<source>` arguments of the directive can be used by the
 `SlingTypeResolver` services to influence their behavior.
 
+## Result Set Pagination
+
+The [GenericConnection](./src/main/java/org/apache/sling/graphql/core/helpers/pagination/GenericConnection.java) class provides support
+for paginated results, following the [Relay Cursor Connections](https://relay.dev/graphql/connections.htm) specification.
+
+With this utility class, you just need to supply an `Iterator` on your data, a function to generate a string that represents the cursor
+for a given object, and optional parameters to control the page start and length.
+
+The [GenericConnectionTest](./src/test/java/org/apache/sling/graphql/core/pagination/GenericConnectionTest.java) class has concrete examples of that.
+
 ## Caching: Persisted queries API
 
 No matter how you decide to create your Sling GraphQL endpoints, you have the option to allow GraphQL clients to use persisted queries.
