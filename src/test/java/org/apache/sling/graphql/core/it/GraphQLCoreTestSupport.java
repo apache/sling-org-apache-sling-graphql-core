@@ -36,6 +36,7 @@ import org.apache.johnzon.mapper.MapperBuilder;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.engine.SlingRequestProcessor;
+import org.apache.sling.graphql.core.mocks.QueryDataFetcherComponent;
 import org.apache.sling.graphql.core.mocks.TestDataFetcherComponent;
 import org.apache.sling.servlethelpers.MockSlingHttpServletResponse;
 import org.apache.sling.servlethelpers.internalrequests.SlingInternalRequest;
@@ -111,8 +112,8 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
         return testProbeBuilder;
     }
 
-    protected Option pipeDataFetcher() {
-        return buildBundleWithBnd(TestDataFetcherComponent.class);
+    protected Option testDataFetchers() {
+        return buildBundleWithBnd(TestDataFetcherComponent.class, QueryDataFetcherComponent.class);
     }
 
     protected Option slingQuickstart() {

@@ -32,7 +32,7 @@ import java.util.stream.StreamSupport;
 import org.apache.sling.graphql.api.pagination.Connection;
 import org.apache.sling.graphql.api.pagination.Cursor;
 import org.apache.sling.graphql.api.pagination.Edge;
-import org.apache.sling.graphql.api.pagination.helpers.GenericConnection;
+import org.apache.sling.graphql.core.helpers.pagination.GenericConnection;
 import org.junit.Test;
 
 public class GenericConnectionTest {

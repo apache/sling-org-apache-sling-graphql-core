@@ -17,7 +17,7 @@
  * under the License.
  */
 
- package org.apache.sling.graphql.api.pagination.helpers;
+ package org.apache.sling.graphql.core.helpers.pagination;
 
 import java.util.ArrayList;
 import java.util.Iterator;

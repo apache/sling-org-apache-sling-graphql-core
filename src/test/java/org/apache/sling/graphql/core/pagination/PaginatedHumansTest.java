@@ -31,12 +31,12 @@ import org.apache.sling.graphql.core.mocks.TestUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.apache.sling.graphql.core.engine.ResourceQueryTestBase;
+import org.apache.sling.graphql.core.helpers.pagination.GenericConnection;
 import org.apache.sling.graphql.core.mocks.HumanDTO;
 import org.apache.sling.graphql.api.SlingDataFetcher;
 import org.apache.sling.graphql.api.SlingDataFetcherEnvironment;
 import org.apache.sling.graphql.api.pagination.Connection;
 import org.apache.sling.graphql.api.pagination.Cursor;
-import org.apache.sling.graphql.api.pagination.helpers.GenericConnection;
 import org.junit.Test;
 
 public class PaginatedHumansTest extends ResourceQueryTestBase {
