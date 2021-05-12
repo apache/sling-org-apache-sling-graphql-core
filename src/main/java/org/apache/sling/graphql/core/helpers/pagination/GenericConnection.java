@@ -34,6 +34,10 @@ import org.osgi.annotation.versioning.ConsumerType;
 
 /** As per https://relay.dev/graphql/connections.htm a "connection"
  *  is a page of results for a paginated query.
+ * 
+ *  Use the {@link #Builder} class to build a Connection that outputs
+ *  the supplied data, optionally sliced based on a "start after" cursor
+ *  and a limit on the number of items output.
 */
 @ConsumerType
 public class GenericConnection<T> implements Connection<T>, PageInfo {
@@ -54,14 +58,7 @@ public class GenericConnection<T> implements Connection<T>, PageInfo {
     private Boolean hasNextPage;
     private int limit = DEFAULT_LIMIT;
 
-    /** Build a Connection that will output the supplied data, optionally skipping items
-     *  at the beginning and considering a set maximum of items.
-     * 
-     *  @param dataIterator the connection's data - must include the item that startAfter points to
-     *  @param cursorStringProvider extracts a String from an object of type T to create a Cursor
-     *  @param startAfter if not null, data up to and including the item which has this cursor is ignored
-     *  @param maxItemsReturned at most this many items are considered
-    */
+    /** The Builder must be used to construct this */
     private GenericConnection(@NotNull Iterator<T> dataIterator, @NotNull Function<T, String> cursorStringProvider) {
         checkNotNull(dataIterator, "Data iterator");
         checkNotNull(cursorStringProvider, "Cursor string provider function");
@@ -177,10 +174,20 @@ public class GenericConnection<T> implements Connection<T>, PageInfo {
     public static class Builder<T> {
         private final GenericConnection<T> connection;
 
+        /** Builder for a Connection that will output the supplied data, optionally skipping items
+         *  at the beginning and considering a set maximum of items.
+         * 
+         *  @param dataIterator the connection's data - must include the item that startAfter points to if that
+         *      Cursor is set, but can contain less items that set by the "limit" parameter.          
+         *  @param cursorStringProvider extracts a String from an object of type T to create a Cursor
+        */
         public Builder(Iterator<T> dataIterator, Function<T, String> cursorStringProvider) {
             connection = new GenericConnection<>(dataIterator, cursorStringProvider);
         }
 
+        /** Set a limit on the number of items returned by the connection.
+         * @param limit must be <= MAX_LIMIT
+         */
         public Builder<T> withLimit(int limit) {
             if(limit < 0) {
                 limit = 0;
@@ -192,6 +199,9 @@ public class GenericConnection<T> implements Connection<T>, PageInfo {
             return this;
         }
 
+        /** If set, the connection will skip to the first item after
+         *  this Cursor.
+         */
         public Builder<T> withStartAfter(@Nullable Cursor c) {
             connection.startAfter = c;
             return this;
@@ -213,6 +223,7 @@ public class GenericConnection<T> implements Connection<T>, PageInfo {
             return this;
         }
 
+        /** Build the Connection - can only be called once */
         public Connection<T> build() {
             connection.initialize();
             return connection;

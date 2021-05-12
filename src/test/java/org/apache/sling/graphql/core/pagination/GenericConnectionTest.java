@@ -69,6 +69,12 @@ public class GenericConnectionTest {
     }
 
     @Test
+    public void noArguments() {
+        final Connection<Integer> c = new GenericConnection.Builder<>(data.iterator(), cursorize).build();
+        assertValues(c, 1, 5, false, false);
+    }
+
+    @Test
     public void minimalArguments() {
         final Connection<Integer> c = new GenericConnection.Builder<>(data.iterator(), cursorize)
             .withLimit(2)
