@@ -88,7 +88,7 @@ public class GraphQLServletIT extends GraphQLCoreTestSupport {
     public Option[] configuration() {
         return new Option[]{
             baseConfiguration(),
-            pipeDataFetcher(),
+            testDataFetchers(),
             factoryConfiguration("org.apache.sling.resource.presence.internal.ResourcePresenter")
                 .put("path", "/content/graphql/two")
                 .asOption(),

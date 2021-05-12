@@ -151,6 +151,33 @@ which have Java package names that start with `org.apache.sling`.
 The `<options>` and `<source>` arguments of the directive can be used by the
 `SlingTypeResolver` services to influence their behavior.
 
+## Result Set Pagination
+
+The [GenericConnection](./src/main/java/org/apache/sling/graphql/core/helpers/pagination/GenericConnection.java) class provides support
+for paginated results, following the [Relay Cursor Connections](https://relay.dev/graphql/connections.htm) specification.
+
+With this utility class, you just need to supply an `Iterator` on your data, a function to generate a string that represents the cursor
+for a given object, and optional parameters to control the page start and length.
+
+The [QueryDataFetcherComponent](./src/test/java/org/apache/sling/graphql/core/mocks/QueryDataFetcherComponent.java) test class has a 
+concrete example. The below code is sufficient to produce a paginated result according to the Relay spec, assuming the GraphQL schema
+contains the required types. We are working on a schema directive to generate those connection types automatically, but for now they
+can be added manually to a schema, like [the one used in this test](./src/test/resources/initial-content/apps/graphql/test/one/GQLschema.jsp).
+
+    // fake test data simulating a query
+    final List<Resource> data = new ArrayList<>();
+    data.add(env.getCurrentResource());
+    data.add(env.getCurrentResource().getParent());
+    data.add(env.getCurrentResource().getParent().getParent());
+
+    // how to build a unique cursor that points to one of our data objects
+    final Function<Resource, String> cursorStringProvider = r -> r.getPath();
+
+    // return a GenericConnection that the library will introspect and serialize
+    return new GenericConnection.Builder<>(data.iterator(), cursorStringProvider)
+      withLimit(5)
+      .build();
+
 ## Caching: Persisted queries API
 
 No matter how you decide to create your Sling GraphQL endpoints, you have the option to allow GraphQL clients to use persisted queries.

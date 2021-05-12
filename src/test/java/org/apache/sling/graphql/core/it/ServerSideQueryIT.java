@@ -36,7 +36,7 @@ import org.ops4j.pax.exam.spi.reactors.PerClass;
 import org.ops4j.pax.exam.util.Filter;
 import org.osgi.framework.BundleContext;
 
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.factoryConfiguration;
 
@@ -62,7 +62,7 @@ public class ServerSideQueryIT extends GraphQLCoreTestSupport {
     public Option[] configuration() {
         return new Option[]{
             baseConfiguration(),
-            pipeDataFetcher(),
+            testDataFetchers(),
             factoryConfiguration("org.apache.sling.resource.presence.internal.ResourcePresenter")
                 .put("path", "/apps/graphql/test/one/json.gql")
                 .asOption(),
@@ -87,5 +87,15 @@ public class ServerSideQueryIT extends GraphQLCoreTestSupport {
         new ReplacingSchemaProvider("oneSchemaResource", "REPLACED").register(bundleContext, defaultSchemaProvider, Integer.MAX_VALUE);
         new ReplacingSchemaProvider("oneSchemaResource", "NOT_THIS_ONE").register(bundleContext, defaultSchemaProvider, 1);
         assertDefaultContent(".REPLACED", "REPLACED");
+    }
+
+    @Test
+    public void testPaginatedQuery() throws Exception {
+        final String json = getContent("graphql/one.query.json");
+        assertThat(json, hasJsonPath("$.data.oneSchemaQuery.pageInfo.startCursor"));
+        assertThat(json, hasJsonPath("$.data.oneSchemaQuery.edges[0].node.path", equalTo("/content/graphql/one")));
+        assertThat(json, hasJsonPath("$.data.oneSchemaQuery.edges[1].node.path", equalTo("/content/graphql")));
+        assertThat(json, hasJsonPath("$.data.oneSchemaQuery.edges[1].node.resourceType", equalTo("graphql/test/root")));
+        assertThat(json, hasJsonPath("$.data.oneSchemaQuery.edges[2].node.path", equalTo("/content")));
     }
 }
