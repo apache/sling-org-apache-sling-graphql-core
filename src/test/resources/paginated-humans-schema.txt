@@ -15,20 +15,6 @@
 # * specific language governing permissions and limitations
 # * under the License.
 
-# This directive maps fields to our Sling data fetchers
-directive @fetcher(
-    name : String,
-    options : String = "",
-    source : String = ""
-) on FIELD_DEFINITION
-
-# This directive will generate the additional types for a Connection,
-# according to the Relay Connections specification from
-# https://relay.dev/graphql/connections.htm
-directive @connection(
-    for : String
-) on FIELD_DEFINITION
-
 type Query {
     paginatedHumans (after : String, limit : Int) : HumanConnection @connection(for: "Human") @fetcher(name:"humans/connection")
 }
