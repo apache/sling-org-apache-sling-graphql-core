@@ -19,13 +19,18 @@
 
 package org.apache.sling.graphql.api.pagination;
 
+import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ConsumerType;
 
-/** As per https://relay.dev/graphql/connections.htm a "connection"
- *  is a page of results for a paginated query.
-*/
+/**
+ * The {@code Connection} interface provides support for implementing the Connection Types, according to the specification from
+ *
+ * <a href="https://relay.dev/graphql/connections.htm#sec-Connection-Types">https://relay.dev/graphql/connections.htm#sec-Connection-Types</a>.
+ */
 @ConsumerType
 public interface Connection<T> {
-    Iterable<Edge<T>> getEdges();
-    PageInfo getPageInfo();
+
+    @NotNull Iterable<Edge<T>> getEdges();
+
+    @NotNull PageInfo getPageInfo();
 }
