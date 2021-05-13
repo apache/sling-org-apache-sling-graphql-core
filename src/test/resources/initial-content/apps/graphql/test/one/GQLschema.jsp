@@ -24,33 +24,19 @@ directive @fetcher(
     source : String = ""
 ) on FIELD_DEFINITION
 
+# This directive will generate the additional types for a Connection,
+# according to the Relay Connections specification from
+# https://relay.dev/graphql/connections.htm
+directive @connection(
+    for : String
+) on FIELD_DEFINITION
+
 type Query {
   oneSchemaResource : SlingResource @fetcher(name:"test/pipe" source:"$")
-  oneSchemaQuery : SlingResourceConnection @fetcher(name:"test/query")
+  oneSchemaQuery : SlingResourceConnection @connection(for: "SlingResource") @fetcher(name:"test/query")
 }
 
 type SlingResource { 
   path: String
   resourceType: String
-}
-
-# The connection-specific parts of the schema might be
-# generated based on a schema directive later, but
-# writing them "by hand" also works
-
-type PageInfo {
-    startCursor : String
-    endCursor : String
-    hasPreviousPage : Boolean
-    hasNextPage : Boolean
-}
-
-type SlingResourceEdge {
-    cursor: String
-    node: SlingResource
-}
-
-type SlingResourceConnection {
-  edges : [SlingResourceEdge]
-  pageInfo : PageInfo
 }
