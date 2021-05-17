@@ -22,9 +22,16 @@
 import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ConsumerType;
 
-/** Edges provide paginated data as per https://relay.dev/graphql/connections.htm */
+/**
+ * The {@code Edge} interface provides support for implementing the Edge Types, according to the specification from
+ * <a href="https://relay.dev/graphql/connections.htm#sec-Edge-Types">https://relay.dev/graphql/connections.htm#sec-Edge-Types</a>.
+ *
+ * @param <T> the edge's {@code node} type
+ */
 @ConsumerType
 public interface Edge<T> {
+
     @NotNull T getNode();
+
     @NotNull Cursor getCursor();
 }

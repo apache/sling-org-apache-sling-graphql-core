@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.Function;
 
+import org.apache.sling.graphql.api.SlingGraphQLException;
 import org.apache.sling.graphql.api.pagination.Connection;
 import org.apache.sling.graphql.api.pagination.Cursor;
 import org.apache.sling.graphql.api.pagination.Edge;
@@ -35,12 +36,12 @@ import org.osgi.annotation.versioning.ConsumerType;
 /** As per https://relay.dev/graphql/connections.htm a "connection"
  *  is a page of results for a paginated query.
  * 
- *  Use the {@link #Builder} class to build a Connection that outputs
+ *  Use the {@link Builder} class to build a Connection that outputs
  *  the supplied data, optionally sliced based on a "start after" cursor
  *  and a limit on the number of items output.
 */
 @ConsumerType
-public class GenericConnection<T> implements Connection<T>, PageInfo {
+public final class GenericConnection<T> implements Connection<T>, PageInfo {
 
     public static final int DEFAULT_LIMIT = 10;
 
@@ -111,7 +112,7 @@ public class GenericConnection<T> implements Connection<T>, PageInfo {
         }
 
         if(!inRange && limit > 0) {
-            throw new RuntimeException("Start cursor not found in supplied data:" + startAfter);
+            throw new SlingGraphQLException("Start cursor not found in supplied data:" + startAfter);
         }
         if(hasPreviousPage == null) {
             hasPreviousPage = false;
@@ -121,7 +122,7 @@ public class GenericConnection<T> implements Connection<T>, PageInfo {
         }
     }
 
-    static private void checkNotNull(Object o, String whatIsThat) {
+    private static void checkNotNull(Object o, String whatIsThat) {
         if(o == null) {
             throw new IllegalArgumentException(whatIsThat + " is null");
         }
@@ -130,34 +131,34 @@ public class GenericConnection<T> implements Connection<T>, PageInfo {
     private Edge<T> newEdge(final T node, final Function<T, String> cursorStringProvider) {
         return new Edge<T>() {
             @Override
-            public T getNode() {
+            public @NotNull T getNode() {
                 return node;
             }
 
             @Override
-            public Cursor getCursor() {
+            public @NotNull Cursor getCursor() {
                 return new Cursor(cursorStringProvider.apply(node));
             }
         };
     }
 
     @Override
-    public Iterable<Edge<T>> getEdges() {
-        return edges::iterator;
+    public @NotNull Iterable<Edge<T>> getEdges() {
+        return edges;
     }
 
     @Override
-    public PageInfo getPageInfo() {
+    public @NotNull PageInfo getPageInfo() {
         return this;
     }
 
     @Override
-    public Cursor getStartCursor() {
+    public @NotNull Cursor getStartCursor() {
         return startCursor;
     }
 
     @Override
-    public Cursor getEndCursor() {
+    public @NotNull Cursor getEndCursor() {
         return endCursor;
     }
 
@@ -181,7 +182,7 @@ public class GenericConnection<T> implements Connection<T>, PageInfo {
          *      Cursor is set, but can contain less items that set by the "limit" parameter.          
          *  @param cursorStringProvider extracts a String from an object of type T to create a Cursor
         */
-        public Builder(Iterator<T> dataIterator, Function<T, String> cursorStringProvider) {
+        public Builder(@NotNull Iterator<T> dataIterator, @NotNull Function<T, String> cursorStringProvider) {
             connection = new GenericConnection<>(dataIterator, cursorStringProvider);
         }
 
