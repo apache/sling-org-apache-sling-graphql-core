@@ -15,21 +15,9 @@
 # * specific language governing permissions and limitations
 # * under the License.
 
-# This directive maps fields to our Sling data fetchers
-directive @fetcher(
-    name : String,
-    options : String = "",
-    source : String = ""
-) on FIELD_DEFINITION
-
-# This directive to maps types
-directive @resolver(
-    name : String,
-    options : String = "",
-    source : String = ""
-) on UNION | INTERFACE
-
-# GraphQL Schema used for our tests
+"""
+GraphQL Schema used for our tests
+"""
 type Query {
     currentResource : SlingResource @fetcher(name:"echoNS/echo")
 

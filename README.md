@@ -20,9 +20,6 @@ need to use their APIs directly.
 The [GraphQL sample website](https://github.com/apache/sling-samples/tree/master/org.apache.sling.graphql.samples.website)
 provides usage examples and demonstrates using GraphQL queries (and Handlebars templates) on both the server and
 client sides.
-
-> As I write this, work is ongoing at [SLING-9550](https://issues.apache.org/jira/browse/SLING-9550) to implement custom 
-> GraphQL Scalars
  
 ## Supported GraphQL endpoint styles
 
@@ -87,23 +84,29 @@ schemas dynamically, taking request selectors into account.
 Unless you have specific needs not covered by this mechanism, there's no need to implement your
 own `SchemaProvider` services.
 
-## SlingDataFetcher selection with Schema Directives
+## Built-in directives
 
-The GraphQL schemas used by this module can be enhanced using
-[schema directives](http://spec.graphql.org/June2018/#sec-Language.Directives)
-(see also the [Apollo docs](https://www.apollographql.com/docs/graphql-tools/schema-directives/) for how those work)
-that select specific `SlingDataFetcher` services to return the appropriate data.
+Version 0.0.10 of the Apache Sling GraphQL Core introduces the concept of built-in directives. The `@fetcher` and
+`@resolver` directives were supported before as well as part of the schema definition. However, starting from version
+0.0.10 their schema definition is redundant, since all schemas will now be automatically extended to provide support
+for the built-in directives.
 
-A default data fetcher is used for types and fields which have no such directive.
+### SlingDataFetcher selection using the `@fetcher` directive
 
-Here's a simple example, the test code has more:
+The following built-in `@fetcher` directive is defined by this module:
 
     # This directive maps fields to our Sling data fetchers
     directive @fetcher(
-        name : String,
+        name : String!,
         options : String = "",
         source : String = ""
     ) on FIELD_DEFINITION
+
+A field using the built-in `@fetcher` directive allows selecting a specific `SlingDataFetcher` service to return the appropriate data.
+
+Fileds which do not have such a directive will be retrieved using the default data fetcher.
+
+Here's a simple example, the test code has more:
 
     type Query {
       withTestingSelector : TestData @fetcher(name:"test/pipe")
@@ -123,21 +126,20 @@ which have Java package names that start with `org.apache.sling`.
 The `<options>` and `<source>` arguments of the directive can be used by the
 `SlingDataFetcher` services to influence their behavior.
 
-## SlingTypeResolver selection with Schema Directives
+### SlingTypeResolver selection using the `@resolver` directive
 
-The GraphQL schemas used by this module can be enhanced using
-[schema directives](http://spec.graphql.org/June2018/#sec-Language.Directives)
-(see also the [Apollo docs](https://www.apollographql.com/docs/graphql-tools/schema-directives/) for how those work)
-that select specific `SlingTypeResolver` services to return the appropriate GraphQL object type using Unions.
-
-Here's a simple example, the test code has more:
+The following built-in `@resolver` directive is defined by this module:
 
     # This directive maps the corresponding type resolver to a given Union
     directive @resolver(
-        name: String, 
+        name: String!, 
         options: String = "", 
         source: String = ""
-    ) on UNION
+    ) on UNION | INTERFACE
+
+A `Union` or `Interface` type can provide a `@resolver` directive, to select a specific `SlingTypeResolver` service to return the appropriate GraphQL object type.
+
+Here's a simple example, the test code has more:
 
     union TestUnion @resolver(name : "test/resolver", source : "TestUnion") = Type_1 | Type_2 | Type_3 | Type_4
 
@@ -151,18 +153,35 @@ which have Java package names that start with `org.apache.sling`.
 The `<options>` and `<source>` arguments of the directive can be used by the
 `SlingTypeResolver` services to influence their behavior.
 
-## Result Set Pagination
+## Result Set Pagination using the `@connection` and `@fetcher` directives
 
-The [GenericConnection](./src/main/java/org/apache/sling/graphql/core/helpers/pagination/GenericConnection.java) class provides support
-for paginated results, following the [Relay Cursor Connections](https://relay.dev/graphql/connections.htm) specification.
+This module implements support for the [Relay Cursor Connections](https://relay.dev/graphql/connections.htm)
+specification, via the built-in `@connection` directive, coupled with a `@fetcher` directive. The built-in `@connection`
+directive has the following definition:
 
-With this utility class, you just need to supply an `Iterator` on your data, a function to generate a string that represents the cursor
-for a given object, and optional parameters to control the page start and length.
+    directive @connection(
+      for: String!
+    ) on FIELD_DEFINITION
 
-The [QueryDataFetcherComponent](./src/test/java/org/apache/sling/graphql/core/mocks/QueryDataFetcherComponent.java) test class has a 
-concrete example. The below code is sufficient to produce a paginated result according to the Relay spec, assuming the GraphQL schema
-contains the required types. We are working on a schema directive to generate those connection types automatically, but for now they
-can be added manually to a schema, like [the one used in this test](./src/test/resources/initial-content/apps/graphql/test/one/GQLschema.jsp).
+With this in mind, your schema that supports pagination can look like:
+
+    type Query {
+        paginatedHumans (after : String, limit : Int) : HumanConnection @connection(for: "Human") @fetcher(name:"humans/connection")
+    }
+
+    type Human {
+        id: ID!
+        name: String!
+        address: String
+    }
+
+The [GenericConnection](./src/main/java/org/apache/sling/graphql/core/helpers/pagination/GenericConnection.java) class,
+together with the [`org.apache.sling.graphql.api.pagination`](./src/main/java/org/apache/sling/graphql/api/pagination) API
+provide support for paginated results. With this utility class, you just need to supply an `Iterator` on your data, a
+function to generate a string that represents the cursor for a given object, and optional parameters to control the
+page start and length.
+
+The [QueryDataFetcherComponent](./src/test/java/org/apache/sling/graphql/core/mocks/QueryDataFetcherComponent.java) provides a usage example: 
 
     // fake test data simulating a query
     final List<Resource> data = new ArrayList<>();

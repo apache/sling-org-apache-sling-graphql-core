@@ -37,6 +37,7 @@ import org.apache.sling.graphql.api.SlingGraphQLException;
 import org.apache.sling.graphql.api.SlingTypeResolver;
 import org.apache.sling.graphql.api.engine.QueryExecutor;
 import org.apache.sling.graphql.api.engine.ValidationResult;
+import org.apache.sling.graphql.core.directives.Directives;
 import org.apache.sling.graphql.core.hash.SHA256Hasher;
 import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
 import org.apache.sling.graphql.core.schema.RankedSchemaProviders;
@@ -365,6 +366,12 @@ public class DefaultQueryExecutor implements QueryExecutor {
                 if (!newHash.equals(oldHash)) {
                     resourceToHashMap.put(resourceToHashMapKey, newHash);
                     TypeDefinitionRegistry typeRegistry = new SchemaParser().parse(sdl);
+                    typeRegistry.add(Directives.CONNECTION);
+                    typeRegistry.add(Directives.FETCHER);
+                    typeRegistry.add(Directives.RESOLVER);
+                    for (ObjectTypeDefinition typeDefinition : typeRegistry.getTypes(ObjectTypeDefinition.class)) {
+                        handleConnectionTypes(typeDefinition, typeRegistry);
+                    }
                     hashToSchemaMap.put(newHash, typeRegistry);
                     return typeRegistry;
                 }
