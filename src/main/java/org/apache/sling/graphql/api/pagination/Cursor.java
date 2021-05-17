@@ -74,6 +74,7 @@ public class Cursor {
      * @param encoded the encoded value from which to generate a new cursor
      * @return a new cursor, if one can be generated; {@code null} otherwise
      */
+    @Nullable
     public static Cursor fromEncodedString(@Nullable String encoded) {
         if(encoded == null) {
             return null;

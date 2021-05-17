@@ -16,6 +16,8 @@
 # * under the License.
 
 # This directive maps fields to our Sling data fetchers
+# It is not needed anymore since SLING-10375, but still supported
+# for backwards compatiblity with existing schemas.
 directive @fetcher(
     name : String,
     options : String = "",

@@ -26,7 +26,6 @@ import static org.junit.Assert.assertNull;
 import java.util.UUID;
 
 import org.apache.sling.graphql.api.SlingGraphQLException;
-import org.apache.sling.graphql.api.pagination.Cursor;
 import org.junit.Test;
 
 public class CursorTest {
