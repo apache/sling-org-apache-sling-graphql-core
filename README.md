@@ -84,9 +84,16 @@ schemas dynamically, taking request selectors into account.
 Unless you have specific needs not covered by this mechanism, there's no need to implement your
 own `SchemaProvider` services.
 
-## SlingDataFetcher selection using the `@fetcher` directive
+## Built-in directives
 
-The following `@fetcher` directive is automatically defined by this module:
+Version 0.0.10 of the Apache Sling GraphQL Core introduces the concept of built-in directives. The `@fetcher` and
+`@resolver` directives were supported before as well as part of the schema definition. However, starting from version
+0.0.10 their schema definition is redundant, since all schemas will now be automatically extended to provide support
+for the built-in directives.
+
+### SlingDataFetcher selection using the `@fetcher` directive
+
+The following built-in `@fetcher` directive is defined by this module:
 
     # This directive maps fields to our Sling data fetchers
     directive @fetcher(
@@ -95,7 +102,7 @@ The following `@fetcher` directive is automatically defined by this module:
         source : String = ""
     ) on FIELD_DEFINITION
 
-A field using the `@fetcher` directive allows selecting a specific `SlingDataFetcher` service to return the appropriate data.
+A field using the built-in `@fetcher` directive allows selecting a specific `SlingDataFetcher` service to return the appropriate data.
 
 Fileds which do not have such a directive will be retrieved using the default data fetcher.
 
@@ -119,9 +126,9 @@ which have Java package names that start with `org.apache.sling`.
 The `<options>` and `<source>` arguments of the directive can be used by the
 `SlingDataFetcher` services to influence their behavior.
 
-## SlingTypeResolver selection using the `@resolver` directive
+### SlingTypeResolver selection using the `@resolver` directive
 
-The following `@resolver` directive is automatically defined by this module:
+The following built-in `@resolver` directive is defined by this module:
 
     # This directive maps the corresponding type resolver to a given Union
     directive @resolver(
@@ -149,8 +156,8 @@ The `<options>` and `<source>` arguments of the directive can be used by the
 ## Result Set Pagination using the `@connection` and `@fetcher` directives
 
 This module implements support for the [Relay Cursor Connections](https://relay.dev/graphql/connections.htm)
-specification, via the `@connection` directive, coupled with a `@fetcher` directive. The `@connection` directive
-has the following definition:
+specification, via the built-in `@connection` directive, coupled with a `@fetcher` directive. The built-in `@connection`
+directive has the following definition:
 
     directive @connection(
       for: String!

@@ -138,6 +138,28 @@ public class DefaultQueryExecutor implements QueryExecutor {
         int schemaCacheSize() default 128;
     }
 
+    private class ExecutionContext {
+        final GraphQLSchema schema;
+        final ExecutionInput input;
+
+        ExecutionContext(@NotNull String query, @NotNull Map<String, Object> variables, @NotNull Resource queryResource, @NotNull String[] selectors) 
+        throws ScriptException {
+            final String schemaSdl = prepareSchemaDefinition(schemaProvider, queryResource, selectors);
+            if (schemaSdl == null) {
+                throw new SlingGraphQLException(String.format("Cannot get a schema for resource %s and selectors %s.", queryResource,
+                        Arrays.toString(selectors)));
+            }
+            LOGGER.debug("Resource {} maps to GQL schema {}", queryResource.getPath(), schemaSdl);
+            final TypeDefinitionRegistry typeDefinitionRegistry = getTypeDefinitionRegistry(schemaSdl, queryResource, selectors);
+            schema = buildSchema(typeDefinitionRegistry, queryResource);
+            input = ExecutionInput.newExecutionInput()
+                    .query(query)
+                    .variables(variables)
+                    .build();
+
+        }
+    }
+
     @Activate
     public void activate(Config config) {
         int schemaCacheSize = config.schemaCacheSize();
@@ -211,6 +233,119 @@ public class DefaultQueryExecutor implements QueryExecutor {
         }
     }
 
+    private RuntimeWiring buildWiring(TypeDefinitionRegistry typeRegistry, Iterable<GraphQLScalarType> scalars, Resource r) {
+        List<ObjectTypeDefinition> types = typeRegistry.getTypes(ObjectTypeDefinition.class);
+        RuntimeWiring.Builder builder = RuntimeWiring.newRuntimeWiring();
+        for (ObjectTypeDefinition type : types) {
+            builder.type(type.getName(), typeWiring -> {
+                for (FieldDefinition field : type.getFieldDefinitions()) {
+                    try {
+                        DataFetcher<Object> fetcher = getDataFetcher(field, r);
+                        if (fetcher != null) {
+                            typeWiring.dataFetcher(field.getName(), fetcher);
+                        }
+                    } catch (SlingGraphQLException e) {
+                        throw e;
+                    } catch (Exception e) {
+                        throw new SlingGraphQLException("Exception while building wiring.", e);
+                    }
+                }
+                handleConnectionTypes(type, typeRegistry);
+                return typeWiring;
+            });
+        }
+        scalars.forEach(builder::scalar);
+        List<UnionTypeDefinition> unionTypes = typeRegistry.getTypes(UnionTypeDefinition.class);
+        for (UnionTypeDefinition type : unionTypes) {
+            wireTypeResolver(builder, type, r);
+        }
+        List<InterfaceTypeDefinition> interfaceTypes = typeRegistry.getTypes(InterfaceTypeDefinition.class);
+        for (InterfaceTypeDefinition type : interfaceTypes) {
+            wireTypeResolver(builder, type, r);
+        }
+        return builder.build();
+    }
+
+    private <T extends TypeDefinition<T>> void wireTypeResolver(RuntimeWiring.Builder builder, TypeDefinition<T> type, Resource r) {
+        try {
+            TypeResolver resolver = getTypeResolver(type, r);
+            if (resolver != null) {
+                builder.type(type.getName(), typeWriting -> typeWriting.typeResolver(resolver));
+            }
+        } catch (SlingGraphQLException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new SlingGraphQLException("Exception while building wiring.", e);
+        }
+    }
+
+    private String getDirectiveArgumentValue(Directive d, String name) {
+        final Argument a = d.getArgument(name);
+        if (a != null && a.getValue() instanceof StringValue) {
+            return ((StringValue) a.getValue()).getValue();
+        }
+        return null;
+    }
+
+    private @NotNull String validateFetcherName(String name) {
+        if (SlingDataFetcherSelector.nameMatchesPattern(name)) {
+            return name;
+        }
+        throw new SlingGraphQLException(String.format("Invalid fetcher name %s, does not match %s",
+                name, SlingDataFetcherSelector.FETCHER_NAME_PATTERN));
+    }
+
+    private @NotNull String validateResolverName(String name) {
+        if (SlingTypeResolverSelector.nameMatchesPattern(name)) {
+            return name;
+        }
+        throw new SlingGraphQLException(String.format("Invalid type resolver name %s, does not match %s",
+                name, SlingTypeResolverSelector.RESOLVER_NAME_PATTERN));
+    }
+
+    private DataFetcher<Object> getDataFetcher(FieldDefinition field, Resource currentResource) {
+        DataFetcher<Object> result = null;
+        final Directive d = field.getDirective(FETCHER_DIRECTIVE);
+        if (d != null) {
+            final String name = validateFetcherName(getDirectiveArgumentValue(d, FETCHER_NAME));
+            final String options = getDirectiveArgumentValue(d, FETCHER_OPTIONS);
+            final String source = getDirectiveArgumentValue(d, FETCHER_SOURCE);
+            SlingDataFetcher<Object> f = dataFetcherSelector.getSlingFetcher(name);
+            if (f != null) {
+                result = new SlingDataFetcherWrapper<>(f, currentResource, options, source);
+            }
+        }
+        return result;
+    }
+
+    private <T extends TypeDefinition<T>> TypeResolver getTypeResolver(TypeDefinition<T> typeDefinition, Resource currentResource) {
+        TypeResolver resolver = null;
+        final Directive d = typeDefinition.getDirective(RESOLVER_DIRECTIVE);
+        if (d != null) {
+            final String name = validateResolverName(getDirectiveArgumentValue(d, RESOLVER_NAME));
+            final String options = getDirectiveArgumentValue(d, RESOLVER_OPTIONS);
+            final String source = getDirectiveArgumentValue(d, RESOLVER_SOURCE);
+            SlingTypeResolver<Object> r = typeResolverSelector.getSlingTypeResolver(name);
+            if (r != null) {
+                resolver = new SlingTypeResolverWrapper(r, currentResource, options, source);
+            }
+        }
+        return resolver;
+    }
+
+    private @Nullable String prepareSchemaDefinition(@NotNull SchemaProvider schemaProvider,
+                                                     @NotNull org.apache.sling.api.resource.Resource resource,
+                                                     @NotNull String[] selectors) throws ScriptException {
+        try {
+            return schemaProvider.getSchema(resource, selectors);
+        } catch (Exception e) {
+            final ScriptException up = new ScriptException("Schema provider failed");
+            up.initCause(e);
+            LOGGER.info("Schema provider Exception", up);
+            throw up;
+        }
+    }
+
     TypeDefinitionRegistry getTypeDefinitionRegistry(@NotNull String sdl, @NotNull Resource currentResource, @NotNull String[] selectors) {
         readLock.lock();
         String newHash = SHA256Hasher.getHash(sdl);
@@ -250,6 +385,12 @@ public class DefaultQueryExecutor implements QueryExecutor {
         } finally {
             readLock.unlock();
         }
+    }
+
+    private GraphQLSchema buildSchema(@NotNull TypeDefinitionRegistry typeRegistry, @NotNull Resource currentResource) {
+        Iterable<GraphQLScalarType> scalars = scalarsProvider.getCustomScalars(typeRegistry.scalars());
+        RuntimeWiring runtimeWiring = buildWiring(typeRegistry, scalars, currentResource);
+        return schemaGenerator.makeExecutableSchema(typeRegistry, runtimeWiring);
     }
 
     private String getCacheKey(@NotNull Resource resource, @NotNull String[] selectors) {
@@ -322,142 +463,6 @@ public class DefaultQueryExecutor implements QueryExecutor {
                 return super.equals(o) && capacity == other.capacity;
             }
             return false;
-        }
-    }
-
-    private class ExecutionContext {
-        final GraphQLSchema schema;
-        final ExecutionInput input;
-
-        ExecutionContext(@NotNull String query, @NotNull Map<String, Object> variables, @NotNull Resource queryResource, @NotNull String[] selectors)
-                throws ScriptException {
-            final String schemaSdl = prepareSchemaDefinition(schemaProvider, queryResource, selectors);
-            if (schemaSdl == null) {
-                throw new SlingGraphQLException(String.format("Cannot get a schema for resource %s and selectors %s.", queryResource,
-                        Arrays.toString(selectors)));
-            }
-            LOGGER.debug("Resource {} maps to GQL schema {}", queryResource.getPath(), schemaSdl);
-            final TypeDefinitionRegistry typeDefinitionRegistry = getTypeDefinitionRegistry(schemaSdl, queryResource, selectors);
-            Iterable<GraphQLScalarType> scalars = scalarsProvider.getCustomScalars(typeDefinitionRegistry.scalars());
-            RuntimeWiring runtimeWiring = buildWiring(typeDefinitionRegistry, scalars, queryResource);
-            schema = schemaGenerator.makeExecutableSchema(typeDefinitionRegistry, runtimeWiring);
-            input = ExecutionInput.newExecutionInput()
-                    .query(query)
-                    .variables(variables)
-                    .build();
-
-        }
-
-        private RuntimeWiring buildWiring(TypeDefinitionRegistry typeRegistry, Iterable<GraphQLScalarType> scalars, Resource r) {
-            List<ObjectTypeDefinition> types = typeRegistry.getTypes(ObjectTypeDefinition.class);
-            RuntimeWiring.Builder builder = RuntimeWiring.newRuntimeWiring();
-            for (ObjectTypeDefinition type : types) {
-                builder.type(type.getName(), typeWiring -> {
-                    for (FieldDefinition field : type.getFieldDefinitions()) {
-                        try {
-                            DataFetcher<Object> fetcher = getDataFetcher(field, r);
-                            if (fetcher != null) {
-                                typeWiring.dataFetcher(field.getName(), fetcher);
-                            }
-                        } catch (SlingGraphQLException e) {
-                            throw e;
-                        } catch (Exception e) {
-                            throw new SlingGraphQLException("Exception while building wiring.", e);
-                        }
-                    }
-                    return typeWiring;
-                });
-            }
-            scalars.forEach(builder::scalar);
-            List<UnionTypeDefinition> unionTypes = typeRegistry.getTypes(UnionTypeDefinition.class);
-            for (UnionTypeDefinition type : unionTypes) {
-                wireTypeResolver(builder, type, r);
-            }
-            List<InterfaceTypeDefinition> interfaceTypes = typeRegistry.getTypes(InterfaceTypeDefinition.class);
-            for (InterfaceTypeDefinition type : interfaceTypes) {
-                wireTypeResolver(builder, type, r);
-            }
-            return builder.build();
-        }
-
-        private <T extends TypeDefinition<T>> void wireTypeResolver(RuntimeWiring.Builder builder, TypeDefinition<T> type, Resource r) {
-            try {
-                TypeResolver resolver = getTypeResolver(type, r);
-                if (resolver != null) {
-                    builder.type(type.getName(), typeWriting -> typeWriting.typeResolver(resolver));
-                }
-            } catch (SlingGraphQLException e) {
-                throw e;
-            } catch (Exception e) {
-                throw new SlingGraphQLException("Exception while building wiring.", e);
-            }
-        }
-
-        private DataFetcher<Object> getDataFetcher(FieldDefinition field, Resource currentResource) {
-            DataFetcher<Object> result = null;
-            final Directive d = field.getDirective(FETCHER_DIRECTIVE);
-            if (d != null) {
-                final String name = validateFetcherName(getDirectiveArgumentValue(d, FETCHER_NAME));
-                final String options = getDirectiveArgumentValue(d, FETCHER_OPTIONS);
-                final String source = getDirectiveArgumentValue(d, FETCHER_SOURCE);
-                SlingDataFetcher<Object> f = dataFetcherSelector.getSlingFetcher(name);
-                if (f != null) {
-                    result = new SlingDataFetcherWrapper<>(f, currentResource, options, source);
-                }
-            }
-            return result;
-        }
-
-        private <T extends TypeDefinition<T>> TypeResolver getTypeResolver(TypeDefinition<T> typeDefinition, Resource currentResource) {
-            TypeResolver resolver = null;
-            final Directive d = typeDefinition.getDirective(RESOLVER_DIRECTIVE);
-            if (d != null) {
-                final String name = validateResolverName(getDirectiveArgumentValue(d, RESOLVER_NAME));
-                final String options = getDirectiveArgumentValue(d, RESOLVER_OPTIONS);
-                final String source = getDirectiveArgumentValue(d, RESOLVER_SOURCE);
-                SlingTypeResolver<Object> r = typeResolverSelector.getSlingTypeResolver(name);
-                if (r != null) {
-                    resolver = new SlingTypeResolverWrapper(r, currentResource, options, source);
-                }
-            }
-            return resolver;
-        }
-
-        private String getDirectiveArgumentValue(Directive d, String name) {
-            final Argument a = d.getArgument(name);
-            if (a != null && a.getValue() instanceof StringValue) {
-                return ((StringValue) a.getValue()).getValue();
-            }
-            return null;
-        }
-
-        private @NotNull String validateFetcherName(String name) {
-            if (SlingDataFetcherSelector.nameMatchesPattern(name)) {
-                return name;
-            }
-            throw new SlingGraphQLException(String.format("Invalid fetcher name %s, does not match %s",
-                    name, SlingDataFetcherSelector.FETCHER_NAME_PATTERN));
-        }
-
-        private @NotNull String validateResolverName(String name) {
-            if (SlingTypeResolverSelector.nameMatchesPattern(name)) {
-                return name;
-            }
-            throw new SlingGraphQLException(String.format("Invalid type resolver name %s, does not match %s",
-                    name, SlingTypeResolverSelector.RESOLVER_NAME_PATTERN));
-        }
-
-        private @Nullable String prepareSchemaDefinition(@NotNull SchemaProvider schemaProvider,
-                                                         @NotNull org.apache.sling.api.resource.Resource resource,
-                                                         @NotNull String[] selectors) throws ScriptException {
-            try {
-                return schemaProvider.getSchema(resource, selectors);
-            } catch (Exception e) {
-                final ScriptException up = new ScriptException("Schema provider failed");
-                up.initCause(e);
-                LOGGER.info("Schema provider Exception", up);
-                throw up;
-            }
         }
     }
 

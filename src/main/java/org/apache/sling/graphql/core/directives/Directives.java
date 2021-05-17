@@ -29,6 +29,10 @@ import graphql.language.TypeName;
 
 public class Directives {
 
+    private Directives() {}
+    
+    public static final String TYPE_STRING = "String";
+
     public static final DirectiveDefinition CONNECTION = DirectiveDefinition.newDirectiveDefinition()
             .name("connection")
             .directiveLocation(DirectiveLocation.newDirectiveLocation().name(Introspection.DirectiveLocation.FIELD_DEFINITION.name()).build())
@@ -37,7 +41,7 @@ public class Directives {
                     InputValueDefinition.newInputValueDefinition()
                             .name("for")
                             .description(new Description("The type for which the connection is created.", null, false))
-                            .type(NonNullType.newNonNullType(TypeName.newTypeName("String").build()).build())
+                            .type(NonNullType.newNonNullType(TypeName.newTypeName(TYPE_STRING).build()).build())
                             .build()
             )
             .build();
@@ -50,14 +54,14 @@ public class Directives {
                     InputValueDefinition.newInputValueDefinition()
                             .name("name")
                             .description(new Description("The name with which the SlingDataFetcher was registered.", null, false))
-                            .type(NonNullType.newNonNullType(TypeName.newTypeName("String").build()).build())
+                            .type(NonNullType.newNonNullType(TypeName.newTypeName(TYPE_STRING).build()).build())
                             .build()
             )
             .inputValueDefinition(
                     InputValueDefinition.newInputValueDefinition()
                             .name("options")
                             .description(new Description("Options passed to the SlingDataFetcher.", null, false))
-                            .type(TypeName.newTypeName("String").build())
+                            .type(TypeName.newTypeName(TYPE_STRING).build())
                             .defaultValue(new StringValue(""))
                             .build()
             )
@@ -65,7 +69,7 @@ public class Directives {
                     InputValueDefinition.newInputValueDefinition()
                             .name("source")
                             .description(new Description("Source information passed to the SlingDataFetcher.", null, false))
-                            .type(TypeName.newTypeName("String").build())
+                            .type(TypeName.newTypeName(TYPE_STRING).build())
                             .defaultValue(new StringValue(""))
                             .build()
             )
@@ -80,14 +84,14 @@ public class Directives {
                     InputValueDefinition.newInputValueDefinition()
                             .name("name")
                             .description(new Description("The name with which the SlingTypeResolver was registered.", null, false))
-                            .type(NonNullType.newNonNullType(TypeName.newTypeName("String").build()).build())
+                            .type(NonNullType.newNonNullType(TypeName.newTypeName(TYPE_STRING).build()).build())
                             .build()
             )
             .inputValueDefinition(
                     InputValueDefinition.newInputValueDefinition()
                             .name("options")
                             .description(new Description("Options passed to the SlingTypeResolver.", null, false))
-                            .type(TypeName.newTypeName("String").build())
+                            .type(TypeName.newTypeName(TYPE_STRING).build())
                             .defaultValue(new StringValue(""))
                             .build()
             )
@@ -95,7 +99,7 @@ public class Directives {
                     InputValueDefinition.newInputValueDefinition()
                             .name("source")
                             .description(new Description("Source information passed to the SlingTypeResolver.", null, false))
-                            .type(TypeName.newTypeName("String").build())
+                            .type(TypeName.newTypeName(TYPE_STRING).build())
                             .defaultValue(new StringValue(""))
                             .build()
             )
