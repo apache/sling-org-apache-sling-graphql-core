@@ -84,12 +84,15 @@ schemas dynamically, taking request selectors into account.
 Unless you have specific needs not covered by this mechanism, there's no need to implement your
 own `SchemaProvider` services.
 
-## Built-in directives
+## Built-in GraphQL Schema Directives
 
-Version 0.0.10 of the Apache Sling GraphQL Core introduces the concept of built-in directives. The `@fetcher` and
-`@resolver` directives were supported before as well as part of the schema definition. However, starting from version
-0.0.10 their schema definition is redundant, since all schemas will now be automatically extended to provide support
-for the built-in directives.
+Since version 0.0.10 of this module, a number of GraphQL schema directives are built-in to support specific
+features. As of that version, the `@fetcher`, `@resolver` and `@connection` directives described below
+can be used directly, without having to declare them explicitly in the schema with the `directive`
+statement that was required before.
+
+Declaring these directives explicitly is still supported for backwards compatibility with existing
+schemas, but not needed anymore.
 
 ### SlingDataFetcher selection using the `@fetcher` directive
 
@@ -102,11 +105,12 @@ The following built-in `@fetcher` directive is defined by this module:
         source : String = ""
     ) on FIELD_DEFINITION
 
-A field using the built-in `@fetcher` directive allows selecting a specific `SlingDataFetcher` service to return the appropriate data.
+It allows for selecting a specific `SlingDataFetcher` service to return the appropriate data, as in the
+examples below.
 
 Fileds which do not have such a directive will be retrieved using the default data fetcher.
 
-Here's a simple example, the test code has more:
+Here are a few examples, the test code has more of them:
 
     type Query {
       withTestingSelector : TestData @fetcher(name:"test/pipe")
@@ -163,7 +167,7 @@ directive has the following definition:
       for: String!
     ) on FIELD_DEFINITION
 
-With this in mind, your schema that supports pagination can look like:
+To allow schemas to be ehanced with pagination support, like in this example:
 
     type Query {
         paginatedHumans (after : String, limit : Int) : HumanConnection @connection(for: "Human") @fetcher(name:"humans/connection")
@@ -175,6 +179,28 @@ With this in mind, your schema that supports pagination can look like:
         address: String
     }
 
+Using this directive as in the above example adds the following types to the schema to provide paginated
+output that follows the Relay spec:
+
+    type PageInfo {
+        startCursor : String
+        endCursor : String
+        hasPreviousPage : Boolean
+        hasNextPage : Boolean
+    }
+
+    type HumanEdge {
+        cursor: String
+        node: Human
+    }
+
+    type HumanConnection {
+        edges : [HumanEdge]
+        pageInfo : PageInfo
+    }
+
+### How to implement a SlingDataFetcher that provides a paginated result set
+
 The [GenericConnection](./src/main/java/org/apache/sling/graphql/core/helpers/pagination/GenericConnection.java) class,
 together with the [`org.apache.sling.graphql.api.pagination`](./src/main/java/org/apache/sling/graphql/api/pagination) API
 provide support for paginated results. With this utility class, you just need to supply an `Iterator` on your data, a
@@ -183,19 +209,65 @@ page start and length.
 
 The [QueryDataFetcherComponent](./src/test/java/org/apache/sling/graphql/core/mocks/QueryDataFetcherComponent.java) provides a usage example: 
 
-    // fake test data simulating a query
-    final List<Resource> data = new ArrayList<>();
-    data.add(env.getCurrentResource());
-    data.add(env.getCurrentResource().getParent());
-    data.add(env.getCurrentResource().getParent().getParent());
+    @Override
+    public Object get(SlingDataFetcherEnvironment env) throws Exception {
+      // fake test data simulating a query
+      final List<Resource> data = new ArrayList<>();
+      data.add(env.getCurrentResource());
+      data.add(env.getCurrentResource().getParent());
+      data.add(env.getCurrentResource().getParent().getParent());
 
-    // how to build a unique cursor that points to one of our data objects
-    final Function<Resource, String> cursorStringProvider = r -> r.getPath();
+      // Define how to build a unique cursor that points to one of our data objects
+      final Function<Resource, String> cursorStringProvider = r -> r.getPath();
 
-    // return a GenericConnection that the library will introspect and serialize
-    return new GenericConnection.Builder<>(data.iterator(), cursorStringProvider)
-      withLimit(5)
-      .build();
+      // return a GenericConnection that the library will introspect and serialize
+      return new GenericConnection.Builder<>(data.iterator(), cursorStringProvider)
+        .withLimit(5)
+        .build();
+    }
+
+The above data fetcher code produces the following output, with the `GenericConnection` helper taking
+care of the pagination logic and of generating the required data:
+
+    {
+      "data": {
+        "oneSchemaQuery": {
+          "pageInfo": {
+            "startCursor": "L2NvbnRlbnQvZ3JhcGhxbC9vbmU=",
+            "endCursor": "L2NvbnRlbnQ=",
+            "hasPreviousPage": false,
+            "hasNextPage": false
+          },
+          "edges": [
+            {
+              "cursor": "L2NvbnRlbnQvZ3JhcGhxbC9vbmU=",
+              "node": {
+                "path": "/content/graphql/one",
+                "resourceType": "graphql/test/one"
+              }
+            },
+            {
+              "cursor": "L2NvbnRlbnQvZ3JhcGhxbA==",
+              "node": {
+                "path": "/content/graphql",
+                "resourceType": "graphql/test/root"
+              }
+            },
+            {
+              "cursor": "L2NvbnRlbnQ=",
+              "node": {
+                "path": "/content",
+                "resourceType": "sling:OrderedFolder"
+              }
+            }
+          ]
+        }
+      }
+    }
+
+Usage of this `GenericConnection` helper is optional, although recommended for ease of use and consistency. As long
+as the `SlingDataFetcher` provides a result that implements the [`org.apache.sling.graphql.api.pagination.Connection`](./src/main/java/org/apache/sling/graphql/api/pagination/Connection.java),
+the output will be according to the Relay spec.
 
 ## Caching: Persisted queries API
 
