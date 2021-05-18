@@ -31,7 +31,7 @@ import org.apache.sling.graphql.core.mocks.TestUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.apache.sling.graphql.core.engine.ResourceQueryTestBase;
-import org.apache.sling.graphql.core.helpers.pagination.GenericConnection;
+import org.apache.sling.graphql.helpers.GenericConnection;
 import org.apache.sling.graphql.core.mocks.HumanDTO;
 import org.apache.sling.graphql.api.SlingDataFetcher;
 import org.apache.sling.graphql.api.SlingDataFetcherEnvironment;

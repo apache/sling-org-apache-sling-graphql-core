@@ -26,7 +26,7 @@ import java.util.function.Function;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.graphql.api.SlingDataFetcher;
 import org.apache.sling.graphql.api.SlingDataFetcherEnvironment;
-import org.apache.sling.graphql.core.helpers.pagination.GenericConnection;
+import org.apache.sling.graphql.helpers.GenericConnection;
 import org.osgi.service.component.annotations.Component;
 
 @Component(service=SlingDataFetcher.class, property = { "name=test/query"})
