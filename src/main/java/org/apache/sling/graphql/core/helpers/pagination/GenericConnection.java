@@ -17,7 +17,7 @@
  * under the License.
  */
 
- package org.apache.sling.graphql.core.helpers.pagination;
+package org.apache.sling.graphql.core.helpers.pagination;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -35,11 +35,11 @@ import org.osgi.annotation.versioning.ConsumerType;
 
 /** As per https://relay.dev/graphql/connections.htm a "connection"
  *  is a page of results for a paginated query.
- * 
+ *
  *  Use the {@link Builder} class to build a Connection that outputs
  *  the supplied data, optionally sliced based on a "start after" cursor
  *  and a limit on the number of items output.
-*/
+ */
 @ConsumerType
 public final class GenericConnection<T> implements Connection<T>, PageInfo {
 
@@ -177,17 +177,20 @@ public final class GenericConnection<T> implements Connection<T>, PageInfo {
 
         /** Builder for a Connection that will output the supplied data, optionally skipping items
          *  at the beginning and considering a set maximum of items.
-         * 
+         *
          *  @param dataIterator the connection's data - must include the item that startAfter points to if that
-         *      Cursor is set, but can contain less items that set by the "limit" parameter.          
+         *      Cursor is set, but can contain less items that set by the "limit" parameter.
          *  @param cursorStringProvider extracts a String from an object of type T to create a Cursor
-        */
+         */
         public Builder(@NotNull Iterator<T> dataIterator, @NotNull Function<T, String> cursorStringProvider) {
             connection = new GenericConnection<>(dataIterator, cursorStringProvider);
         }
 
-        /** Set a limit on the number of items returned by the connection.
-         * @param limit must be <= MAX_LIMIT
+        /**
+         * Set a limit on the number of items returned by the connection.
+         *
+         * @param limit must be &lt;= MAX_LIMIT
+         * @return this builder
          */
         public Builder<T> withLimit(int limit) {
             if(limit < 0) {
@@ -200,31 +203,44 @@ public final class GenericConnection<T> implements Connection<T>, PageInfo {
             return this;
         }
 
-        /** If set, the connection will skip to the first item after
-         *  this Cursor.
+        /**
+         * If set, the connection will skip to the first item after the {@code c} {@link Cursor}.
+         *
+         * @param c the cursor for {@code startAfter}
+         * @return this builder
          */
         public Builder<T> withStartAfter(@Nullable Cursor c) {
             connection.startAfter = c;
             return this;
         }
 
-        /** Force the "has previous page" value, in case the supplied
-         *  data doesn't expose that but a new query would find it
+        /**
+         * Force the "has previous page" value, in case the supplied data doesn't expose that but a new query would find it.
+         *
+         * @param b a {@code boolean} that can force the {@code hasPreviousPage}
+         * @return this builder
          */
         public Builder<T> withPreviousPage(boolean b) {
             connection.hasPreviousPage = b;
             return this;
         }
 
-        /** Force the "has next page" value, in case the supplied
-         *  data doesn't expose that but a new query would find it
+        /**
+         * Force the "has next page" value, in case the supplied data doesn't expose that but a new query would find it
+         *
+         * @param b a {@code boolean} that can force the {@code hasNextPage}
+         * @return this builder
          */
         public Builder<T> withNextPage(boolean b) {
             connection.hasNextPage = b;
             return this;
         }
 
-        /** Build the Connection - can only be called once */
+        /**
+         * Build the Connection - can only be called once.
+         *
+         * @return a {@link Connection}
+         */
         public Connection<T> build() {
             connection.initialize();
             return connection;

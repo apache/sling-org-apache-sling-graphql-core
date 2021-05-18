@@ -18,11 +18,11 @@
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 package org.apache.sling.graphql.api;
 
+import java.util.List;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
-
-import java.util.List;
 
 /**
  * Interface to wrap information from <a href="https://javadoc.io/doc/com.graphql-java/graphql-java/latest/graphql/schema/DataFetchingFieldSelectionSet.html">GraphQL DataFetchingFieldSelectionSet</a>.
@@ -59,18 +59,26 @@ import java.util.List;
 public interface SelectionSet {
 
     /**
+     * Returns a list of the immediate fields in the selection.
+     *
      * @return the immediate list of fields in the selection.
      */
     @NotNull
     List<SelectedField> getFields();
 
     /**
+     * Returns {@code true} if the selection set contains the field identified by {@code qualifiedName}.
+     *
+     * @param qualifiedName the qualified name of the field
      * @return true if the field qualified name exist.
      */
     boolean contains(String qualifiedName);
 
     /**
-     * @return SelectedField for qualified name.
+     * Returns the fields identified by {@code qualifiedName} or {@code null}.
+     *
+     * @param qualifiedName the qualified name of the field
+     * @return the {@link SelectedField} for the passed {@code qualifiedName} or {@code null}
      */
     @Nullable
     SelectedField get(String qualifiedName);

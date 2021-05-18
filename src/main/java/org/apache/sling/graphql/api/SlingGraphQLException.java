@@ -28,6 +28,8 @@ public class SlingGraphQLException extends RuntimeException {
 
     /**
      * Creates a {@code SlingGraphQLException} without a known cause.
+     *
+     * @param message the exception's message
      */
     public SlingGraphQLException(String message) {
         this(message, null);
@@ -35,6 +37,9 @@ public class SlingGraphQLException extends RuntimeException {
 
     /**
      * Creates a {@code SlingGraphQLException} with a known cause.
+     *
+     * @param message the exception's message
+     * @param cause   the cause of this exception
      */
     public SlingGraphQLException(String message, Throwable cause) {
         super(message, cause);

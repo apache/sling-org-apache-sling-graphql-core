@@ -37,8 +37,8 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-
     <org.ops4j.pax.exam.version>4.13.3</org.ops4j.pax.exam.version>
+    <site.javadoc.exclude>org.apache.sling.graphql.core.*</site.javadoc.exclude>
     <!-- additional options that can be passed to Pax before executing the tests -->
     <pax.vm.options />
   </properties>
