@@ -227,7 +227,9 @@ The [QueryDataFetcherComponent](./src/test/java/org/apache/sling/graphql/core/mo
     }
 
 The above data fetcher code produces the following output, with the `GenericConnection` helper taking
-care of the pagination logic and of generating the required data:
+care of the pagination logic and of generating the required data. This follows the
+[Relay Connections](https://relay.dev/graphql/connections.htm) specification, which some GraphQL clients
+should support out of the box.
 
     {
       "data": {
