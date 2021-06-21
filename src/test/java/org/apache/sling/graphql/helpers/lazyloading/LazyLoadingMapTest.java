@@ -295,6 +295,7 @@ public class LazyLoadingMapTest {
     @Test
     public void applesAndOranges() {
         final LazyLoadingMap<Integer, String> map = new LazyLoadingMap<>();
-        assertNotEquals(map, "A string");
+        final boolean isEqual = map.equals((Object)"A string");
+        assertFalse(isEqual);
     }
 }
