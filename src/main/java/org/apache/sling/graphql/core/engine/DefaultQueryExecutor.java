@@ -198,7 +198,6 @@ public class DefaultQueryExecutor implements QueryExecutor {
     @Override
     public @NotNull Map<String, Object> execute(@NotNull String query, @NotNull Map<String, Object> variables,
                                                 @NotNull Resource queryResource, @NotNull String[] selectors) {
-        String schemaDef = null;
         try {
             final ExecutionContext ctx = new ExecutionContext(query, variables, queryResource, selectors);
             final GraphQL graphQL = GraphQL.newGraphQL(ctx.schema).build();
@@ -219,25 +218,16 @@ public class DefaultQueryExecutor implements QueryExecutor {
                     }
                 }
                 if (LOGGER.isErrorEnabled()) {
-                    final String errorMessage = String.format("Query failed for Resource %s: query=%s Errors:%s",
-                            queryResource.getPath(), cleanLog.sanitize(query), errors);
-                    if (LOGGER.isDebugEnabled()) {
-                        LOGGER.error(String.format("%s, schema=%s", errorMessage, schemaDef));
-                    } else {
-                        LOGGER.error(errorMessage);
-                    }
+                    LOGGER.error("Query failed for Resource {}: query={} Errors:{}, selectors={}",
+                            queryResource.getPath(), cleanLog.sanitize(query), errors, String.join(", ", selectors));
                 }
             }
             LOGGER.debug("ExecutionResult.isDataPresent={}", result.isDataPresent());
             return result.toSpecification();
         } catch (Exception e) {
-            final String message =
-                    String.format("Query failed for Resource %s: query=%s", queryResource.getPath(), cleanLog.sanitize(query));
-            if (LOGGER.isDebugEnabled()) {
-                LOGGER.error(String.format("%s, schema=%s", message, schemaDef), e);
-            } else {
-                LOGGER.error(message, e);
-            }
+            final String message = String.format("Query failed for Resource %s: query=%s, selectors={}",
+                    queryResource.getPath(), cleanLog.sanitize(query), String.join(", ", selectors));
+            LOGGER.error(message, e);
             return SlingGraphQLErrorHelper.toSpecification(message, e);
         }
     }
