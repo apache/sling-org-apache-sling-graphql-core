@@ -203,8 +203,8 @@ public class DefaultQueryExecutor implements QueryExecutor {
             final ExecutionContext ctx = new ExecutionContext(query, variables, queryResource, selectors);
             final GraphQL graphQL = GraphQL.newGraphQL(ctx.schema).build();
             if (LOGGER.isDebugEnabled()) {
-	            LOGGER.debug("Executing query\n[{}]\nat [{}] with variables [{}]",
-	                    cleanLog.sanitize(query), queryResource.getPath(), cleanLog.sanitize(variables.toString()));
+                LOGGER.debug("Executing query\n[{}]\nat [{}] with variables [{}]",
+                        cleanLog.sanitize(query), queryResource.getPath(), cleanLog.sanitize(variables.toString()));
             }
             final ExecutionResult result = graphQL.execute(ctx.input);
             if (!result.getErrors().isEmpty()) {
@@ -219,14 +219,13 @@ public class DefaultQueryExecutor implements QueryExecutor {
                     }
                 }
                 if (LOGGER.isErrorEnabled()) {
-	                final String errorMessage = String.format("Query failed for Resource %s: query=%s Errors:%s", 
-	                		queryResource.getPath(), cleanLog.sanitize(query), errors);
-	                if (LOGGER.isDebugEnabled()) {                   
-	                    LOGGER.error(String.format("%s, schema=%s", errorMessage, schemaDef));
-	                }
-	                else {
-	                	LOGGER.error(errorMessage);
-	                }
+                    final String errorMessage = String.format("Query failed for Resource %s: query=%s Errors:%s",
+                            queryResource.getPath(), cleanLog.sanitize(query), errors);
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.error(String.format("%s, schema=%s", errorMessage, schemaDef));
+                    } else {
+                        LOGGER.error(errorMessage);
+                    }
                 }
             }
             LOGGER.debug("ExecutionResult.isDataPresent={}", result.isDataPresent());
@@ -234,11 +233,10 @@ public class DefaultQueryExecutor implements QueryExecutor {
         } catch (Exception e) {
             final String message =
                     String.format("Query failed for Resource %s: query=%s", queryResource.getPath(), cleanLog.sanitize(query));
-            if(LOGGER.isDebugEnabled()) {
-            	LOGGER.error(String.format("%s, schema=%s", message, schemaDef), e);
-            }
-            else {
-            	LOGGER.error(message, e);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.error(String.format("%s, schema=%s", message, schemaDef), e);
+            } else {
+                LOGGER.error(message, e);
             }
             return SlingGraphQLErrorHelper.toSpecification(message, e);
         }
