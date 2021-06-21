@@ -225,7 +225,7 @@ public class DefaultQueryExecutor implements QueryExecutor {
             LOGGER.debug("ExecutionResult.isDataPresent={}", result.isDataPresent());
             return result.toSpecification();
         } catch (Exception e) {
-            final String message = String.format("Query failed for Resource %s: query=%s, selectors={}",
+            final String message = String.format("Query failed for Resource %s: query=%s, selectors=%s",
                     queryResource.getPath(), cleanLog.sanitize(query), String.join(", ", selectors));
             LOGGER.error(message, e);
             return SlingGraphQLErrorHelper.toSpecification(message, e);
