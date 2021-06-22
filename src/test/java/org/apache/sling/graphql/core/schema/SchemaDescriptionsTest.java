@@ -46,8 +46,8 @@ import org.mockito.Mockito;
 import net.minidev.json.JSONArray;
 
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 
 /**
  * Test the fields descriptions which are part of the schema as per
