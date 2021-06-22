@@ -44,18 +44,19 @@ public class LogCapture extends ListAppender<ILoggingEvent> {
         logger.addAppender(this);
     }
 
-    public void assertContains(String substring) {
-        final boolean result = this.list.stream()
-            .filter(event -> event.getFormattedMessage().contains(substring))
-            .findFirst()
-            .isPresent()
-        ;
-        if(!result) {
-            if(verboseFailure) {
-                fail(String.format("No log message contains [%s] in log\n%s", substring, this.list.toString()));
-            } else {
-                fail(String.format("No log message contains [%s]", substring));
+    public boolean anyMatch(Predicate<ILoggingEvent> p) {
+        return this.list.stream().anyMatch(p);
+    }
+
+    public void assertContains(Level atLevel, String ... substrings) {
+        Stream.of(substrings).forEach(substring -> {
+            if(!anyMatch(event -> event.getLevel() == atLevel && event.getFormattedMessage().contains(substring))) {
+                if(verboseFailure) {
+                    fail(String.format("No log message contains [%s] in log\n%s", substring, this.list.toString()));
+                } else {
+                    fail(String.format("No log message contains [%s]", substring));
+                }
             }
-        }
+        });
     }
 }
