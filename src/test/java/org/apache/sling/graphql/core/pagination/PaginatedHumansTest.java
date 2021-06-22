@@ -27,6 +27,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import org.apache.sling.graphql.api.SlingTypeResolver;
+import org.apache.sling.graphql.api.SlingTypeResolverEnvironment;
 import org.apache.sling.graphql.core.mocks.TestUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -63,6 +65,16 @@ public class PaginatedHumansTest extends ResourceQueryTestBase {
         }
     }
 
+    static class BeingResolver implements SlingTypeResolver<Object> {
+        @Override
+        public @Nullable Object getType(@NotNull SlingTypeResolverEnvironment e) {
+            if (e.getObject() instanceof HumanDTO) {
+                return e.getObjectType("Human");
+            }
+            return null;
+        }
+    }
+
     @Override
     protected void setupAdditionalServices() {
         final List<HumanDTO> humans = new ArrayList<>();
@@ -70,81 +82,120 @@ public class PaginatedHumansTest extends ResourceQueryTestBase {
             humans.add(new HumanDTO("human-" + i, "Luke-" + i, "Tatooine"));
         }
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "humans/connection", new HumansPageFetcher(humans));
+        TestUtil.registerSlingTypeResolver(context.bundleContext(), "being/resolver", new BeingResolver());
     }
 
-    private void assertPageInfo(String json, Cursor startCursor, Cursor endCursor, Boolean hasPreviousPage, Boolean hasNextPage) {
-        assertThat(json, hasJsonPath("$.data.paginatedHumans.pageInfo.startCursor", equalTo(startCursor == null ? null : startCursor.toString())));
-        assertThat(json, hasJsonPath("$.data.paginatedHumans.pageInfo.endCursor", equalTo(endCursor == null ? null: endCursor.toString())));
-        assertThat(json, hasJsonPath("$.data.paginatedHumans.pageInfo.hasPreviousPage", equalTo(hasPreviousPage)));
-        assertThat(json, hasJsonPath("$.data.paginatedHumans.pageInfo.hasNextPage", equalTo(hasNextPage)));
+    private void assertPageInfo(String json, String type, Cursor startCursor, Cursor endCursor, Boolean hasPreviousPage,
+                                Boolean hasNextPage) {
+        assertThat(json, hasJsonPath("$.data." + type + ".pageInfo.startCursor", equalTo(startCursor == null ? null : startCursor.toString())));
+        assertThat(json, hasJsonPath("$.data." + type + ".pageInfo.endCursor", equalTo(endCursor == null ? null: endCursor.toString())));
+        assertThat(json, hasJsonPath("$.data." + type + ".pageInfo.hasPreviousPage", equalTo(hasPreviousPage)));
+        assertThat(json, hasJsonPath("$.data." + type + ".pageInfo.hasNextPage", equalTo(hasNextPage)));
     }
 
-    private void assertEdges(String json, int startIndex, int endIndex) {
+    private void assertEdges(String json, String type, int startIndex, int endIndex) {
         int dataIndex = 0;
         for(int i=startIndex; i <= endIndex; i++) {
             final String id = "human-" + i;
             final Cursor c = new Cursor(id);
             final String name = "Luke-" + i;
-            assertThat(json, hasJsonPath("$.data.paginatedHumans.edges[" + dataIndex + "].node.id", equalTo(id)));
-            assertThat(json, hasJsonPath("$.data.paginatedHumans.edges[" + dataIndex + "].node.name", equalTo(name)));
-            assertThat(json, hasJsonPath("$.data.paginatedHumans.edges[" + dataIndex + "].cursor", equalTo(c.toString())));
+            assertThat(json, hasJsonPath("$.data." + type + ".edges[" + dataIndex + "].node.id", equalTo(id)));
+            assertThat(json, hasJsonPath("$.data." + type + ".edges[" + dataIndex + "].node.name", equalTo(name)));
+            assertThat(json, hasJsonPath("$.data." + type + ".edges[" + dataIndex + "].cursor", equalTo(c.toString())));
             dataIndex++;
         }
         final int count = endIndex - startIndex + 1;
-        assertThat(json, hasJsonPath("$.data.paginatedHumans.edges.length()", equalTo(count)));
+        assertThat(json, hasJsonPath("$.data." + type + ".edges.length()", equalTo(count)));
     }
 
     @Test
     public void noArguments() throws Exception {
-        final String json = queryJSON("{ paginatedHumans {"
+        final String paginatedHumansJson = queryJSON("{ paginatedHumans {"
             + " pageInfo { startCursor endCursor hasPreviousPage hasNextPage }"
             + " edges { cursor node { id name }}"
             +"}}");
-        assertEdges(json, 1, 2);
-        assertPageInfo(json, new Cursor("human-1"), new Cursor("human-2"), false, true );
+        assertEdges(paginatedHumansJson, "paginatedHumans", 1, 2);
+        assertPageInfo(paginatedHumansJson, "paginatedHumans", new Cursor("human-1"), new Cursor("human-2"), false, true );
+
+        final String paginatedBeingsJson = queryJSON("{ paginatedBeings {"
+                + " pageInfo { startCursor endCursor hasPreviousPage hasNextPage }"
+                + " edges { cursor node { id name }}"
+                +"}}");
+        assertEdges(paginatedBeingsJson, "paginatedBeings", 1, 2);
+        assertPageInfo(paginatedBeingsJson, "paginatedBeings", new Cursor("human-1"), new Cursor("human-2"), false, true );
     }
 
     @Test
     public void startCursorAndLimit() throws Exception {
         final Cursor start = new Cursor("human-5");
-        final String json = queryJSON("{ paginatedHumans(after:\"" + start + "\", limit:6) {"
+        final String paginatedHumansJson = queryJSON("{ paginatedHumans(after:\"" + start + "\", limit:6) {"
             + " pageInfo { startCursor endCursor hasPreviousPage hasNextPage }"
             + " edges { cursor node { id name }}"
             +"}}");
-        assertEdges(json, 6, 11);
-        assertPageInfo(json, new Cursor("human-6"), new Cursor("human-11"), true, true);
+        assertEdges(paginatedHumansJson, "paginatedHumans", 6, 11);
+        assertPageInfo(paginatedHumansJson, "paginatedHumans", new Cursor("human-6"), new Cursor("human-11"), true, true);
+
+        final String paginatedBeingsJson = queryJSON("{ paginatedBeings(after:\"" + start + "\", limit:6) {"
+                + " pageInfo { startCursor endCursor hasPreviousPage hasNextPage }"
+                + " edges { cursor node { id name }}"
+                +"}}");
+        assertEdges(paginatedBeingsJson, "paginatedBeings", 6, 11);
+        assertPageInfo(paginatedBeingsJson, "paginatedBeings", new Cursor("human-6"), new Cursor("human-11"), true, true);
     }
 
     @Test
     public void startCursorNearEnd() throws Exception {
         final Cursor start = new Cursor("human-84");
-        final String json = queryJSON("{ paginatedHumans(after:\"" + start + "\", limit:60) {"
+        final String paginatedHumansJson = queryJSON("{ paginatedHumans(after:\"" + start + "\", limit:60) {"
             + " pageInfo { startCursor endCursor hasPreviousPage hasNextPage }"
             + " edges { cursor node { id name }}"
             +"}}");
-        assertEdges(json, 85, 89);
-        assertPageInfo(json, new Cursor("human-85"), new Cursor("human-89"), true, false);
+        assertEdges(paginatedHumansJson, "paginatedHumans", 85, 89);
+        assertPageInfo(paginatedHumansJson, "paginatedHumans", new Cursor("human-85"), new Cursor("human-89"), true, false);
+
+        final String paginatedBeingsJson = queryJSON("{ paginatedBeings(after:\"" + start + "\", limit:60) {"
+                + " pageInfo { startCursor endCursor hasPreviousPage hasNextPage }"
+                + " edges { cursor node { id name }}"
+                +"}}");
+        assertEdges(paginatedBeingsJson, "paginatedBeings", 85, 89);
+        assertPageInfo(paginatedBeingsJson, "paginatedBeings", new Cursor("human-85"), new Cursor("human-89"), true, false);
     }
 
     @Test
     public void zeroLimit() throws Exception {
         final Cursor start = new Cursor("human-94");
-        final String json = queryJSON("{ paginatedHumans(after:\"" + start + "\", limit:0) {"
+        final String paginatedHumansJson = queryJSON("{ paginatedHumans(after:\"" + start + "\", limit:0) {"
             + " pageInfo { startCursor endCursor hasPreviousPage hasNextPage }"
             + " edges { cursor node { id name }}"
             +"}}");
-        assertThat(json, hasJsonPath("$.data.paginatedHumans.edges.length()", equalTo(0)));
-        assertPageInfo(json, null, null, false, true);
+        assertThat(paginatedHumansJson, hasJsonPath("$.data.paginatedHumans.edges.length()", equalTo(0)));
+        assertPageInfo(paginatedHumansJson, "paginatedHumans", null, null, false, true);
+
+        final String paginatedBeingsJson = queryJSON("{ paginatedBeings(after:\"" + start + "\", limit:0) {"
+                + " pageInfo { startCursor endCursor hasPreviousPage hasNextPage }"
+                + " edges { cursor node { id name }}"
+                +"}}");
+        assertThat(paginatedBeingsJson, hasJsonPath("$.data.paginatedBeings.edges.length()", equalTo(0)));
+        assertPageInfo(paginatedBeingsJson, "paginatedBeings",null, null, false, true);
     }
 
     @Test
     public void afterCursorNotFound() throws Exception {
         final Cursor notInDataSet = new Cursor("This is not a key from our data set");
-        final String json = queryJSON("{ paginatedHumans(after:\"" + notInDataSet + "\", limit:60) {"
+        final String paginatedHumansJson = queryJSON("{ paginatedHumans(after:\"" + notInDataSet + "\", limit:60) {"
             + " pageInfo { startCursor endCursor hasPreviousPage hasNextPage }"
             + " edges { cursor node { id name }}"
             +"}}");
-        assertThat(json, hasJsonPath("errors"));
-        assertTrue(json.contains("Start cursor not found"));
+        assertThat(paginatedHumansJson, hasJsonPath("errors"));
+        assertTrue(paginatedHumansJson.contains("Start cursor not found"));
+
+        final String paginatedBeingsJson = queryJSON("{ paginatedBeings(after:\"" + notInDataSet + "\", limit:60) {"
+                + " pageInfo { startCursor endCursor hasPreviousPage hasNextPage }"
+                + " edges { cursor node { id name }}"
+                +"}}");
+        assertThat(paginatedBeingsJson, hasJsonPath("errors"));
+        assertTrue(paginatedBeingsJson.contains("Start cursor not found"));
+
+
     }
 }

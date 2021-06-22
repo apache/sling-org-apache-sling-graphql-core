@@ -346,6 +346,7 @@ public class DefaultQueryExecutor implements QueryExecutor {
     }
 
     TypeDefinitionRegistry getTypeDefinitionRegistry(@NotNull String sdl, @NotNull Resource currentResource, @NotNull String[] selectors) {
+        TypeDefinitionRegistry typeRegistry = null;
         readLock.lock();
         String newHash = SHA256Hasher.getHash(sdl);
         /*
@@ -363,23 +364,30 @@ public class DefaultQueryExecutor implements QueryExecutor {
             try {
                 oldHash = resourceToHashMap.get(resourceToHashMapKey);
                 if (!newHash.equals(oldHash)) {
-                    resourceToHashMap.put(resourceToHashMapKey, newHash);
-                    TypeDefinitionRegistry typeRegistry = new SchemaParser().parse(sdl);
+                    typeRegistry = new SchemaParser().parse(sdl);
                     typeRegistry.add(Directives.CONNECTION);
                     typeRegistry.add(Directives.FETCHER);
                     typeRegistry.add(Directives.RESOLVER);
                     for (ObjectTypeDefinition typeDefinition : typeRegistry.getTypes(ObjectTypeDefinition.class)) {
                         handleConnectionTypes(typeDefinition, typeRegistry);
                     }
+                    resourceToHashMap.put(resourceToHashMapKey, newHash);
                     hashToSchemaMap.put(newHash, typeRegistry);
-                    return typeRegistry;
                 }
-                readLock.lock();
+            } catch (Exception e) {
+                LOGGER.error("Unable to generate a TypeRegistry.", e);
             } finally {
+                readLock.lock();
                 writeLock.unlock();
             }
         }
         try {
+            /*
+             * when the cache is disabled we need to return the registry directly, since it will be created for each request
+             */
+            if (typeRegistry != null) {
+                return typeRegistry;
+            }
             return hashToSchemaMap.get(newHash);
         } finally {
             readLock.unlock();
@@ -406,7 +414,7 @@ public class DefaultQueryExecutor implements QueryExecutor {
                     if (!forTypeDefinition.isPresent()) {
                         throw new SlingGraphQLException("Type '" + forType + "' has not been defined.");
                     }
-                    ObjectTypeDefinition forOTD = (ObjectTypeDefinition) forTypeDefinition.get();
+                    TypeDefinition<?> forOTD = forTypeDefinition.get();
                     ObjectTypeDefinition edge = ObjectTypeDefinition.newObjectTypeDefinition().name(forOTD.getName() + "Edge")
                             .fieldDefinition(new FieldDefinition("cursor", new TypeName(TYPE_STRING)))
                             .fieldDefinition(new FieldDefinition("node", new TypeName(forOTD.getName())))

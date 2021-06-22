@@ -17,10 +17,17 @@
 
 type Query {
     paginatedHumans (after : String, limit : Int) : HumanConnection @connection(for: "Human") @fetcher(name:"humans/connection")
+    paginatedBeings (after : String, limit : Int) : BeingConnection @connection(for: "Being") @fetcher(name:"humans/connection")
 }
 
-type Human {
+interface Being @resolver(name: "being/resolver") {
+  id: ID!
+  name: String!
+}
+
+type Human implements Being {
   id: ID!
   name: String!
   address: String
 }
+
