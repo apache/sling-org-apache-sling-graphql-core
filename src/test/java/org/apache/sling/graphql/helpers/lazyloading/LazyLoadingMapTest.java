@@ -37,22 +37,22 @@ import org.junit.Test;
 public class LazyLoadingMapTest {
     private static final String TEST_STRING = "Fritz Frisst etc. etc.";
     private int counter;
-    private Supplier<String> lazyCounter = () -> "X" + String.valueOf(++counter);
+    private Supplier<String> counterSupplier = () -> "X" + String.valueOf(++counter);
+    private final Supplier<String> constantSupplier = () -> TEST_STRING;
+    private LazyLoadingMap<Integer, String> map;
 
     @Before
     public void setup() {
         counter = 0;
+        map = new LazyLoadingMap<>();
     }
 
     @Test
     public void basicTest() {
-        final LazyLoadingMap<Integer, String> map = new LazyLoadingMap<>();
         assertNull(map.get(42));
 
-        map
-            .withSupplier(21, () -> UUID.randomUUID().toString())
-            .withSupplier(42, () -> TEST_STRING)
-        ;
+        map.put(21, () -> UUID.randomUUID().toString());
+        map.put(42, () -> TEST_STRING);
         assertEquals(0, map.getSuppliersCallCount());
         assertEquals(TEST_STRING, map.get(42));
         assertEquals(1, map.getSuppliersCallCount());
@@ -63,19 +63,21 @@ public class LazyLoadingMapTest {
     }
 
     @Test
-    public void addAlsoWorks() {
-        final LazyLoadingMap<Integer, String> map = new LazyLoadingMap<>();
+    public void suppliersAndDirectValues() {
+        map.put(42, counterSupplier);
+        assertEquals("X1", map.get(42));
+        map.get(42);
         map.put(42, TEST_STRING);
         assertEquals(TEST_STRING, map.get(42));
-        map.withSupplier(42, () -> "should not change");
-        assertEquals(TEST_STRING, map.get(42));
-        assertEquals(0, map.getSuppliersCallCount());
+        map.put(42, counterSupplier);
+        assertEquals("X2", map.get(42));
+        map.get(42);
+        assertEquals(2, map.getSuppliersCallCount());
     }
 
     @Test
     public void remove() {
-        final LazyLoadingMap<Integer, String> map = new LazyLoadingMap<>();
-        map.withSupplier(21, lazyCounter);
+        map.put(21, counterSupplier);
         map.put(42, TEST_STRING);
         assertEquals(2, map.size());
         assertEquals(TEST_STRING, map.get(42));
@@ -86,8 +88,8 @@ public class LazyLoadingMapTest {
 
         // Remove before and after computing
         assertEquals(0, map.getSuppliersCallCount());
-        map.withSupplier(112, lazyCounter);
-        map.withSupplier(113, lazyCounter);
+        map.put(112, counterSupplier);
+        map.put(113, counterSupplier);
         assertEquals("X1", map.get(113));
         assertEquals("X1", map.remove(113));
         assertEquals(1, map.getSuppliersCallCount());
@@ -97,16 +99,15 @@ public class LazyLoadingMapTest {
 
     @Test
     public void containsValueComputesEverything() {
-        final LazyLoadingMap<Integer, String> map = new LazyLoadingMap<>();
         assertFalse(map.containsKey(42));
         assertEquals(0, map.getSuppliersCallCount());
 
         assertFalse(map.containsValue("X1"));
-        map.withSupplier(42, lazyCounter);
+        map.put(42, counterSupplier);
         assertTrue(map.containsValue("X1"));
 
         assertFalse(map.containsValue("X2"));
-        map.withSupplier(21, lazyCounter);
+        map.put(21, counterSupplier);
         assertEquals(1, map.getSuppliersCallCount());
         assertTrue(map.containsValue("X1"));
         assertTrue(map.containsValue("X2"));
@@ -114,10 +115,8 @@ public class LazyLoadingMapTest {
 
         assertFalse(map.containsValue(TEST_STRING));
         map.put(71, TEST_STRING);
-        map
-            .withSupplier(92, lazyCounter)
-            .withSupplier(93, lazyCounter)
-        ;
+        map.put(92, counterSupplier);
+        map.put(93, counterSupplier);
         assertTrue(map.containsValue(TEST_STRING));
         assertTrue(map.containsValue("X1"));
         assertTrue(map.containsValue("X2"));
@@ -130,11 +129,10 @@ public class LazyLoadingMapTest {
 
     @Test
     public void containsKey() {
-        final LazyLoadingMap<Integer, String> map = new LazyLoadingMap<>();
         assertFalse(map.containsKey(42));
         assertEquals(0, map.getSuppliersCallCount());
 
-        map.withSupplier(42, lazyCounter);
+        map.put(42, counterSupplier);
         map.put(21, "nothing");
 
         assertTrue(map.containsKey(42));
@@ -146,13 +144,12 @@ public class LazyLoadingMapTest {
 
     @Test
     public void keySet() {
-        final LazyLoadingMap<Integer, String> map = new LazyLoadingMap<>();
         assertEquals(0, map.keySet().size());
         map.put(112, "nothing");
         assertEquals(1, map.keySet().size());
-        map.withSupplier(21, lazyCounter);
-        map.withSupplier(42, lazyCounter);
-        map.withSupplier(110, lazyCounter);
+        map.put(21, counterSupplier);
+        map.put(42, counterSupplier);
+        map.put(110, counterSupplier);
 
         assertEquals(0, map.getSuppliersCallCount());
         map.get(42);
@@ -169,10 +166,9 @@ public class LazyLoadingMapTest {
 
     @Test
     public void entrySet() {
-        final LazyLoadingMap<Integer, String> map = new LazyLoadingMap<>();
         map.put(112, TEST_STRING);
-        map.withSupplier(21, lazyCounter);
-        map.withSupplier(42, lazyCounter);
+        map.put(21, counterSupplier);
+        map.put(42, counterSupplier);
 
         final Set<String> toFind = new HashSet<>();
         toFind.add(TEST_STRING);
@@ -187,10 +183,9 @@ public class LazyLoadingMapTest {
 
     @Test
     public void values() {
-        final LazyLoadingMap<Integer, String> map = new LazyLoadingMap<>();
         map.put(112, TEST_STRING);
-        map.withSupplier(21, lazyCounter);
-        map.withSupplier(42, lazyCounter);
+        map.put(21, counterSupplier);
+        map.put(42, counterSupplier);
 
         final Set<String> toFind = new HashSet<>();
         toFind.add(TEST_STRING);
@@ -206,12 +201,11 @@ public class LazyLoadingMapTest {
 
     @Test
     public void isEmpty() {
-        final LazyLoadingMap<Integer, String> map = new LazyLoadingMap<>();
         assertTrue(map.isEmpty());
 
         map.put(112, TEST_STRING);
         assertFalse(map.isEmpty());
-        map.withSupplier(42, lazyCounter);
+        map.put(42, counterSupplier);
         assertFalse(map.isEmpty());
 
         map.remove(112);
@@ -224,10 +218,9 @@ public class LazyLoadingMapTest {
 
     @Test
     public void nullSupplier() {
-        final LazyLoadingMap<Integer, String> map = new LazyLoadingMap<>();
         final Supplier<String> nullSup = () -> null;
 
-        map.withSupplier(42, nullSup);
+        map.put(42, nullSup);
         assertEquals(0, map.getSuppliersCallCount());
         assertEquals(1, map.size());
 
@@ -242,9 +235,8 @@ public class LazyLoadingMapTest {
 
     @Test
     public void clear() {
-        final LazyLoadingMap<Integer, String> map = new LazyLoadingMap<>();
-        map.withSupplier(21, lazyCounter);
-        map.withSupplier(42, lazyCounter);
+        map.put(21, counterSupplier);
+        map.put(42, counterSupplier);
         assertEquals("X1", map.get(42));
         assertEquals(1, map.getSuppliersCallCount());
         assertEquals(2, map.size());
@@ -256,29 +248,27 @@ public class LazyLoadingMapTest {
 
     @Test
     public void testHashCode() {
-        final LazyLoadingMap<Integer, String> map = new LazyLoadingMap<>();
         int hc = map.hashCode();
         map.put(21, TEST_STRING);
         assertNotEquals(hc, hashCode());
         hc = map.hashCode();
-        map.withSupplier(42, lazyCounter);
+        map.put(42, counterSupplier);
         assertNotEquals(hc, hashCode());
     }
 
     @Test
     public void testEquals() {
-        final Supplier<String> constant = () -> "Some String";
         final LazyLoadingMap<Integer, String> A = new LazyLoadingMap<>();
         final LazyLoadingMap<Integer, String> B = new LazyLoadingMap<>();
         assertEquals(A, B);
 
-        A.withSupplier(42, constant);
+        A.put(42, constantSupplier);
         A.put(21, TEST_STRING);
         assertNotEquals(A, B);
         assertEquals(1, A.getSuppliersCallCount());
         assertEquals(0, B.getSuppliersCallCount());
 
-        B.withSupplier(42, constant);
+        B.put(42, constantSupplier);
         assertNotEquals(A, B);
         B.put(21, TEST_STRING);
         assertEquals(B, A);
@@ -287,14 +277,20 @@ public class LazyLoadingMapTest {
     }
 
     @Test
+    public void replaceSupplierBeforeUsingIt() {
+        map.put(42, counterSupplier);
+        map.put(42, constantSupplier);
+        assertEquals(TEST_STRING, map.get(42));
+        assertEquals(1, map.getSuppliersCallCount());
+    }
+
+    @Test
     public void nullKey() {
-        final LazyLoadingMap<Integer, String> map = new LazyLoadingMap<>();
         assertNull(map.get(null));
     }
 
     @Test
     public void applesAndOranges() {
-        final LazyLoadingMap<Integer, String> map = new LazyLoadingMap<>();
         final boolean isEqual = map.equals((Object)"A string");
         assertFalse(isEqual);
     }

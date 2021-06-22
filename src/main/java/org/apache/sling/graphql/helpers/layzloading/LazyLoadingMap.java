@@ -53,12 +53,18 @@ public class LazyLoadingMap<K, T> extends HashMap<K, T> {
         return super.hashCode() + suppliers.hashCode();
     }
 
-    /** Adds a Supplier that provides a lazy loaded value 
-     *  @return this object, to be able to chain calls
-    */
-    public LazyLoadingMap<K, T> withSupplier(K key, Supplier<T> supplier) {
-        suppliers.put(key, supplier);
-        return this;
+    /** Adds a Supplier that provides a lazy loaded value.
+     *  Removes existing value with the same key if it exists.
+     */
+    public Supplier<T> put(K key, Supplier<T> supplier) {
+        if(super.containsKey(key)) {
+            synchronized(this) {
+                super.remove(key);
+                return suppliers.put(key, supplier);
+            }
+        } else {
+            return suppliers.put(key, supplier);
+        }
     }
 
     @Override
