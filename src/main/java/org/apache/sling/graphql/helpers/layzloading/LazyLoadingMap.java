@@ -141,8 +141,8 @@ public class LazyLoadingMap<K, T> extends HashMap<K, T> {
      *  Calling those methods should be avoided if possible
      */
     private void computeAll() {
-        log.info("computeAll called, all remaining lazy values will be evaluated now");
         if(!suppliers.isEmpty()) {
+            log.info("computeAll called, all remaining lazy values will be evaluated now");
             final Set<K> keys = new HashSet<>(suppliers.keySet());
             keys.forEach(this::get);
         }

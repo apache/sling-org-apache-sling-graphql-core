@@ -24,15 +24,24 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import org.apache.sling.graphql.core.util.LogCapture;
 import org.apache.sling.graphql.helpers.layzloading.LazyLoadingMap;
 import org.junit.Before;
 import org.junit.Test;
+
+import ch.qos.logback.classic.Level;
 
 public class LazyLoadingMapTest {
     private static final String TEST_STRING = "Fritz Frisst etc. etc.";
@@ -336,5 +345,32 @@ public class LazyLoadingMapTest {
     public void applesAndOranges() {
         final boolean isEqual = map.equals((Object)"A string");
         assertFalse(isEqual);
+    }
+
+    @Test
+    public void computeAllLogs() {
+        final List<Consumer<Map<?,?>>> testCases = new ArrayList<>();
+        testCases.add(m -> m.values());
+        testCases.add(m -> m.entrySet());
+        testCases.add(m -> m.equals(m));
+        testCases.add(m -> m.containsValue(null));
+
+        testCases.stream().forEach(tc -> {
+            try (LogCapture capture = new LogCapture(LazyLoadingMap.class.getPackage().getName(), true)) {
+                map.values();
+                assertTrue(capture.list.isEmpty());
+
+                map.put(42, TEST_STRING);
+                map.values();
+                assertTrue(capture.list.isEmpty());
+
+                map.put(42, counterSupplier);
+                tc.accept(map);
+                capture.assertContains(Level.INFO, "computeAll called");
+            } catch(IOException iox) {
+                fail("Unexpected IOException:" + iox);
+            }
+        });
+
     }
 }
