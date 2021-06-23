@@ -23,7 +23,7 @@ import java.util.function.Supplier;
 
 /** Helper for a single lazy-loading value */
 public class LazyLoadingField<T> {
-    private Supplier<T> supplier;
+    private volatile Supplier<T> supplier;
     private T value;
 
     public LazyLoadingField(Supplier<T> supplier) {
@@ -31,12 +31,12 @@ public class LazyLoadingField<T> {
     }
 
     public T get() {
-        if(value == null) {
+        if(supplier != null) {
             synchronized(this) {
-                if(value == null && supplier != null) {
+                if(supplier != null) {
                     value = supplier.get();
+                    supplier = null;
                 }
-                supplier = null;
             }
         }
         return value;

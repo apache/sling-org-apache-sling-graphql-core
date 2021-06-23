@@ -29,11 +29,33 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/** A {@link java.util.HashMap} that optionally uses Suppliers to provide its
+ *  values. Each Supplier is called at most once, if the corresponding
+ *  value is requested. Some "global" operations requires all values
+ *  to be computed, and should be considered costly.
+ * 
+ *  Like HashMap, this class is NOT thread safe. If needed, 
+ *  {@link java.util.Collections#synchronizedMap} can be used
+ *  to sychronize it.
+  */
 public class LazyLoadingMap<K, T> extends HashMap<K, T> {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Map<K, Supplier<T>> suppliers = new HashMap<>();
-    private int suppliersCallCount;
+
+    public class Stats {
+        int suppliersCallCount;
+
+        public int getSuppliersCallCount() {
+            return suppliersCallCount;
+        }
+
+        public int getUnusedSuppliersCount() {
+            return suppliers.size();
+        }
+    }
+
+    private final Stats stats = new Stats();
 
     /** Calls computeAll - should be avoided if possible */
     @Override
@@ -57,14 +79,8 @@ public class LazyLoadingMap<K, T> extends HashMap<K, T> {
      *  Removes existing value with the same key if it exists.
      */
     public Supplier<T> put(K key, Supplier<T> supplier) {
-        if(super.containsKey(key)) {
-            synchronized(this) {
-                super.remove(key);
-                return suppliers.put(key, supplier);
-            }
-        } else {
-            return suppliers.put(key, supplier);
-        }
+        super.remove(key);
+        return suppliers.put(key, supplier);
     }
 
     @Override
@@ -74,48 +90,33 @@ public class LazyLoadingMap<K, T> extends HashMap<K, T> {
 
     @SuppressWarnings("unchecked")
     private T lazyCompute(Object key) {
-        if(key == null) {
-            return null;
-        }
-        T value = super.get(key);
-        if(value == null) {
-            synchronized(this) {
-                if(value == null) {
-                    final Supplier<T> s = suppliers.remove(key);
-                    if(s != null) {
-                        suppliersCallCount++;
-                        value = s.get();
-                        super.put((K)key, value);
-                    }
-                }
+        computeIfAbsent((K)key, k -> {
+            final Supplier<T> s = suppliers.remove(k);
+            if(s != null) {
+                stats.suppliersCallCount++;
+                return s.get();
             }
-        }
-        return value;
+            return null;
+        });
+        return super.get(key);
     }
 
 
-    /** This indicates how many Supplier calls have been made.
-     *  Can be useful in case of doubt, as several methods need
-     *  to call computeAll().
+    /** Contrary to the usual Map contract, this always
+     *  returns null, to avoid calling a supplier "for nothing".
+     *  If the value is needed, call {@link #get} first.
      */
-    public int getSuppliersCallCount() {
-        return suppliersCallCount;
-    }
-
     @Override
     public T remove(Object key) {
-        synchronized(this) {
-            lazyCompute(key);
-            return super.remove(key);
-        }        
+        super.remove(key);
+        suppliers.remove(key);
+        return null;
     }
 
     @Override
     public void clear() {
-        synchronized(this) {
-            suppliers.clear();
-            super.clear();
-        }
+        suppliers.clear();
+        super.clear();
     }
 
     @Override
@@ -146,12 +147,10 @@ public class LazyLoadingMap<K, T> extends HashMap<K, T> {
      */
     private void computeAll() {
         log.info("computeAll called, all remaining lazy values will be evaluated now");
-        suppliers.entrySet().forEach(e -> {
-            if(!super.containsKey(e.getKey())) {
-                suppliersCallCount++;
-                put(e.getKey(), e.getValue().get());
-            }
-        });
+        if(!suppliers.isEmpty()) {
+            final Set<K> keys = new HashSet<>(suppliers.keySet());
+            keys.forEach(this::get);
+        }
     }
 
     /** Calls computeAll - should be avoided if possible */
@@ -173,5 +172,10 @@ public class LazyLoadingMap<K, T> extends HashMap<K, T> {
     public boolean containsValue(Object value) {
         computeAll();
         return super.containsValue(value);
+    }
+
+    /** Return statistics on our suppliers, for metrics etc. */
+    public Stats getStats() {
+        return stats;
     }
 }
