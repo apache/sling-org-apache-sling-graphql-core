@@ -84,12 +84,8 @@ public class LazyLoadingMap<K, T> extends HashMap<K, T> {
     }
 
     @Override
-    public T get(Object key) {
-        return lazyCompute(key);
-    }
-
     @SuppressWarnings("unchecked")
-    private T lazyCompute(Object key) {
+    public T get(Object key) {
         computeIfAbsent((K)key, k -> {
             final Supplier<T> s = suppliers.remove(k);
             if(s != null) {
@@ -100,7 +96,6 @@ public class LazyLoadingMap<K, T> extends HashMap<K, T> {
         });
         return super.get(key);
     }
-
 
     /** Contrary to the usual Map contract, this always
      *  returns null, to avoid calling a supplier "for nothing".
