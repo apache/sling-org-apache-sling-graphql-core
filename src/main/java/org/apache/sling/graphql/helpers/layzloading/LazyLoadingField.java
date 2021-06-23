@@ -23,7 +23,11 @@ import java.util.function.Supplier;
 
 /** Helper for a single lazy-loading value */
 public class LazyLoadingField<T> {
+
+    @SuppressWarnings("squid:S3077")
+    // The Supplier itself is immutable, just "volatile" is fine
     private volatile Supplier<T> supplier;
+
     private T value;
 
     public LazyLoadingField(Supplier<T> supplier) {
