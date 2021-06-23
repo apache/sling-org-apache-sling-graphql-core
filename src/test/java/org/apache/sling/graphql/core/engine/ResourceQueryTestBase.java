@@ -43,13 +43,14 @@ import static org.junit.Assert.assertNotNull;
 public abstract class ResourceQueryTestBase {
 
     protected Resource resource;
+    protected MockSchemaProvider schemaProvider;
 
     @Rule
     public final OsgiContext context = new OsgiContext();
 
     @Before
     public void setup() {
-        SchemaProvider schemaProvider = new MockSchemaProvider(getTestSchemaName());
+        schemaProvider = new MockSchemaProvider(getTestSchemaName());
         context.registerService(SchemaProvider.class, schemaProvider);
         final String resourceType = "RT-" + UUID.randomUUID();
         final String path = "/some/path/" + UUID.randomUUID();
@@ -77,7 +78,7 @@ public abstract class ResourceQueryTestBase {
         return queryJSON(stmt, new String[]{});
     }
 
-    protected String queryJSON(String stmt, String [] selectors) {
+    protected String queryJSON(String stmt, String ... selectors) {
         final QueryExecutor queryExecutor = context.getService(QueryExecutor.class);
         assertNotNull(queryExecutor);
         Map<String, Object> executionResult = queryExecutor.execute(stmt, Collections.emptyMap(), resource, selectors);
