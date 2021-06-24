@@ -32,6 +32,8 @@ type Query {
 
     # Test interface query
     interfaceQuery: CharactersAsInterface @fetcher(name:"character/fetcher")
+
+    lazyQuery : ExpensiveObject @fetcher(name:"lazy/fetcher")
 }
 
 interface CharacterInterface @resolver(name:"character/resolver" source:"CharacterInterface") {
@@ -39,6 +41,12 @@ interface CharacterInterface @resolver(name:"character/resolver" source:"Charact
 }
 
 union CharacterUnion @resolver(name:"character/resolver" source:"CharacterUnion") = Human | Droid
+
+type ExpensiveObject {
+  expensiveName : String!
+  expensiveNameClone : String!
+  cheapCount : Int
+}
 
 # This should be omitted from the SlingResource type description
 #

@@ -19,7 +19,10 @@ need to use their APIs directly.
 
 The [GraphQL sample website](https://github.com/apache/sling-samples/tree/master/org.apache.sling.graphql.samples.website)
 provides usage examples and demonstrates using GraphQL queries (and Handlebars templates) on both the server and
-client sides.
+client sides. It's getting a bit old and as of June 2021 doesn't demonstrate the latest features.
+
+As usual, **the truth is in the tests**. If something's missing from this page you can probably find the details in
+this module's [extensive test suite](./src/test).
  
 ## Supported GraphQL endpoint styles
 
@@ -270,6 +273,33 @@ should support out of the box.
 Usage of this `GenericConnection` helper is optional, although recommended for ease of use and consistency. As long
 as the `SlingDataFetcher` provides a result that implements the [`org.apache.sling.graphql.api.pagination.Connection`](./src/main/java/org/apache/sling/graphql/api/pagination/Connection.java),
 the output will be according to the Relay spec.
+
+## Lazy Loading of field values
+
+The [org.apache.sling.graphql.helpers.lazyloading](src/main/java/org/apache/sling/graphql/helpers/lazyloading) package provides helpers
+for lazy loading field values.
+
+Using this pattern, for example:
+
+    public class ExpensiveObject {
+      private final LazyLoadingField<String> lazyName;
+
+      ExpensiveObject(String name) {
+        lazyName = new LazyLoadingField<>(() -> {
+          // Not really expensive but that's the idea
+          return name.toUpperCase();
+        });
+      }
+
+      public String getExpensiveName() {
+        return lazyName.get();
+      }
+    }
+
+The `expensiveName` is only computed if its get method is called. This avoids executing expensive computations
+for fields that are not used in the GraphQL result set.
+
+A similar helper is provided for Maps with lazy loaded values.
 
 ## Caching: Persisted queries API
 
