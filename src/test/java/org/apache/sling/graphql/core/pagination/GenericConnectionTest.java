@@ -20,6 +20,7 @@ package org.apache.sling.graphql.core.pagination;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -147,24 +148,16 @@ public class GenericConnectionTest {
 
     @Test
     public void startCursorNotFound() {
-        try {
-            new GenericConnection.Builder<>(data.iterator(), cursorize)
-                .withLimit(2)
-                .withStartAfter(new Cursor(cursorize.apply(HIGH_LIMIT)))
-                .build();
-            fail("Expecting a RuntimeException");
-        } catch(RuntimeException rex) {
-            assertTrue(rex.getMessage().contains("Start cursor not found"));
-        }
+        final GenericConnection.Builder<Integer> b = new GenericConnection.Builder<>(data.iterator(), cursorize)
+            .withLimit(2)
+            .withStartAfter(new Cursor(cursorize.apply(HIGH_LIMIT)))
+        ;
+        final Throwable rex = assertThrows(RuntimeException.class, () -> b.build() );
+        assertTrue(rex.getMessage().contains("Start cursor not found"));
     }
 
     private static void assertSupplierException(Supplier<?> s) {
-        try {
-            s.get();
-            fail("Expected an Exception");
-        } catch(IllegalArgumentException iarg) {
-            // as expcted
-        }
+        assertThrows(IllegalArgumentException.class, () -> s.get());
     }
 
     @Test
@@ -180,17 +173,21 @@ public class GenericConnectionTest {
         b.withLimit(0);
         b.withLimit(42);
         b.withLimit(100);
-        try {
-            b.withLimit(101);
-            fail("Expecting an exception, over limit");
-        } catch(IllegalArgumentException iex) {
-            assertTrue(iex.getMessage().contains("aximum"));
-        }
+        assertThrows(IllegalArgumentException.class, () -> b.withLimit(101));
     }
 
     @Test
     public void testEmptyResultSet() {
         final Connection<String> empty = new GenericConnection.Builder<String>(Collections.emptyIterator(), s -> s).build();
         assertFalse("Expecting no data", empty.getEdges().iterator().hasNext());
+    }
+
+    @Test
+    public void testEmptyResultSetWithCursor() {
+        final GenericConnection.Builder<String> b = new GenericConnection.Builder<String>(Collections.emptyIterator(), s -> s)
+            .withStartAfter(new Cursor("won't be used"))
+        ;
+        final Throwable rex = assertThrows(RuntimeException.class, () -> b.build() );
+        assertTrue(rex.getMessage().contains("Start cursor not found"));
     }
 }
