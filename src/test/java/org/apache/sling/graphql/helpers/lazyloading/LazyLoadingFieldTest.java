@@ -25,7 +25,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
-import org.apache.sling.graphql.helpers.layzloading.LazyLoadingField;
 import org.junit.Test;
 
 public class LazyLoadingFieldTest {

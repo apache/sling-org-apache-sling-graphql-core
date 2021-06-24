@@ -17,32 +17,10 @@
  ~ under the License.
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-package org.apache.sling.graphql.helpers.layzloading;
-
-import java.util.function.Supplier;
-
-/** Helper for a single lazy-loading value */
-public class LazyLoadingField<T> {
-
-    @SuppressWarnings("squid:S3077")
-    // The Supplier itself is immutable, just "volatile" is fine
-    private volatile Supplier<T> supplier;
-
-    private T value;
-
-    public LazyLoadingField(Supplier<T> supplier) {
-        this.supplier = supplier;
-    }
-
-    public T get() {
-        if(supplier != null) {
-            synchronized(this) {
-                if(supplier != null) {
-                    value = supplier.get();
-                    supplier = null;
-                }
-            }
-        }
-        return value;
-    }
-}
+ /**
+  * This package contains helpers which are independent of
+  * a specific implementation of the underlying graphQL engine.
+  */
+@Version("0.0.1")
+package org.apache.sling.graphql.helpers.lazyloading;
+import org.osgi.annotation.versioning.Version;

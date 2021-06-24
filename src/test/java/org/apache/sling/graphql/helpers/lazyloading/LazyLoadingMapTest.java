@@ -39,7 +39,6 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.apache.sling.graphql.core.util.LogCapture;
-import org.apache.sling.graphql.helpers.layzloading.LazyLoadingMap;
 import org.junit.Before;
 import org.junit.Test;
 

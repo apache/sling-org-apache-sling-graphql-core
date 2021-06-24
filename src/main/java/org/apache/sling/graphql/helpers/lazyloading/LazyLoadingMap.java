@@ -17,7 +17,7 @@
  ~ under the License.
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-package org.apache.sling.graphql.helpers.layzloading;
+package org.apache.sling.graphql.helpers.lazyloading;
 
 import java.util.Collection;
 import java.util.HashMap;

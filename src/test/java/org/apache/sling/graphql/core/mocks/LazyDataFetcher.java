@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.sling.graphql.api.SlingDataFetcher;
 import org.apache.sling.graphql.api.SlingDataFetcherEnvironment;
-import org.apache.sling.graphql.helpers.layzloading.LazyLoadingField;
+import org.apache.sling.graphql.helpers.lazyloading.LazyLoadingField;
 
 /** Used to verify that our lazy fetchers are used correctly by the GraphQL environment */
 public class LazyDataFetcher implements SlingDataFetcher<LazyDataFetcher.ExpensiveObject> {
