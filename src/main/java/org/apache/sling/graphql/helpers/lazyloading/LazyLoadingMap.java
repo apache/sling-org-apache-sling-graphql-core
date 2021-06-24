@@ -36,7 +36,10 @@ import org.slf4j.LoggerFactory;
  * 
  *  Like HashMap, this class is NOT thread safe. If needed, 
  *  {@link java.util.Collections#synchronizedMap} can be used
- *  to sychronize it.
+ *  to synchronize it.
+ *
+ *  Note that {@link #remove} behaves slightly differently than
+ *  the HashMap version.
   */
 public class LazyLoadingMap<K, T> extends HashMap<K, T> {
 
@@ -45,6 +48,7 @@ public class LazyLoadingMap<K, T> extends HashMap<K, T> {
     private boolean computeValueOnRemove;
     private boolean forbidComputeAll;
 
+    /** Statistics on Supplier usage */
     public class Stats {
         int suppliersCallCount;
 
@@ -106,12 +110,18 @@ public class LazyLoadingMap<K, T> extends HashMap<K, T> {
     @Override
     @SuppressWarnings("squid:S2201")
     public T remove(Object key) {
+        final Supplier<T> supplier = suppliers.remove(key);
+        final T oldValue = super.remove(key);
         if(computeValueOnRemove) {
-            get(key);
+            if(supplier != null) {
+                stats.suppliersCallCount++;
+                return supplier.get();
+            } else {
+                return oldValue;
+            }
+        } else {
+            return null;
         }
-        super.remove(key);
-        suppliers.remove(key);
-        return null;
     }
 
     @Override

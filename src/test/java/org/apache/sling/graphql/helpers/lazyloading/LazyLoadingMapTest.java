@@ -381,12 +381,28 @@ public class LazyLoadingMapTest {
     public void computeValueOnRemove() {
         map.put(42, counterSupplier);
         assertNull(map.remove(42));
+        assertNull(map.get(42));
+        map.put(21, TEST_STRING);
+        assertNull(map.remove(21));
+        assertNull(map.get(21));
+        assertTrue(map.isEmpty());
 
         assertEquals(map, map.computeValueOnRemove(true));
-        assertNull(map.remove(42));
         map.put(42, counterSupplier);
-        assertEquals("X1", map.get(42));
+        assertEquals("X1", map.remove(42));
+        assertNull(map.get(42));
+        map.put(21, TEST_STRING);
+        assertEquals(TEST_STRING, map.remove(21));
         assertEquals(1, map.getStats().getSuppliersCallCount());
+        assertTrue(map.isEmpty());
+
+        map.put(21, "Non-lazy value");
+        map.put(21, counterSupplier);
+        assertEquals("X2", map.remove(21));
+        assertNull(map.get(21));
+        assertTrue(map.isEmpty());
+        assertEquals(2, map.getStats().getSuppliersCallCount());
+        assertEquals(0, map.getStats().getUnusedSuppliersCount());
     }
 
     @Test
