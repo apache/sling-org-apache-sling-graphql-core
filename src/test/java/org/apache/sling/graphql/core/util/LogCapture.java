@@ -20,8 +20,9 @@ package org.apache.sling.graphql.core.util;
 
 import static org.junit.Assert.fail;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.function.Predicate;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.slf4j.LoggerFactory;
@@ -33,15 +34,17 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 
 /** Capture logs for testing */
-public class LogCapture extends ListAppender<ILoggingEvent> {
+public class LogCapture extends ListAppender<ILoggingEvent> implements Closeable {
     private final boolean verboseFailure;
 
+    /** Setup the capture and start it */
     public LogCapture(String loggerName, boolean verboseFailure) {
         this.verboseFailure = verboseFailure;
         Logger logger = (Logger) LoggerFactory.getLogger(loggerName);
         logger.setLevel(Level.ALL);
         setContext((LoggerContext) LoggerFactory.getILoggerFactory());
         logger.addAppender(this);
+        start();
     }
 
     public boolean anyMatch(Predicate<ILoggingEvent> p) {
@@ -58,5 +61,10 @@ public class LogCapture extends ListAppender<ILoggingEvent> {
                 }
             }
         });
+    }
+
+    @Override
+    public void close() throws IOException {
+        stop();
     }
 }

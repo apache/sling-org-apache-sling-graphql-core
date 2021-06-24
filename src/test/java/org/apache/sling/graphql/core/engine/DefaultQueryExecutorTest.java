@@ -42,6 +42,7 @@ import org.apache.sling.graphql.core.mocks.DummyTypeResolver;
 import org.apache.sling.graphql.core.mocks.EchoDataFetcher;
 import org.apache.sling.graphql.core.mocks.FailingDataFetcher;
 import org.apache.sling.graphql.core.mocks.HumanDTO;
+import org.apache.sling.graphql.core.mocks.LazyDataFetcher;
 import org.apache.sling.graphql.core.mocks.MockSchemaProvider;
 import org.apache.sling.graphql.core.mocks.TestUtil;
 import org.apache.sling.graphql.core.schema.RankedSchemaProviders;
@@ -67,6 +68,8 @@ import static org.junit.Assert.assertTrue;
 
 public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
 
+    private final LazyDataFetcher lazyDataFetcher = new LazyDataFetcher();
+
     protected void setupAdditionalServices() {
         final Dictionary<String, Object> staticData = new Hashtable<>();
         staticData.put("test", true);
@@ -88,6 +91,7 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "test/static", new EchoDataFetcher(staticData));
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "test/fortyTwo", new EchoDataFetcher(42));
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "sling/digest", new DigestDataFetcher());
+        TestUtil.registerSlingDataFetcher(context.bundleContext(), "lazy/fetcher", lazyDataFetcher);
 
         final Dictionary<String, Object> dataCombined = new Hashtable<>();
         dataCombined.put("unionTest", characters);
@@ -383,6 +387,38 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         TypeDefinitionRegistry registry4 =
                 queryExecutor.getTypeDefinitionRegistry(schemaProvider.getSchema(resource, selectors), resource, selectors);
         assertNotEquals(registry3, registry4);
+    }
+
+    @Test
+    public void testLazyDataFetcher() throws Exception {
+        assertEquals(0, lazyDataFetcher.getCost());
+
+        {
+            // Without expensiveName, the Supplier is not called
+            final String json = queryJSON("{ lazyQuery { cheapCount }}");
+            assertThat(json, hasJsonPath("$.data.lazyQuery.cheapCount", equalTo(42)));
+            assertEquals(0, lazyDataFetcher.getCost());
+        }
+
+        {
+            // With expensiveName, the Supplier is called
+            lazyDataFetcher.resetCost();
+            final String json = queryJSON("{ lazyQuery { cheapCount expensiveName }}");
+            assertThat(json, hasJsonPath("$.data.lazyQuery.cheapCount", equalTo(42)));
+            assertThat(json, hasJsonPath("$.data.lazyQuery.expensiveName", equalTo("LAZYDATAFETCHER")));
+            assertEquals(1, lazyDataFetcher.getCost());
+        }
+
+        {
+            // With clone, the Supplier is also called once only
+            lazyDataFetcher.resetCost();
+            final String json = queryJSON("{ lazyQuery { cheapCount expensiveName expensiveNameClone }}");
+            assertThat(json, hasJsonPath("$.data.lazyQuery.cheapCount", equalTo(42)));
+            assertThat(json, hasJsonPath("$.data.lazyQuery.expensiveName", equalTo("LAZYDATAFETCHER")));
+            assertThat(json, hasJsonPath("$.data.lazyQuery.expensiveNameClone", equalTo("LAZYDATAFETCHER")));
+            assertEquals(1, lazyDataFetcher.getCost());
+        }
+
     }
 
 }
