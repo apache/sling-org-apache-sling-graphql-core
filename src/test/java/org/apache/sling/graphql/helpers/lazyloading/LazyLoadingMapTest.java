@@ -366,7 +366,7 @@ public class LazyLoadingMapTest {
 
                 map.put(42, counterSupplier);
                 tc.accept(map);
-                capture.assertContains(Level.INFO, "computeAll called");
+                capture.assertContains(Level.DEBUG, "computeAll called");
             } catch(IOException iox) {
                 fail("Unexpected IOException:" + iox);
             }
