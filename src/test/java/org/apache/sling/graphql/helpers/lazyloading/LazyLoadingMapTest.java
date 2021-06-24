@@ -23,6 +23,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -35,6 +36,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import org.apache.sling.graphql.core.util.LogCapture;
 import org.apache.sling.graphql.helpers.layzloading.LazyLoadingMap;
@@ -49,6 +51,15 @@ public class LazyLoadingMapTest {
     private Supplier<String> counterSupplier = () -> "X" + String.valueOf(++counter);
     private final Supplier<String> constantSupplier = () -> TEST_STRING;
     private LazyLoadingMap<Integer, String> map;
+
+    private static final List<Consumer<Map<?,?>>> COMPUTE_ALL_TEST_CASES = new ArrayList<>();
+
+    static {
+        COMPUTE_ALL_TEST_CASES.add(m -> m.values());
+        COMPUTE_ALL_TEST_CASES.add(m -> m.entrySet());
+        COMPUTE_ALL_TEST_CASES.add(m -> m.equals(m));
+        COMPUTE_ALL_TEST_CASES.add(m -> m.containsValue(null));
+    }
 
     @Before
     public void setup() {
@@ -349,13 +360,7 @@ public class LazyLoadingMapTest {
 
     @Test
     public void computeAllLogs() {
-        final List<Consumer<Map<?,?>>> testCases = new ArrayList<>();
-        testCases.add(m -> m.values());
-        testCases.add(m -> m.entrySet());
-        testCases.add(m -> m.equals(m));
-        testCases.add(m -> m.containsValue(null));
-
-        testCases.stream().forEach(tc -> {
+        COMPUTE_ALL_TEST_CASES.stream().forEach(tc -> {
             try (LogCapture capture = new LogCapture(LazyLoadingMap.class.getPackage().getName(), true)) {
                 map.values();
                 assertTrue(capture.list.isEmpty());
@@ -371,6 +376,35 @@ public class LazyLoadingMapTest {
                 fail("Unexpected IOException:" + iox);
             }
         });
+    }
 
+    @Test
+    public void computeValueOnRemove() {
+        map.put(42, counterSupplier);
+        assertNull(map.remove(42));
+
+        assertEquals(map, map.computeValueOnRemove(true));
+        assertNull(map.remove(42));
+        map.put(42, counterSupplier);
+        assertEquals("X1", map.get(42));
+        assertEquals(1, map.getStats().getSuppliersCallCount());
+    }
+
+    @Test
+    public void forbidComputeAll() {
+        assertNotNull(map.computeAllThrowsException(true));
+        final String [] expected = { "computeAll()", "disabled", "computeAllThrowsException" };
+        COMPUTE_ALL_TEST_CASES.stream().forEach(tc -> {
+            final Throwable t = assertThrows(
+                "Expecting a RuntimeException",
+                RuntimeException.class, () -> tc.accept(map)
+            );
+            Stream.of(expected).forEach(exp -> {
+                assertTrue(
+                    "Expecting message to contain [" + exp + "] but was " + t.getMessage(),
+                    t.getMessage().contains(exp)
+                );
+            });
+        });
     }
 }

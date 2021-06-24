@@ -42,6 +42,8 @@ public class LazyLoadingMap<K, T> extends HashMap<K, T> {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Map<K, Supplier<T>> suppliers = new HashMap<>();
+    private boolean computeValueOnRemove;
+    private boolean forbidComputeAll;
 
     public class Stats {
         int suppliersCallCount;
@@ -97,12 +99,16 @@ public class LazyLoadingMap<K, T> extends HashMap<K, T> {
         return super.get(key);
     }
 
-    /** Contrary to the usual Map contract, this always
-     *  returns null, to avoid calling a supplier "for nothing".
-     *  If the value is needed, call {@link #get} first.
+    /** Unless {@link #computeValueOnRemove(boolean)} is set to
+     *  true, this returns null to avoid calling a supplier
+     * "for nothing".
      */
     @Override
+    @SuppressWarnings("squid:S2201")
     public T remove(Object key) {
+        if(computeValueOnRemove) {
+            get(key);
+        }
         super.remove(key);
         suppliers.remove(key);
         return null;
@@ -141,6 +147,9 @@ public class LazyLoadingMap<K, T> extends HashMap<K, T> {
      *  Calling those methods should be avoided if possible
      */
     private void computeAll() {
+        if(forbidComputeAll) {
+            throw new RuntimeException("The computeAll() method has been disabled by the computeAllThrowsException option");
+        }
         if(!suppliers.isEmpty()) {
             log.debug("computeAll called, all remaining lazy values will be evaluated now");
             final Set<K> keys = new HashSet<>(suppliers.keySet());
@@ -172,5 +181,17 @@ public class LazyLoadingMap<K, T> extends HashMap<K, T> {
     /** Return statistics on our suppliers, for metrics etc. */
     public Stats getStats() {
         return stats;
+    }
+
+    /** Optionally compute the value on remove, so that it doesn't return null */
+    public LazyLoadingMap<K,T> computeValueOnRemove(boolean b) {
+        computeValueOnRemove = b;
+        return this;
+    }
+
+    /** Optionally throw a RuntimeException if computeAll is called  */
+    public LazyLoadingMap<K,T> computeAllThrowsException(boolean b) {
+        forbidComputeAll = b;
+        return this;
     }
 }
