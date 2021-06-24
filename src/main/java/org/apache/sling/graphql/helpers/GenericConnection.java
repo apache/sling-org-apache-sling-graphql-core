@@ -74,6 +74,7 @@ public final class GenericConnection<T> implements Connection<T>, PageInfo {
             throw new IllegalStateException("Already initialized");
         }
         initialized = true;
+        final boolean anyData = dataIterator.hasNext();
 
         // Need to visit the stream first to setup the PageInfo, which graphql-java
         // apparently uses before visiting all the edges
@@ -111,7 +112,7 @@ public final class GenericConnection<T> implements Connection<T>, PageInfo {
             }
         }
 
-        if(!inRange && limit > 0) {
+        if(anyData && !inRange && limit > 0) {
             throw new SlingGraphQLException("Start cursor not found in supplied data:" + startAfter);
         }
         if(hasPreviousPage == null) {

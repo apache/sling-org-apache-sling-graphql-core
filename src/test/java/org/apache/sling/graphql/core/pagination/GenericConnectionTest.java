@@ -19,10 +19,12 @@
 package org.apache.sling.graphql.core.pagination;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -184,5 +186,11 @@ public class GenericConnectionTest {
         } catch(IllegalArgumentException iex) {
             assertTrue(iex.getMessage().contains("aximum"));
         }
+    }
+
+    @Test
+    public void testEmptyResultSet() {
+        final Connection<String> empty = new GenericConnection.Builder<String>(Collections.emptyIterator(), s -> s).build();
+        assertFalse("Expecting no data", empty.getEdges().iterator().hasNext());
     }
 }
