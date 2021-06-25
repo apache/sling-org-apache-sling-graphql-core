@@ -21,6 +21,7 @@ package org.apache.sling.graphql.core.servlet;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import javax.servlet.Servlet;
 
@@ -57,6 +58,10 @@ public class GraphQLServletTest {
     @Rule
     public SlingContext context = new SlingContext();
 
+    private static final String TEST_RESOURCE_TYPE = "a/b/c";
+    private static final String TEST_QUERY = "{\"query\": \"{ currentResource { resourceType name } }\" }";
+    private Resource resource;
+
     @Before
     public void setUp() {
         MetricsService metricsService = mock(MetricsService.class);
@@ -75,24 +80,23 @@ public class GraphQLServletTest {
         when(validationResult.isValid()).thenReturn(true);
         when(queryExecutor.validate(any(String.class), any(Map.class), any(Resource.class), any(String[].class))).thenReturn(validationResult);
         context.registerService(QueryExecutor.class, queryExecutor);
+
+        context.build().resource("/content/graphql", ResourceResolver.PROPERTY_RESOURCE_TYPE, TEST_RESOURCE_TYPE).commit();
+        resource = context.resourceResolver().resolve("/content/graphql");
     }
 
     @Test
     public void testCachingErrors() throws IOException {
             context.registerInjectActivateService(new SimpleGraphQLCacheProvider(), "maxMemory", 10);
-
-            context.registerInjectActivateService(new GraphQLServlet(), ServletResolverConstants.SLING_SERVLET_RESOURCE_TYPES, "a/b/c",
+            context.registerInjectActivateService(new GraphQLServlet(), ServletResolverConstants.SLING_SERVLET_RESOURCE_TYPES, TEST_RESOURCE_TYPE,
                     "persistedQueries.suffix", "/persisted");
             GraphQLServlet servlet = (GraphQLServlet) context.getService(Servlet.class);
             assertNotNull(servlet);
 
-            context.build().resource("/content/graphql", ResourceResolver.PROPERTY_RESOURCE_TYPE, "a/b/c").commit();
-            Resource resource = context.resourceResolver().resolve("/content/graphql");
-
             MockSlingHttpServletResponse response = context.response();
             MockSlingHttpServletRequest request = new MockSlingHttpServletRequest(context.bundleContext());
             request.setMethod("POST");
-            request.setContent("{\"query\": \"{ currentResource { resourceType name } }\" }".getBytes(StandardCharsets.UTF_8));
+            request.setContent(TEST_QUERY.getBytes(StandardCharsets.UTF_8));
 
             request.setResource(resource);
             MockRequestPathInfo requestPathInfo = (MockRequestPathInfo) request.getRequestPathInfo();
@@ -108,13 +112,10 @@ public class GraphQLServletTest {
     @Test
     public void testDisabledSuffix() throws IOException {
         context.registerInjectActivateService(new SimpleGraphQLCacheProvider());
-        context.registerInjectActivateService(new GraphQLServlet(), ServletResolverConstants.SLING_SERVLET_RESOURCE_TYPES, "a/b/c",
+        context.registerInjectActivateService(new GraphQLServlet(), ServletResolverConstants.SLING_SERVLET_RESOURCE_TYPES, TEST_RESOURCE_TYPE,
                 "persistedQueries.suffix", "");
         GraphQLServlet servlet = (GraphQLServlet) context.getService(Servlet.class);
         assertNotNull(servlet);
-
-        context.build().resource("/content/graphql", ResourceResolver.PROPERTY_RESOURCE_TYPE, "a/b/c").commit();
-        Resource resource = context.resourceResolver().resolve("/content/graphql");
 
         MockSlingHttpServletResponse response = context.response();
         MockSlingHttpServletRequest request = new MockSlingHttpServletRequest(context.bundleContext());
@@ -131,5 +132,46 @@ public class GraphQLServletTest {
         assertEquals("Persisted queries are disabled.", response.getStatusMessage());
     }
 
+    private void assertPostWithBody(String contentType, int expectedStatus) throws IOException {
+        context.registerInjectActivateService(new SimpleGraphQLCacheProvider());
+        context.registerInjectActivateService(new GraphQLServlet(), ServletResolverConstants.SLING_SERVLET_RESOURCE_TYPES, TEST_RESOURCE_TYPE,
+                "persistedQueries.suffix", "");
+        GraphQLServlet servlet = (GraphQLServlet) context.getService(Servlet.class);
+        assertNotNull(servlet);
 
+        MockSlingHttpServletResponse response = context.response();
+        MockSlingHttpServletRequest request = new MockSlingHttpServletRequest(context.bundleContext());
+
+        request.setMethod("POST");
+        request.setContent(TEST_QUERY.getBytes(StandardCharsets.UTF_8));
+        request.setContentType(contentType);
+
+        request.setResource(resource);
+        MockRequestPathInfo requestPathInfo = (MockRequestPathInfo) request.getRequestPathInfo();
+        requestPathInfo.setExtension("gql");
+        requestPathInfo.setResourcePath(resource.getPath());
+
+        servlet.doPost(request, response);
+        assertEquals(expectedStatus, response.getStatus());
+}
+
+    @Test
+    public void testBasicJsonContentType() throws IOException {
+        assertPostWithBody("application/json", 200);
+    }
+
+    @Test
+    public void testJsonContentTypeWithCharset() throws IOException {
+        assertPostWithBody("application/json  ; charset=UTF-8", 200);
+    }
+
+    @Test
+    public void testNoContentType() throws IOException {
+        assertPostWithBody(null, 400);
+    }
+
+    @Test
+    public void testWrongContentType() throws IOException {
+        assertPostWithBody("text/html", 400);
+    }
 }
