@@ -417,3 +417,45 @@ curl -v http://localhost:8080/graphql.json/persisted/e1ce2e205e1dfb3969627c6f417
 }
 ```
     
+## Planned Extensions / Wishlist
+
+### Selector-driven prepared queries (planned)
+
+Described in [SLING-10540](https://issues.apache.org/jira/browse/SLING-10540): prepared GraphQL queries hidden behind
+URL selectors, so that an HTTP GET request to `/content/mypage.A.full.json` executes the GraphQL query previously
+stored under the `A.full` name.
+
+### Schema Aggregator (planned)
+
+An initial spec, without code so far, is available at
+[sling-whiteboard:sling-org-apache-sling-graphql-schema](https://github.com/apache/sling-whiteboard/tree/master/sling-org-apache-sling-graphql-schema)
+for a _schema aggregator_ that allows OSGi bundles to contribute partial GraphQL schemas to an overall schema.
+
+This will allow bundles to contribute specific sets of types to a schema, along with the code that implements their retrieval and other
+operations.
+
+### Object Query Service (whishlist)
+
+The Object Query service runs queries against the Sling Resource tree and returns POJOs in
+a way that's optimized for the GraphQL Core to consume.
+
+Probably something along those lines:
+
+    new Query(
+      """
+      select Folder
+      from /tmp, /conf
+      where Folder.title contains 'sling'
+      and Folder.lastModified < 1w
+      """)
+    .getIterator();
+
+which returns an `Iterator` optimized for this module's pagination features.
+
+The objects that this Iterator supplies can be built from Sling Models, using the lazy loading helpers provided
+by this module. This would probably need an extension to Sling Models where the appropriate Model can be found
+for a name like `Folder` in the above example. The Model class might be annotated in a way that allows it to
+supply XPath query elements for expressions like `Folder.title`.
+
+The Query might have additional options such as `withXpathGenerator`, `withObjectMapper` for edge cases
+where the built-in logic is not sufficient.
