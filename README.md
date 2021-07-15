@@ -5,6 +5,8 @@
 Apache Sling GraphQL Core
 ----
 
+_This module is one of several which provide [GraphQL support for Apache Sling](https://github.com/search?q=topic%3Asling+topic%3Agraphql+org%3Aapache&type=Repositories)._
+
 This module allows for running GraphQL queries in Sling, using dynamically built GraphQL schemas and
 OSGi services for data fetchers (aka "resolvers") which provide the data.
 
