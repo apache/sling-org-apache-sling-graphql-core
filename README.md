@@ -103,12 +103,15 @@ schemas, but not needed anymore.
 
 The following built-in `@fetcher` directive is defined by this module:
 
+```graphql
     # This directive maps fields to our Sling data fetchers
     directive @fetcher(
         name : String!,
         options : String = "",
         source : String = ""
     ) on FIELD_DEFINITION
+```
+
 
 It allows for selecting a specific `SlingDataFetcher` service to return the appropriate data, as in the
 examples below.
@@ -117,6 +120,7 @@ Fileds which do not have such a directive will be retrieved using the default da
 
 Here are a few examples, the test code has more of them:
 
+```graphql
     type Query {
       withTestingSelector : TestData @fetcher(name:"test/pipe")
     }
@@ -124,6 +128,7 @@ Here are a few examples, the test code has more of them:
     type TestData {
       farenheit: Int @fetcher(name:"test/pipe" options:"farenheit")
     }
+```
 
 The names of those `SlingDataFetcher` services are in the form
 
@@ -139,12 +144,14 @@ The `<options>` and `<source>` arguments of the directive can be used by the
 
 The following built-in `@resolver` directive is defined by this module:
 
+```graphql
     # This directive maps the corresponding type resolver to a given Union
     directive @resolver(
         name: String!, 
         options: String = "", 
         source: String = ""
     ) on UNION | INTERFACE
+```
 
 A `Union` or `Interface` type can provide a `@resolver` directive, to select a specific `SlingTypeResolver` service to return the appropriate GraphQL object type.
 
@@ -168,12 +175,15 @@ This module implements support for the [Relay Cursor Connections](https://relay.
 specification, via the built-in `@connection` directive, coupled with a `@fetcher` directive. The built-in `@connection`
 directive has the following definition:
 
+```graphql
     directive @connection(
       for: String!
     ) on FIELD_DEFINITION
+```
 
 To allow schemas to be ehanced with pagination support, like in this example:
 
+```graphql
     type Query {
         paginatedHumans (after : String, limit : Int) : HumanConnection @connection(for: "Human") @fetcher(name:"humans/connection")
     }
@@ -183,10 +193,12 @@ To allow schemas to be ehanced with pagination support, like in this example:
         name: String!
         address: String
     }
+```
 
 Using this directive as in the above example adds the following types to the schema to provide paginated
 output that follows the Relay spec:
 
+```graphql
     type PageInfo {
         startCursor : String
         endCursor : String
@@ -203,6 +215,7 @@ output that follows the Relay spec:
         edges : [HumanEdge]
         pageInfo : PageInfo
     }
+```
 
 ### How to implement a SlingDataFetcher that provides a paginated result set
 
@@ -214,6 +227,7 @@ page start and length.
 
 The [QueryDataFetcherComponent](./src/test/java/org/apache/sling/graphql/core/mocks/QueryDataFetcherComponent.java) provides a usage example: 
 
+```java
     @Override
     public Object get(SlingDataFetcherEnvironment env) throws Exception {
       // fake test data simulating a query
@@ -230,12 +244,14 @@ The [QueryDataFetcherComponent](./src/test/java/org/apache/sling/graphql/core/mo
         .withLimit(5)
         .build();
     }
+```    
 
 The above data fetcher code produces the following output, with the `GenericConnection` helper taking
 care of the pagination logic and of generating the required data. This follows the
 [Relay Connections](https://relay.dev/graphql/connections.htm) specification, which some GraphQL clients
 should support out of the box.
 
+```json
     {
       "data": {
         "oneSchemaQuery": {
@@ -271,6 +287,7 @@ should support out of the box.
         }
       }
     }
+```
 
 Usage of this `GenericConnection` helper is optional, although recommended for ease of use and consistency. As long
 as the `SlingDataFetcher` provides a result that implements the [`org.apache.sling.graphql.api.pagination.Connection`](./src/main/java/org/apache/sling/graphql/api/pagination/Connection.java),
@@ -283,6 +300,7 @@ for lazy loading field values.
 
 Using this pattern, for example:
 
+```java
     public class ExpensiveObject {
       private final LazyLoadingField<String> lazyName;
 
@@ -297,6 +315,7 @@ Using this pattern, for example:
         return lazyName.get();
       }
     }
+```
 
 The `expensiveName` is only computed if its get method is called. This avoids executing expensive computations
 for fields that are not used in the GraphQL result set.
