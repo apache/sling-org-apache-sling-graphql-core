@@ -21,7 +21,6 @@ package org.apache.sling.graphql.core.servlet;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import javax.servlet.Servlet;
 
@@ -42,14 +41,20 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -62,17 +67,22 @@ public class GraphQLServletTest {
     private static final String TEST_QUERY = "{\"query\": \"{ currentResource { resourceType name } }\" }";
     private Resource resource;
 
+    @Mock
+    private MetricsService metricsService;
+    @Spy
+    private MetricRegistry metricRegistry = new MetricRegistry();
+    @Mock
+    private Counter counter;
+    @Mock
+    private Timer timer;
+
     @Before
     public void setUp() {
-        MetricsService metricsService = mock(MetricsService.class);
-        when(metricsService.counter(any(String.class))).thenReturn(mock(Counter.class));
-
-        Timer timer = mock(Timer.class);
         when(timer.time()).thenReturn(mock(Timer.Context.class));
+        when(metricsService.counter(any(String.class))).thenReturn(counter);
         when(metricsService.timer(any(String.class))).thenReturn(timer);
         context.registerService(MetricsService.class, metricsService);
 
-        MetricRegistry metricRegistry = mock(MetricRegistry.class);
         context.registerService(MetricRegistry.class, metricRegistry, "name", "sling");
 
         QueryExecutor queryExecutor = mock(QueryExecutor.class);
@@ -130,6 +140,38 @@ public class GraphQLServletTest {
         servlet.doGet(request, response);
         assertEquals(400, response.getStatus());
         assertEquals("Persisted queries are disabled.", response.getStatusMessage());
+    }
+
+    @Test
+    public void testMetricsRegistered() {
+        context.registerInjectActivateService(new SimpleGraphQLCacheProvider());
+        context.registerInjectActivateService(new GraphQLServlet(), ServletResolverConstants.SLING_SERVLET_RESOURCE_TYPES, TEST_RESOURCE_TYPE,
+            "persistedQueries.suffix", "");
+
+        String expectedMetricPrefix = "org.apache.sling.graphql.core.servlet.GraphQLServlet.rt:" + TEST_RESOURCE_TYPE + ".m:GET.e:gql";
+
+        verify(metricsService).counter(expectedMetricPrefix + ".cache_hits");
+        verify(metricsService).counter(expectedMetricPrefix + ".requests_total");
+        verify(metricsService).timer(expectedMetricPrefix + ".requests_timer");
+        verify(metricRegistry).register(eq(expectedMetricPrefix + ".cache_hit_rate"), any(Gauge.class));
+    }
+
+    @Test
+    public void testCacheHitRatioMetric () {
+        context.registerInjectActivateService(new SimpleGraphQLCacheProvider());
+        context.registerInjectActivateService(new GraphQLServlet(), ServletResolverConstants.SLING_SERVLET_RESOURCE_TYPES, TEST_RESOURCE_TYPE,
+            "persistedQueries.suffix", "/persisted");
+
+        // test resource type, default method, default extension
+        String expectedMetric = "org.apache.sling.graphql.core.servlet.GraphQLServlet.rt:" + TEST_RESOURCE_TYPE + ".m:GET.e:gql.cache_hit_rate";
+
+        assertTrue(metricRegistry.getGauges().containsKey(expectedMetric));
+        assertEquals(0.0f, metricRegistry.getGauges().get(expectedMetric).getValue());
+
+        // increments both the hit and miss metric
+        when(counter.getCount()).thenReturn(1L);
+
+        assertEquals(0.5f, metricRegistry.getGauges().get(expectedMetric).getValue());
     }
 
     private void assertPostWithBody(String contentType, int expectedStatus) throws IOException {
