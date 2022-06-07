@@ -29,7 +29,6 @@ import java.util.regex.Pattern;
 import javax.json.Json;
 import javax.json.JsonException;
 import javax.json.JsonWriter;
-import javax.json.stream.JsonParsingException;
 import javax.servlet.Servlet;
 import javax.servlet.http.HttpServletResponse;
 
