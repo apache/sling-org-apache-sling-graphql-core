@@ -17,15 +17,9 @@
 * under the License.
 --%>
 
-# This directive maps fields to our Sling data fetchers
-directive @fetcher(
-    name : String,
-    options : String = "",
-    source : String = ""
-) on FIELD_DEFINITION
-
 type Query {
   oneSchemaResource : SlingResource @fetcher(name:"test/pipe" source:"$")
+  oneSchemaQuery : SlingResourceConnection @connection(for: "SlingResource") @fetcher(name:"test/query")
 }
 
 type SlingResource { 

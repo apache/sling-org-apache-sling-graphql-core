@@ -196,8 +196,11 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
         cacheMisses = metricsService.counter(METRIC_NS + "." + servletRegistrationProperties + ".cache_misses");
         requestsServed = metricsService.counter(METRIC_NS + "." + servletRegistrationProperties + ".requests_total");
         gaugeCacheHitRate = METRIC_NS + "." + servletRegistrationProperties + ".cache_hit_rate";
-        metricRegistry.register(gaugeCacheHitRate,
-                (Gauge<Float>) () -> (cacheHits.getCount() / (float) (cacheHits.getCount() + cacheMisses.getCount())));
+        metricRegistry.register(gaugeCacheHitRate, (Gauge<Float>) () -> {
+            float hitCount = cacheHits.getCount();
+            float missCount = cacheMisses.getCount();
+            return hitCount > 0 || missCount > 0 ? hitCount / (hitCount + missCount) : 0.0f;
+        });
         requestTimer = metricsService.timer(METRIC_NS + "." + servletRegistrationProperties + ".requests_timer");
     }
 

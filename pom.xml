@@ -24,12 +24,12 @@
   <parent>
     <groupId>org.apache.sling</groupId>
     <artifactId>sling-bundle-parent</artifactId>
-    <version>40</version>
+    <version>41</version>
     <relativePath />
   </parent>
 
   <artifactId>org.apache.sling.graphql.core</artifactId>
-  <version>0.0.9-SNAPSHOT</version>
+  <version>0.0.13-SNAPSHOT</version>
 
   <name>Apache Sling GraphQL Core</name>
   <description>Support for GraphQL queries</description>
@@ -37,8 +37,8 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-
     <org.ops4j.pax.exam.version>4.13.3</org.ops4j.pax.exam.version>
+    <site.javadoc.exclude>org.apache.sling.graphql.core.*</site.javadoc.exclude>
     <!-- additional options that can be passed to Pax before executing the tests -->
     <pax.vm.options />
   </properties>
@@ -307,6 +307,12 @@
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient-osgi</artifactId>
       <version>4.5.10</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.2.3</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

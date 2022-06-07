@@ -25,7 +25,7 @@ import java.util.List;
 
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.apache.sling.graphql.core.mocks.EchoDataFetcher;
 import org.apache.sling.graphql.core.mocks.TestUtil;

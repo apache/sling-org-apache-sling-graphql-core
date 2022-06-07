@@ -15,15 +15,19 @@
 # * specific language governing permissions and limitations
 # * under the License.
 
-# GraphQL Schema used for our tests
 type Query {
-    currentResource : SlingResource @fetcher(name:"echoNS/echo")
-
-    # Test some static values
-    staticContent: Test @fetcher(name:"test/static")
-
-    # Test union as return type
-    unionFetcher: Test2 @fetcher(name:"union/fetcher")
+    paginatedHumans (after : String, limit : Int) : HumanConnection @connection(for: "Human") @fetcher(name:"humans/connection")
+    paginatedBeings (after : String, limit : Int) : BeingConnection @connection(for: "Being") @fetcher(name:"humans/connection")
 }
 
-union AllTypes @resolver(name:"missingSlash" source:"AllTypes") = SlingResource | Test
+interface Being @resolver(name: "being/resolver") {
+  id: ID!
+  name: String!
+}
+
+type Human implements Being {
+  id: ID!
+  name: String!
+  address: String
+}
+

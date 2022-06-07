@@ -21,8 +21,7 @@ package org.apache.sling.graphql.core.engine;
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 import org.apache.sling.graphql.api.ScalarConversionException;

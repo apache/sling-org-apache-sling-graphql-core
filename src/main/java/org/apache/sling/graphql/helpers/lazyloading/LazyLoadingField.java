@@ -16,33 +16,33 @@
  ~ specific language governing permissions and limitations
  ~ under the License.
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-package org.apache.sling.graphql.api;
 
-import org.osgi.annotation.versioning.ProviderType;
+package org.apache.sling.graphql.helpers.lazyloading;
 
-/**
- * The {@code SlingGraphQLException} defines the class of errors that can be thrown by the {@code org.apache.sling.graphql.core} bundle.
- */
-@ProviderType
-public class SlingGraphQLException extends RuntimeException {
+import java.util.function.Supplier;
 
-    /**
-     * Creates a {@code SlingGraphQLException} without a known cause.
-     *
-     * @param message the exception's message
-     */
-    public SlingGraphQLException(String message) {
-        this(message, null);
+/** Helper for a single lazy-loading value */
+public class LazyLoadingField<T> {
+
+    @SuppressWarnings("squid:S3077")
+    // The Supplier itself is immutable, just "volatile" is fine
+    private volatile Supplier<T> supplier;
+
+    private T value;
+
+    public LazyLoadingField(Supplier<T> supplier) {
+        this.supplier = supplier;
     }
 
-    /**
-     * Creates a {@code SlingGraphQLException} with a known cause.
-     *
-     * @param message the exception's message
-     * @param cause   the cause of this exception
-     */
-    public SlingGraphQLException(String message, Throwable cause) {
-        super(message, cause);
+    public T get() {
+        if(supplier != null) {
+            synchronized(this) {
+                if(supplier != null) {
+                    value = supplier.get();
+                    supplier = null;
+                }
+            }
+        }
+        return value;
     }
-
 }

@@ -15,13 +15,6 @@
 # * specific language governing permissions and limitations
 # * under the License.
 
-# This directive maps fields to our Sling data fetchers
-directive @fetcher(
-    name : String,
-    options : String = "",
-    source : String = ""
-) on FIELD_DEFINITION
-
 scalar URL
 scalar UppercaseString
 

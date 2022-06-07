@@ -31,14 +31,21 @@ import org.apache.sling.graphql.api.SchemaProvider;
 public class MockSchemaProvider implements SchemaProvider {
 
     private final String basename;
+    private RuntimeException schemaException;
 
     public MockSchemaProvider(String basename) {
         this.basename = basename;
     }
 
+    public void setSchemaException(RuntimeException rex) {
+        schemaException = rex;
+    }
+
     @Override
     public String getSchema(Resource r, String[] selectors) {
-
+        if(schemaException != null) {
+            throw schemaException;
+        }
         final StringBuilder sb = new StringBuilder();
         sb.append("/").append(basename);
         if(selectors != null) {

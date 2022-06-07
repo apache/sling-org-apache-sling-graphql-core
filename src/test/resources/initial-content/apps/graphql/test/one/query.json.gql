@@ -15,15 +15,10 @@
 # * specific language governing permissions and limitations
 # * under the License.
 
-# GraphQL Schema used for our tests
-type Query {
-    currentResource : SlingResource @fetcher(name:"echoNS/echo")
-
-    # Test some static values
-    staticContent: Test @fetcher(name:"test/static")
-
-    # Test union as return type
-    unionFetcher: Test2 @fetcher(name:"union/fetcher")
+# Define the query for this resource type, selector and extension
+{ oneSchemaQuery
+    { 
+        pageInfo { startCursor endCursor hasPreviousPage hasNextPage }
+        edges { cursor node { path resourceType } }
+    }
 }
-
-union AllTypes @resolver(name:"missingSlash" source:"AllTypes") = SlingResource | Test

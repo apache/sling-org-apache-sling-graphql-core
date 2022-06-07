@@ -15,21 +15,9 @@
 # * specific language governing permissions and limitations
 # * under the License.
 
-# This directive maps fields to our Sling data fetchers
-directive @fetcher(
-    name : String,
-    options : String = "",
-    source : String = ""
-) on FIELD_DEFINITION
-
-# This directive to maps types
-directive @resolver(
-    name : String,
-    options : String = "",
-    source : String = ""
-) on UNION | INTERFACE
-
-# GraphQL Schema used for our tests
+"""
+GraphQL Schema used for our tests
+"""
 type Query {
     currentResource : SlingResource @fetcher(name:"echoNS/echo")
 
@@ -44,6 +32,8 @@ type Query {
 
     # Test interface query
     interfaceQuery: CharactersAsInterface @fetcher(name:"character/fetcher")
+
+    lazyQuery : ExpensiveObject @fetcher(name:"lazy/fetcher")
 }
 
 interface CharacterInterface @resolver(name:"character/resolver" source:"CharacterInterface") {
@@ -51,6 +41,12 @@ interface CharacterInterface @resolver(name:"character/resolver" source:"Charact
 }
 
 union CharacterUnion @resolver(name:"character/resolver" source:"CharacterUnion") = Human | Droid
+
+type ExpensiveObject {
+  expensiveName : String!
+  expensiveNameClone : String!
+  cheapCount : Int
+}
 
 # This should be omitted from the SlingResource type description
 #

@@ -62,9 +62,9 @@ import org.osgi.framework.BundleContext;
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasNoJsonPath;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.factoryConfiguration;
 
@@ -88,7 +88,7 @@ public class GraphQLServletIT extends GraphQLCoreTestSupport {
     public Option[] configuration() {
         return new Option[]{
             baseConfiguration(),
-            pipeDataFetcher(),
+            testDataFetchers(),
             factoryConfiguration("org.apache.sling.resource.presence.internal.ResourcePresenter")
                 .put("path", "/content/graphql/two")
                 .asOption(),

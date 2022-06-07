@@ -16,33 +16,11 @@
  ~ specific language governing permissions and limitations
  ~ under the License.
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-package org.apache.sling.graphql.api;
 
-import org.osgi.annotation.versioning.ProviderType;
-
-/**
- * The {@code SlingGraphQLException} defines the class of errors that can be thrown by the {@code org.apache.sling.graphql.core} bundle.
- */
-@ProviderType
-public class SlingGraphQLException extends RuntimeException {
-
-    /**
-     * Creates a {@code SlingGraphQLException} without a known cause.
-     *
-     * @param message the exception's message
-     */
-    public SlingGraphQLException(String message) {
-        this(message, null);
-    }
-
-    /**
-     * Creates a {@code SlingGraphQLException} with a known cause.
-     *
-     * @param message the exception's message
-     * @param cause   the cause of this exception
-     */
-    public SlingGraphQLException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-}
+ /**
+  * This package contains APIs which are independent of
+  * a specific implementation of the underlying graphQL engine.
+  */
+@Version("0.0.1")
+package org.apache.sling.graphql.helpers;
+import org.osgi.annotation.versioning.Version;

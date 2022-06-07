@@ -1,9 +1,11 @@
 [![Apache Sling](https://sling.apache.org/res/logos/sling.png)](https://sling.apache.org)
 
-&#32;[![Build Status](https://ci-builds.apache.org/job/Sling/job/modules/job/sling-org-apache-sling-graphql-core/job/master/badge/icon)](https://ci-builds.apache.org/job/Sling/job/modules/job/sling-org-apache-sling-graphql-core/job/master/)&#32;[![Test Status](https://img.shields.io/jenkins/tests.svg?jobUrl=https://ci-builds.apache.org/job/Sling/job/modules/job/sling-org-apache-sling-graphql-core/job/master/)](https://ci-builds.apache.org/job/Sling/job/modules/job/sling-org-apache-sling-graphql-core/job/master/test/?width=800&height=600)&#32;[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=apache_sling-org-apache-sling-graphql-core&metric=coverage)](https://sonarcloud.io/dashboard?id=apache_sling-org-apache-sling-graphql-core)&#32;[![Sonarcloud Status](https://sonarcloud.io/api/project_badges/measure?project=apache_sling-org-apache-sling-graphql-core&metric=alert_status)](https://sonarcloud.io/dashboard?id=apache_sling-org-apache-sling-graphql-core)&#32;[![JavaDoc](https://www.javadoc.io/badge/org.apache.sling/org.apache.sling.graphql.core.svg)](https://www.javadoc.io/doc/org.apache.sling/org-apache-sling-graphql-core)&#32;[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.apache.sling/org.apache.sling.graphql.core/badge.svg)](https://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.apache.sling%22%20a%3A%22org.apache.sling.graphql.core%22) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
+&#32;[![Build Status](https://ci-builds.apache.org/job/Sling/job/modules/job/sling-org-apache-sling-graphql-core/job/master/badge/icon)](https://ci-builds.apache.org/job/Sling/job/modules/job/sling-org-apache-sling-graphql-core/job/master/)&#32;[![Test Status](https://img.shields.io/jenkins/tests.svg?jobUrl=https://ci-builds.apache.org/job/Sling/job/modules/job/sling-org-apache-sling-graphql-core/job/master/)](https://ci-builds.apache.org/job/Sling/job/modules/job/sling-org-apache-sling-graphql-core/job/master/test/?width=800&height=600)&#32;[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=apache_sling-org-apache-sling-graphql-core&metric=coverage)](https://sonarcloud.io/dashboard?id=apache_sling-org-apache-sling-graphql-core)&#32;[![Sonarcloud Status](https://sonarcloud.io/api/project_badges/measure?project=apache_sling-org-apache-sling-graphql-core&metric=alert_status)](https://sonarcloud.io/dashboard?id=apache_sling-org-apache-sling-graphql-core)&#32;[![JavaDoc](https://www.javadoc.io/badge/org.apache.sling/org.apache.sling.graphql.core.svg)](https://www.javadoc.io/doc/org.apache.sling/org.apache.sling.graphql.core)&#32;[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.apache.sling/org.apache.sling.graphql.core/badge.svg)](https://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.apache.sling%22%20a%3A%22org.apache.sling.graphql.core%22)&#32;[![graphql](https://sling.apache.org/badges/group-graphql.svg)](https://github.com/apache/sling-aggregator/blob/master/docs/groups/graphql.md) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 Apache Sling GraphQL Core
 ----
+
+_This module is one of several which provide [GraphQL support for Apache Sling](https://github.com/search?q=topic%3Asling+topic%3Agraphql+org%3Aapache&type=Repositories)._
 
 This module allows for running GraphQL queries in Sling, using dynamically built GraphQL schemas and
 OSGi services for data fetchers (aka "resolvers") which provide the data.
@@ -19,10 +21,10 @@ need to use their APIs directly.
 
 The [GraphQL sample website](https://github.com/apache/sling-samples/tree/master/org.apache.sling.graphql.samples.website)
 provides usage examples and demonstrates using GraphQL queries (and Handlebars templates) on both the server and
-client sides.
+client sides. It's getting a bit old and as of June 2021 doesn't demonstrate the latest features.
 
-> As I write this, work is ongoing at [SLING-9550](https://issues.apache.org/jira/browse/SLING-9550) to implement custom 
-> GraphQL Scalars
+As usual, **the truth is in the tests**. If something's missing from this page you can probably find the details in
+this module's [extensive test suite](./src/test).
  
 ## Supported GraphQL endpoint styles
 
@@ -38,6 +40,24 @@ This module enables the following GraphQL "styles"
 The GraphQL requests hit a Sling resource in all cases, there's no need for path-mounted servlets which are [not desirable](https://sling.apache.org/documentation/the-sling-engine/servlets.html#caveats-when-binding-servlets-by-path-1).
 
 See also the _caching_ section later in this file.
+
+## Configuring the GraphQL Servlet
+Here's an excerpt from an OSGi feature model file which uses the GraphQL Servlet provided by this module
+to serve `.json` requests for resources which have the `samples/graphql` resource type:
+
+    "configurations":{
+      "org.apache.sling.graphql.core.GraphQLServlet~default" : {
+        "sling.servlet.resourceTypes" : "samples/graphql",
+        "sling.servlet.extensions": "json",
+        "sling.servlet.methods": [ "GET", "POST" ]
+      },
+      "org.apache.sling.servlets.get.DefaultGetServlet" : {
+        "aliases" : [ "json:rawjson" ]
+      },
+      
+The `rawjson` selector is configured to provide Sling's default JSON output.
+
+See the `GraphQLServlet` class for more info.
 
 ## Resource-specific GraphQL schemas
 
@@ -69,24 +89,38 @@ schemas dynamically, taking request selectors into account.
 Unless you have specific needs not covered by this mechanism, there's no need to implement your
 own `SchemaProvider` services.
 
-## SlingDataFetcher selection with Schema Directives
+## Built-in GraphQL Schema Directives
 
-The GraphQL schemas used by this module can be enhanced using
-[schema directives](http://spec.graphql.org/June2018/#sec-Language.Directives)
-(see also the [Apollo docs](https://www.apollographql.com/docs/graphql-tools/schema-directives/) for how those work)
-that select specific `SlingDataFetcher` services to return the appropriate data.
+Since version 0.0.10 of this module, a number of GraphQL schema directives are built-in to support specific
+features. As of that version, the `@fetcher`, `@resolver` and `@connection` directives described below
+can be used directly, without having to declare them explicitly in the schema with the `directive`
+statement that was required before.
 
-A default data fetcher is used for types and fields which have no such directive.
+Declaring these directives explicitly is still supported for backwards compatibility with existing
+schemas, but not needed anymore.
 
-Here's a simple example, the test code has more:
+### SlingDataFetcher selection using the `@fetcher` directive
 
+The following built-in `@fetcher` directive is defined by this module:
+
+```graphql
     # This directive maps fields to our Sling data fetchers
     directive @fetcher(
-        name : String,
+        name : String!,
         options : String = "",
         source : String = ""
     ) on FIELD_DEFINITION
+```
 
+
+It allows for selecting a specific `SlingDataFetcher` service to return the appropriate data, as in the
+examples below.
+
+Fileds which do not have such a directive will be retrieved using the default data fetcher.
+
+Here are a few examples, the test code has more of them:
+
+```graphql
     type Query {
       withTestingSelector : TestData @fetcher(name:"test/pipe")
     }
@@ -94,6 +128,7 @@ Here's a simple example, the test code has more:
     type TestData {
       farenheit: Int @fetcher(name:"test/pipe" options:"farenheit")
     }
+```
 
 The names of those `SlingDataFetcher` services are in the form
 
@@ -105,21 +140,22 @@ which have Java package names that start with `org.apache.sling`.
 The `<options>` and `<source>` arguments of the directive can be used by the
 `SlingDataFetcher` services to influence their behavior.
 
-## SlingTypeResolver selection with Schema Directives
+### SlingTypeResolver selection using the `@resolver` directive
 
-The GraphQL schemas used by this module can be enhanced using
-[schema directives](http://spec.graphql.org/June2018/#sec-Language.Directives)
-(see also the [Apollo docs](https://www.apollographql.com/docs/graphql-tools/schema-directives/) for how those work)
-that select specific `SlingTypeResolver` services to return the appropriate GraphQL object type using Unions.
+The following built-in `@resolver` directive is defined by this module:
 
-Here's a simple example, the test code has more:
-
+```graphql
     # This directive maps the corresponding type resolver to a given Union
     directive @resolver(
-        name: String, 
+        name: String!, 
         options: String = "", 
         source: String = ""
-    ) on UNION
+    ) on UNION | INTERFACE
+```
+
+A `Union` or `Interface` type can provide a `@resolver` directive, to select a specific `SlingTypeResolver` service to return the appropriate GraphQL object type.
+
+Here's a simple example, the test code has more:
 
     union TestUnion @resolver(name : "test/resolver", source : "TestUnion") = Type_1 | Type_2 | Type_3 | Type_4
 
@@ -132,6 +168,159 @@ which have Java package names that start with `org.apache.sling`.
 
 The `<options>` and `<source>` arguments of the directive can be used by the
 `SlingTypeResolver` services to influence their behavior.
+
+## Result Set Pagination using the `@connection` and `@fetcher` directives
+
+This module implements support for the [Relay Cursor Connections](https://relay.dev/graphql/connections.htm)
+specification, via the built-in `@connection` directive, coupled with a `@fetcher` directive. The built-in `@connection`
+directive has the following definition:
+
+```graphql
+    directive @connection(
+      for: String!
+    ) on FIELD_DEFINITION
+```
+
+To allow schemas to be ehanced with pagination support, like in this example:
+
+```graphql
+    type Query {
+        paginatedHumans (after : String, limit : Int) : HumanConnection @connection(for: "Human") @fetcher(name:"humans/connection")
+    }
+
+    type Human {
+        id: ID!
+        name: String!
+        address: String
+    }
+```
+
+Using this directive as in the above example adds the following types to the schema to provide paginated
+output that follows the Relay spec:
+
+```graphql
+    type PageInfo {
+        startCursor : String
+        endCursor : String
+        hasPreviousPage : Boolean
+        hasNextPage : Boolean
+    }
+
+    type HumanEdge {
+        cursor: String
+        node: Human
+    }
+
+    type HumanConnection {
+        edges : [HumanEdge]
+        pageInfo : PageInfo
+    }
+```
+
+### How to implement a SlingDataFetcher that provides a paginated result set
+
+The [GenericConnection](./src/main/java/org/apache/sling/graphql/core/helpers/pagination/GenericConnection.java) class,
+together with the [`org.apache.sling.graphql.api.pagination`](./src/main/java/org/apache/sling/graphql/api/pagination) API
+provide support for paginated results. With this utility class, you just need to supply an `Iterator` on your data, a
+function to generate a string that represents the cursor for a given object, and optional parameters to control the
+page start and length.
+
+The [QueryDataFetcherComponent](./src/test/java/org/apache/sling/graphql/core/mocks/QueryDataFetcherComponent.java) provides a usage example: 
+
+```java
+    @Override
+    public Object get(SlingDataFetcherEnvironment env) throws Exception {
+      // fake test data simulating a query
+      final List<Resource> data = new ArrayList<>();
+      data.add(env.getCurrentResource());
+      data.add(env.getCurrentResource().getParent());
+      data.add(env.getCurrentResource().getParent().getParent());
+
+      // Define how to build a unique cursor that points to one of our data objects
+      final Function<Resource, String> cursorStringProvider = r -> r.getPath();
+
+      // return a GenericConnection that the library will introspect and serialize
+      return new GenericConnection.Builder<>(data.iterator(), cursorStringProvider)
+        .withLimit(5)
+        .build();
+    }
+```    
+
+The above data fetcher code produces the following output, with the `GenericConnection` helper taking
+care of the pagination logic and of generating the required data. This follows the
+[Relay Connections](https://relay.dev/graphql/connections.htm) specification, which some GraphQL clients
+should support out of the box.
+
+```json
+    {
+      "data": {
+        "oneSchemaQuery": {
+          "pageInfo": {
+            "startCursor": "L2NvbnRlbnQvZ3JhcGhxbC9vbmU=",
+            "endCursor": "L2NvbnRlbnQ=",
+            "hasPreviousPage": false,
+            "hasNextPage": false
+          },
+          "edges": [
+            {
+              "cursor": "L2NvbnRlbnQvZ3JhcGhxbC9vbmU=",
+              "node": {
+                "path": "/content/graphql/one",
+                "resourceType": "graphql/test/one"
+              }
+            },
+            {
+              "cursor": "L2NvbnRlbnQvZ3JhcGhxbA==",
+              "node": {
+                "path": "/content/graphql",
+                "resourceType": "graphql/test/root"
+              }
+            },
+            {
+              "cursor": "L2NvbnRlbnQ=",
+              "node": {
+                "path": "/content",
+                "resourceType": "sling:OrderedFolder"
+              }
+            }
+          ]
+        }
+      }
+    }
+```
+
+Usage of this `GenericConnection` helper is optional, although recommended for ease of use and consistency. As long
+as the `SlingDataFetcher` provides a result that implements the [`org.apache.sling.graphql.api.pagination.Connection`](./src/main/java/org/apache/sling/graphql/api/pagination/Connection.java),
+the output will be according to the Relay spec.
+
+## Lazy Loading of field values
+
+The [org.apache.sling.graphql.helpers.lazyloading](src/main/java/org/apache/sling/graphql/helpers/lazyloading) package provides helpers
+for lazy loading field values.
+
+Using this pattern, for example:
+
+```java
+    public class ExpensiveObject {
+      private final LazyLoadingField<String> lazyName;
+
+      ExpensiveObject(String name) {
+        lazyName = new LazyLoadingField<>(() -> {
+          // Not really expensive but that's the idea
+          return name.toUpperCase();
+        });
+      }
+
+      public String getExpensiveName() {
+        return lazyName.get();
+      }
+    }
+```
+
+The `expensiveName` is only computed if its get method is called. This avoids executing expensive computations
+for fields that are not used in the GraphQL result set.
+
+A similar helper is provided for Maps with lazy loaded values.
 
 ## Caching: Persisted queries API
 
@@ -249,3 +438,45 @@ curl -v http://localhost:8080/graphql.json/persisted/e1ce2e205e1dfb3969627c6f417
 }
 ```
     
+## Planned Extensions / Wishlist
+
+### Selector-driven prepared queries (planned)
+
+Described in [SLING-10540](https://issues.apache.org/jira/browse/SLING-10540): prepared GraphQL queries hidden behind
+URL selectors, so that an HTTP GET request to `/content/mypage.A.full.json` executes the GraphQL query previously
+stored under the `A.full` name.
+
+### Schema Aggregator (planned)
+
+An initial spec, without code so far, is available at
+[sling-whiteboard:sling-org-apache-sling-graphql-schema](https://github.com/apache/sling-whiteboard/tree/master/sling-org-apache-sling-graphql-schema)
+for a _schema aggregator_ that allows OSGi bundles to contribute partial GraphQL schemas to an overall schema.
+
+This will allow bundles to contribute specific sets of types to a schema, along with the code that implements their retrieval and other
+operations.
+
+### Object Query Service (whishlist)
+
+The Object Query service runs queries against the Sling Resource tree and returns POJOs in
+a way that's optimized for the GraphQL Core to consume.
+
+Probably something along those lines:
+
+    new Query(
+      """
+      select Folder
+      from /tmp, /conf
+      where Folder.title contains 'sling'
+      and Folder.lastModified < 1w
+      """)
+    .getIterator();
+
+which returns an `Iterator` optimized for this module's pagination features.
+
+The objects that this Iterator supplies can be built from Sling Models, using the lazy loading helpers provided
+by this module. This would probably need an extension to Sling Models where the appropriate Model can be found
+for a name like `Folder` in the above example. The Model class might be annotated in a way that allows it to
+supply XPath query elements for expressions like `Folder.title`.
+
+The Query might have additional options such as `withXpathGenerator`, `withObjectMapper` for edge cases
+where the built-in logic is not sufficient.

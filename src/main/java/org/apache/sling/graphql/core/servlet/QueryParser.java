@@ -64,11 +64,23 @@ public class QueryParser {
     private static final String JSON_KEY_VARIABLES = "variables";
     private static final Mapper MAPPER = new MapperBuilder().build();
 
+    private static boolean isJsonContentType(SlingHttpServletRequest request) {
+        final String contentType = request.getContentType();
+        if(MIME_TYPE_JSON.equals(contentType)) {
+            return true;
+        } else if(contentType != null) {
+            final String [] parts = contentType.split(";");
+            return MIME_TYPE_JSON.equals(parts[0].trim());
+        } else {
+            return false;
+        }
+    }
+
     @Nullable
     public static Result fromRequest(@NotNull SlingHttpServletRequest request) throws IOException {
         String query = null;
         Map<String, Object> variables = null;
-        if (request.getMethod().equalsIgnoreCase("POST") && MIME_TYPE_JSON.equals(request.getContentType())) {
+        if (request.getMethod().equalsIgnoreCase("POST") && isJsonContentType(request)) {
             try (JsonReader reader = Json.createReader(request.getReader())) {
                 JsonObject input = reader.readObject();
                 query = input.getString(JSON_KEY_QUERY);
