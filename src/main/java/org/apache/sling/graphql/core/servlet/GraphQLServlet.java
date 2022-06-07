@@ -27,7 +27,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.json.Json;
+import javax.json.JsonException;
 import javax.json.JsonWriter;
+import javax.json.stream.JsonParsingException;
 import javax.servlet.Servlet;
 import javax.servlet.http.HttpServletResponse;
 
@@ -304,7 +306,17 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
     private void execute(Resource resource, SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
-        final QueryParser.Result result = QueryParser.fromRequest(request);
+        QueryParser.Result result = null;
+        try {
+            result = QueryParser.fromRequest(request);
+        } catch (IllegalStateException | JsonException err) {
+            response.sendError(
+                HttpServletResponse.SC_BAD_REQUEST,
+                "Error while parsing query  from request due to: " + err.getMessage()
+            );
+            return;
+        }
+
         if (result == null) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST);
             return;
