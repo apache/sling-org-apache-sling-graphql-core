@@ -315,9 +315,10 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
             return;
         }
 
-        try (JsonWriter writer = Json.createWriter(response.getWriter())) {
+        try {
+            JsonWriter writer = Json.createWriter(response.getWriter());
             Map<String, Object> executionResult = queryExecutor.execute(query, result.getVariables(), resource,
-                    request.getRequestPathInfo().getSelectors());
+                request.getRequestPathInfo().getSelectors());
             writer.write(Json.createObjectBuilder(executionResult).build().asJsonObject());
         } catch(Exception ex) {
             throw new IOException(ex);
