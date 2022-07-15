@@ -327,7 +327,9 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
     private void execute(@NotNull String persistedQuery, SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
-        try (JsonWriter writer = Json.createWriter(response.getWriter())) {
+        // The Response Writer cannot be flushed or closed here
+        try {
+            JsonWriter writer = Json.createWriter(response.getWriter());
             final QueryParser.Result result = QueryParser.fromJSON(persistedQuery);
             Map<String, Object> executionResult = queryExecutor.execute(result.getQuery(), result.getVariables(), request.getResource(),
                     request.getRequestPathInfo().getSelectors());
