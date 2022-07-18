@@ -314,7 +314,7 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing request parameter:" + P_QUERY);
             return;
         }
-
+        // The Response Writer cannot be flushed or closed here to avoid issues with Redirects etc
         try {
             JsonWriter writer = Json.createWriter(response.getWriter());
             Map<String, Object> executionResult = queryExecutor.execute(query, result.getVariables(), resource,
@@ -328,7 +328,7 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
     private void execute(@NotNull String persistedQuery, SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
-        // The Response Writer cannot be flushed or closed here
+        // The Response Writer cannot be flushed or closed here to avoid issues with Redirects etc
         try {
             JsonWriter writer = Json.createWriter(response.getWriter());
             final QueryParser.Result result = QueryParser.fromJSON(persistedQuery);
