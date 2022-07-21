@@ -21,6 +21,8 @@
 package org.apache.sling.graphql.core.servlet;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.Writer;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -315,8 +317,7 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
             return;
         }
         // The Response Writer cannot be flushed or closed here to avoid issues with Redirects etc
-        try {
-            JsonWriter writer = Json.createWriter(response.getWriter());
+        try (JsonWriter writer = Json.createWriter(new NoCloseWriterWrapper(response.getWriter()))) {
             Map<String, Object> executionResult = queryExecutor.execute(query, result.getVariables(), resource,
                 request.getRequestPathInfo().getSelectors());
             writer.write(Json.createObjectBuilder(executionResult).build().asJsonObject());
@@ -329,8 +330,7 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
         // The Response Writer cannot be flushed or closed here to avoid issues with Redirects etc
-        try {
-            JsonWriter writer = Json.createWriter(response.getWriter());
+        try (JsonWriter writer = Json.createWriter(new NoCloseWriterWrapper(response.getWriter()))) {
             final QueryParser.Result result = QueryParser.fromJSON(persistedQuery);
             Map<String, Object> executionResult = queryExecutor.execute(result.getQuery(), result.getVariables(), request.getResource(),
                     request.getRequestPathInfo().getSelectors());
@@ -356,4 +356,12 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
     }
 
 
+    private class NoCloseWriterWrapper extends PrintWriter {
+        public NoCloseWriterWrapper(@NotNull Writer out) {
+            super(out);
+        }
+
+        @Override
+        public void close() {}
+    }
 }

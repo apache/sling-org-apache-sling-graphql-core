@@ -54,6 +54,8 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -183,6 +185,7 @@ public class GraphQLServletTest {
 
         MockSlingHttpServletResponse response = context.response();
         MockSlingHttpServletRequest request = new MockSlingHttpServletRequest(context.bundleContext());
+        java.io.PrintWriter writer = spy(response.getWriter());
 
         request.setMethod("POST");
         request.setContent(TEST_QUERY.getBytes(StandardCharsets.UTF_8));
@@ -195,6 +198,7 @@ public class GraphQLServletTest {
 
         servlet.doPost(request, response);
         assertEquals(expectedStatus, response.getStatus());
+        verify(writer, never()).close();
 }
 
     @Test
