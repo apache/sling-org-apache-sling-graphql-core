@@ -20,8 +20,8 @@ package org.apache.sling.graphql.core.it;
 
 import javax.inject.Inject;
 
+import org.apache.sling.api.request.builder.SlingHttpServletResponseResult;
 import org.apache.sling.resource.presence.ResourcePresence;
-import org.apache.sling.servlethelpers.MockSlingHttpServletResponse;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Configuration;
@@ -55,7 +55,7 @@ public class GraphQLServletNoConfigIT extends GraphQLCoreTestSupport {
     @Test
     public void testServletDisabledByDefault() throws Exception {
         final String path = "/graphql/one";
-        MockSlingHttpServletResponse response = executeRequest("GET", path + ".json", null, null, null, -1);
+        SlingHttpServletResponseResult response = executeRequest("GET", path + ".json", null, null, null, -1);
         assertEquals(200, response.getStatus());
 
         response = executeRequest("GET", path + ".gql", null, null, null, -1);

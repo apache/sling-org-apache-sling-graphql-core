@@ -22,13 +22,18 @@ package org.apache.sling.graphql.core.schema;
 
 import java.io.IOException;
 
+import javax.servlet.Servlet;
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.request.builder.Builders;
+import org.apache.sling.api.request.builder.SlingHttpServletRequestBuilder;
+import org.apache.sling.api.request.builder.SlingHttpServletResponseResult;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.graphql.api.SchemaProvider;
-import org.apache.sling.servlethelpers.internalrequests.InternalRequest;
-import org.apache.sling.servlethelpers.internalrequests.ServletInternalRequest;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -53,16 +58,20 @@ public class DefaultSchemaProvider implements SchemaProvider {
 
     @Override
     public String getSchema(Resource r, String [] selectors) throws IOException {
-        final InternalRequest req =
-            new ServletInternalRequest(servletResolver, r)
-            .withSelectors(selectors)
-            .withExtension(SCHEMA_EXTENSION)
-        ;
-
+        final SlingHttpServletRequest req =
+                Builders.newRequestBuilder(r).withSelectors(selectors).withExtension(SCHEMA_EXTENSION).build();
+        final SlingHttpServletResponseResult response = Builders.newResponseBuilder().build();
+        try {
+            Servlet servlet = servletResolver.resolveServlet(req);
+            if (servlet != null) {
+                servlet.service(req, response);
+            }
+        } catch (ServletException e) {
+            LOGGER.error("Unable to retrieve a GraphQL Schema for {}.", r.getPath());
+        }
         LOGGER.debug("Getting GraphQL Schema for {}: {}", r.getPath(), req);
-
-        if(req.execute().getStatus() == HttpServletResponse.SC_OK) {
-            return req.getResponseAsString();
+        if(response.getStatus() == HttpServletResponse.SC_OK) {
+            return response.getOutputAsString();
         } else {
             return DEFAULT_SCHEMA;
         }

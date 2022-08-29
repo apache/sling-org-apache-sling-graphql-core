@@ -23,24 +23,33 @@ import java.io.StringReader;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 import javax.inject.Inject;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.johnzon.mapper.Mapper;
 import org.apache.johnzon.mapper.MapperBuilder;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.request.builder.Builders;
+import org.apache.sling.api.request.builder.SlingHttpServletResponseResult;
+import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.apache.sling.api.resource.ResourceWrapper;
 import org.apache.sling.engine.SlingRequestProcessor;
 import org.apache.sling.graphql.core.mocks.QueryDataFetcherComponent;
 import org.apache.sling.graphql.core.mocks.TestDataFetcherComponent;
-import org.apache.sling.servlethelpers.MockSlingHttpServletResponse;
-import org.apache.sling.servlethelpers.internalrequests.SlingInternalRequest;
+import org.apache.sling.testing.paxexam.SlingOptions;
+import org.apache.sling.testing.paxexam.SlingVersionResolver;
 import org.apache.sling.testing.paxexam.TestSupport;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.ProbeBuilder;
@@ -49,6 +58,8 @@ import org.ops4j.pax.exam.options.ModifiableCompositeOption;
 import org.ops4j.pax.exam.options.extra.VMOption;
 import org.ops4j.pax.tinybundles.core.TinyBundle;
 import org.osgi.framework.Constants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.sling.testing.paxexam.SlingOptions.slingCommonsMetrics;
 import static org.apache.sling.testing.paxexam.SlingOptions.slingQuickstartOakTar;
@@ -64,6 +75,8 @@ import static org.ops4j.pax.exam.CoreOptions.when;
 import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.newConfiguration;
 
 public abstract class GraphQLCoreTestSupport extends TestSupport {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(GraphQLCoreTestSupport.class);
 
     private final static int STARTUP_WAIT_SECONDS = 30;
 
@@ -86,6 +99,15 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
             jacocoCommand = new VMOption(jacocoOpt);
         }
 
+        SlingOptions.versionResolver.setVersionFromProject(SlingVersionResolver.SLING_GROUP_ID, "org.apache.sling.api");
+        SlingOptions.versionResolver.setVersionFromProject(SlingVersionResolver.SLING_GROUP_ID, "org.apache.sling.servlets.resolver");
+        SlingOptions.versionResolver.setVersionFromProject(SlingVersionResolver.SLING_GROUP_ID, "org.apache.sling.engine");
+        SlingOptions.versionResolver.setVersionFromProject(SlingVersionResolver.SLING_GROUP_ID, "org.apache.sling.resourceresolver");
+        SlingOptions.versionResolver.setVersionFromProject(SlingVersionResolver.SLING_GROUP_ID, "org.apache.sling.scripting.api");
+        SlingOptions.versionResolver.setVersionFromProject(SlingVersionResolver.SLING_GROUP_ID, "org.apache.sling.scripting.core");
+        SlingOptions.versionResolver.setVersionFromProject(SlingVersionResolver.SLING_GROUP_ID, "org.apache.sling.commons.compiler");
+        SlingOptions.versionResolver.setVersionFromProject(SlingVersionResolver.SLING_GROUP_ID, "org.apache.sling.jcr.jackrabbit.usermanager");
+
         return composite(
             when(vmOption != null).useOptions(vmOption),
             when(jacocoCommand != null).useOptions(jacocoCommand),
@@ -98,6 +120,8 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
                 .asOption(),
             mavenBundle().groupId("org.apache.sling").artifactId("org.apache.sling.servlet-helpers").versionAsInProject(),
             mavenBundle().groupId("org.apache.sling").artifactId("org.apache.sling.commons.johnzon").versionAsInProject(),
+            mavenBundle().groupId("org.osgi").artifactId("org.osgi.util.converter").versionAsInProject(), // required for the newer Sling API
+            mavenBundle().groupId(SlingVersionResolver.SLING_GROUP_ID).artifactId("org.apache.sling.scripting.spi").versionAsInProject(),
             mavenBundle().groupId("org.apache.johnzon").artifactId("johnzon-mapper").versionAsInProject(),
             slingResourcePresence(),
             slingCommonsMetrics(),
@@ -168,26 +192,65 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
         fail("Did not get a " + expectedStatus + " status at " + path + " got " + statuses);
     }
 
-    protected MockSlingHttpServletResponse executeRequest(final String method, 
-        final String path, Map<String, Object> params, String contentType, 
-        Reader body, final int expectedStatus) throws Exception {
+    protected SlingHttpServletResponseResult executeRequest(final String method,
+                                                            final String path, Map<String, String[]> params, String contentType,
+                                                            Reader body, final int expectedStatus) throws Exception {
 
         // Admin resolver is fine for testing    
         @SuppressWarnings("deprecation")            
         final ResourceResolver resourceResolver = resourceResolverFactory.getAdministrativeResourceResolver(null);
 
         final int [] statusParam = expectedStatus == -1 ? null : new int[] { expectedStatus };
-
-        return (MockSlingHttpServletResponse)
-            new SlingInternalRequest(resourceResolver, requestProcessor, path)
-            .withRequestMethod(method)
-            .withParameters(params)
-            .withContentType(contentType)
-            .withBody(body)
-            .execute()
-            .checkStatus(statusParam)
-            .getResponse()
-            ;
+        Resource resource = resourceResolver.resolve(path);
+        String selectorsExtensionSuffix = resource.getResourceMetadata().getResolutionPathInfo();
+        String[] selectors = new String[0];
+        String extension = null;
+        String suffix = null;
+        int firstSlash = selectorsExtensionSuffix.indexOf('/');
+        if (firstSlash != -1) {
+            suffix = selectorsExtensionSuffix.substring(firstSlash);
+            selectorsExtensionSuffix = selectorsExtensionSuffix.substring(0, selectorsExtensionSuffix.length() - suffix.length());
+        }
+        if (selectorsExtensionSuffix.startsWith(".")) {
+            selectorsExtensionSuffix = selectorsExtensionSuffix.substring(1);
+        }
+        if (selectorsExtensionSuffix.length() > 0) {
+            String[] parts = selectorsExtensionSuffix.split("\\.");
+            if (parts.length > 1) {
+                selectors = Arrays.copyOfRange(parts, 0, parts.length - 1);
+            }
+            extension = parts[parts.length - 1];
+        }
+        String resolvedPath = resource.getPath();
+        if (selectors.length > 0) {
+            resolvedPath += "." + String.join(".", selectors);
+        }
+        if (extension != null) {
+            resolvedPath += "." + extension;
+        }
+        if (suffix != null) {
+            resolvedPath += suffix;
+        }
+        if (!path.equals(resolvedPath) && suffix != null) {
+            resource = new ResourceWrapper(resource) {
+                @Override
+                public @NotNull String getPath() {
+                    return path;
+                }
+            };
+        }
+        final SlingHttpServletRequest request = Builders.newRequestBuilder(Objects.requireNonNull(resource))
+                .withRequestMethod(method)
+                .withParameters(params)
+                .withContentType(contentType)
+                .withBody(body == null ? null : IOUtils.toString(body))
+                .withSelectors(resource instanceof  ResourceWrapper ? null : selectors)
+                .withExtension(resource instanceof ResourceWrapper ? null : extension)
+                .withSuffix(resource instanceof ResourceWrapper ? null : suffix)
+                .build();
+        final SlingHttpServletResponseResult response = Builders.newResponseBuilder().build();
+        requestProcessor.processRequest(request, response, resourceResolver);
+        return response;
     }
 
     protected String getContent(String path) throws Exception {
@@ -211,7 +274,7 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
         return executeRequest("POST", path, null, "application/json", new StringReader(toJSON(body)), 200).getOutputAsString();
     }
 
-    protected MockSlingHttpServletResponse persistQuery(String path, String query, Map<String, Object> variables) throws Exception {
+    protected SlingHttpServletResponseResult persistQuery(String path, String query, Map<String, Object> variables) throws Exception {
         Map<String, Object> body = new HashMap<>();
         if (query != null) {
             String queryEncoded = query.replace("\n", "\\n");
@@ -229,10 +292,10 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
         return mapper.toStructure(source).toString();
     }
 
-    protected Map<String, Object> toMap(String ...keyValuePairs) {
-        final Map<String, Object> result = new HashMap<>();
+    protected Map<String, String[]> toMap(String ...keyValuePairs) {
+        final Map<String, String[]> result = new HashMap<>();
         for(int i=0 ; i < keyValuePairs.length; i+=2) {
-            result.put(keyValuePairs[i], keyValuePairs[i+1]);
+            result.put(keyValuePairs[i], new String[] {keyValuePairs[i+1]});
         }
         return result;
     }

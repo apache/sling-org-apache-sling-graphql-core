@@ -45,10 +45,10 @@ import org.apache.http.impl.client.BasicAuthCache;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.sling.api.request.builder.SlingHttpServletResponseResult;
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.core.mocks.ReplacingSchemaProvider;
 import org.apache.sling.resource.presence.ResourcePresence;
-import org.apache.sling.servlethelpers.MockSlingHttpServletResponse;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Configuration;
@@ -61,8 +61,8 @@ import org.osgi.framework.BundleContext;
 
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasNoJsonPath;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -126,7 +126,7 @@ public class GraphQLServletIT extends GraphQLCoreTestSupport {
     @Test
     public void testPersistedQueriesBasic() throws Exception {
         String queryHash = "a16982712f6ecdeba5d950d42e3c13df0fc26d008c497f6bf012701b57e02a51";
-        MockSlingHttpServletResponse response = persistQuery("/graphql/two.gql", "{ currentResource { resourceType name } }", null);
+        SlingHttpServletResponseResult response = persistQuery("/graphql/two.gql", "{ currentResource { resourceType name } }", null);
         assertEquals("Expected to have stored a persisted query.", 201, response.getStatus());
         assertEquals("The value of the Location header does not look correct.",
                 "http://localhost/graphql/two.gql/persisted/" + queryHash + ".gql",
@@ -227,7 +227,7 @@ public class GraphQLServletIT extends GraphQLCoreTestSupport {
 
     @Test
     public void testMissingQuery() throws Exception {
-        MockSlingHttpServletResponse response = executeRequest("GET", "/graphql/two.gql", null, null, null, -1);
+        SlingHttpServletResponseResult response = executeRequest("GET", "/graphql/two.gql", null, null, null, -1);
         assertEquals(400, response.getStatus());
     }
 
