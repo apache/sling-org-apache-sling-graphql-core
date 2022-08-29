@@ -174,7 +174,7 @@ public class GraphQLServletTest {
         assertEquals(0.5f, metricRegistry.getGauges().get(expectedMetric).getValue());
     }
 
-    private void assertPostWithBody(String contentType, int expectedStatus) throws IOException {
+    private void assertPostWithBody(String contentType, String query, int expectedStatus) throws IOException {
         context.registerInjectActivateService(new SimpleGraphQLCacheProvider());
         context.registerInjectActivateService(new GraphQLServlet(), ServletResolverConstants.SLING_SERVLET_RESOURCE_TYPES, TEST_RESOURCE_TYPE,
                 "persistedQueries.suffix", "");
@@ -185,7 +185,7 @@ public class GraphQLServletTest {
         MockSlingHttpServletRequest request = new MockSlingHttpServletRequest(context.bundleContext());
 
         request.setMethod("POST");
-        request.setContent(TEST_QUERY.getBytes(StandardCharsets.UTF_8));
+        request.setContent(query.getBytes(StandardCharsets.UTF_8));
         request.setContentType(contentType);
 
         request.setResource(resource);
@@ -199,21 +199,29 @@ public class GraphQLServletTest {
 
     @Test
     public void testBasicJsonContentType() throws IOException {
-        assertPostWithBody("application/json", 200);
+        assertPostWithBody("application/json", TEST_QUERY, 200);
     }
 
     @Test
     public void testJsonContentTypeWithCharset() throws IOException {
-        assertPostWithBody("application/json  ; charset=UTF-8", 200);
+        assertPostWithBody("application/json  ; charset=UTF-8", TEST_QUERY,200);
     }
 
     @Test
     public void testNoContentType() throws IOException {
-        assertPostWithBody(null, 400);
+        assertPostWithBody(null, TEST_QUERY, 400);
     }
 
     @Test
     public void testWrongContentType() throws IOException {
-        assertPostWithBody("text/html", 400);
+        assertPostWithBody("text/html", TEST_QUERY, 400);
+    }
+
+    /**
+     * SLING-11248 NothingToRead exception should return 400.
+     */
+    @Test
+    public void testEmptyQueryNothingToRead() throws IOException {
+        assertPostWithBody("application/json  ; charset=UTF-8", "", 400);
     }
 }

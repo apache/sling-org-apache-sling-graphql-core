@@ -33,8 +33,12 @@ import org.apache.johnzon.mapper.MapperBuilder;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class QueryParser {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(QueryParser.class);
 
     private QueryParser() {}
 
@@ -88,6 +92,8 @@ public class QueryParser {
                 if (input.containsKey(JSON_KEY_VARIABLES)) {
                     variables = MAPPER.readObject(input.get(JSON_KEY_VARIABLES), Map.class);
                 }
+            } catch (Exception e) {
+                LOGGER.error("Invalid payload.", e);
             }
         }
 
