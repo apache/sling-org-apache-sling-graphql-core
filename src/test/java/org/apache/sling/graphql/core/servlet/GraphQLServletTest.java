@@ -148,7 +148,7 @@ public class GraphQLServletTest {
         context.registerInjectActivateService(new GraphQLServlet(), ServletResolverConstants.SLING_SERVLET_RESOURCE_TYPES, TEST_RESOURCE_TYPE,
             "persistedQueries.suffix", "");
 
-        String expectedMetricPrefix = "org.apache.sling.graphql.core.servlet.GraphQLServlet.rt:" + TEST_RESOURCE_TYPE + ".m:GET.e:gql";
+        String expectedMetricPrefix = "org.apache.sling.graphql.core.GraphQLServlet.rt:" + TEST_RESOURCE_TYPE + ".m:GET.e:gql";
 
         verify(metricsService).counter(expectedMetricPrefix + ".cache_hits");
         verify(metricsService).counter(expectedMetricPrefix + ".requests_total");
@@ -163,7 +163,7 @@ public class GraphQLServletTest {
             "persistedQueries.suffix", "/persisted");
 
         // test resource type, default method, default extension
-        String expectedMetric = "org.apache.sling.graphql.core.servlet.GraphQLServlet.rt:" + TEST_RESOURCE_TYPE + ".m:GET.e:gql.cache_hit_rate";
+        String expectedMetric = "org.apache.sling.graphql.core.GraphQLServlet.rt:" + TEST_RESOURCE_TYPE + ".m:GET.e:gql.cache_hit_rate";
 
         assertTrue(metricRegistry.getGauges().containsKey(expectedMetric));
         assertEquals(0.0f, metricRegistry.getGauges().get(expectedMetric).getValue());
