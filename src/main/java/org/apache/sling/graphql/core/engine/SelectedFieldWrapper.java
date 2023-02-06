@@ -22,6 +22,7 @@ import graphql.language.Field;
 import graphql.language.InlineFragment;
 import graphql.language.Selection;
 import graphql.language.SelectionSet;
+import graphql.schema.DataFetchingFieldSelectionSet;
 import org.apache.sling.graphql.api.SelectedField;
 
 import java.util.Arrays;
@@ -36,10 +37,15 @@ import java.util.stream.Collectors;
 public class SelectedFieldWrapper implements SelectedField {
 
     private String name;
+    @Deprecated
     private boolean isInline;
+    private boolean conditional;
+    private List<String> objectTypeBNames;
     private Map<String, SelectedField> subFieldMap = new HashMap<>();
     private List<SelectedField> subFields;
 
+    //TODO: old 15.0 code -> remove when done with upgrade
+    @Deprecated
     public SelectedFieldWrapper(Selection selection) {
         SelectionSet selectionSet = null;
         if (selection instanceof InlineFragment) {
@@ -57,6 +63,20 @@ public class SelectedFieldWrapper implements SelectedField {
             selectionSet.getSelections().forEach(s -> {
                 SelectedFieldWrapper wrappedField = new SelectedFieldWrapper(s);
                 subFieldMap.put(wrappedField.getName(), wrappedField);
+            });
+        }
+        subFields = subFieldMap.values().stream().collect(Collectors.toList());
+    }
+
+    public SelectedFieldWrapper(graphql.schema.SelectedField selectedField) {
+        this.name = selectedField.getName();
+        this.objectTypeBNames = selectedField.getObjectTypeNames();
+        this.conditional = selectedField.isConditional();
+        DataFetchingFieldSelectionSet selectionSet = selectedField.getSelectionSet();
+        if (selectionSet != null) {
+            selectionSet.getImmediateFields().forEach(sf -> {
+                SelectedFieldWrapper selectedChildField = new SelectedFieldWrapper(sf);
+                subFieldMap.put(selectedChildField.getName(), selectedChildField);
             });
         }
         subFields = subFieldMap.values().stream().collect(Collectors.toList());

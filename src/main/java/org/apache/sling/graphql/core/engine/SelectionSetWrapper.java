@@ -41,11 +41,22 @@ public class SelectionSetWrapper implements SelectionSet {
 
     public SelectionSetWrapper(@Nullable DataFetchingFieldSelectionSet selectionSet) {
         if (selectionSet != null) {
-            selectionSet.get().getSubFields().forEach((k, v) -> {
-                SelectedFieldWrapper selectedField = new SelectedFieldWrapper(v.getSingleField());
-                fieldsMap.put(k, selectedField);
-                if (!k.contains("/")) {
-                    fields.add(selectedField);
+// TODO: old 15.0 version code -> remove it when done with the upgrade
+//            selectionSet.get().getSubFields().forEach((k, v) -> {
+//                SelectedFieldWrapper selectedField = new SelectedFieldWrapper(v.getSingleField());
+//                fieldsMap.put(k, selectedField);
+//                if (!k.contains("/")) {
+//                    fields.add(selectedField);
+//                }
+//            });
+            selectionSet.getImmediateFields().forEach(sf -> {
+                String name = sf.getName();
+                SelectedFieldWrapper selectedField = new SelectedFieldWrapper(sf);
+                if (!fieldsMap.containsKey(name)) {
+                    fieldsMap.put(name, selectedField);
+                    if (!name.contains("/")) {
+                        fields.add(selectedField);
+                    }
                 }
             });
             initFlatMap(fields, "");
