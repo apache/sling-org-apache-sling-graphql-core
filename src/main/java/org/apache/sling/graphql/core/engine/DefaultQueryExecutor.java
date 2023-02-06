@@ -304,7 +304,8 @@ public class DefaultQueryExecutor implements QueryExecutor {
 
     private DataFetcher<Object> getDataFetcher(FieldDefinition field, Resource currentResource) {
         DataFetcher<Object> result = null;
-        final Directive d = field.getDirective(FETCHER_DIRECTIVE);
+//        final Directive d = field.getDirective(FETCHER_DIRECTIVE);
+        final Directive d = field.getDirectives().stream().filter( i -> FETCHER_DIRECTIVE.equals(i.getName())).findFirst().orElse(null);
         if (d != null) {
             final String name = validateFetcherName(getDirectiveArgumentValue(d, FETCHER_NAME));
             final String options = getDirectiveArgumentValue(d, FETCHER_OPTIONS);
@@ -319,7 +320,8 @@ public class DefaultQueryExecutor implements QueryExecutor {
 
     private <T extends TypeDefinition<T>> TypeResolver getTypeResolver(TypeDefinition<T> typeDefinition, Resource currentResource) {
         TypeResolver resolver = null;
-        final Directive d = typeDefinition.getDirective(RESOLVER_DIRECTIVE);
+//        final Directive d = typeDefinition.getDirective(RESOLVER_DIRECTIVE);
+        final Directive d = typeDefinition.getDirectives().stream().filter( i -> RESOLVER_DIRECTIVE.equals(i.getName())).findFirst().orElse(null);
         if (d != null) {
             final String name = validateResolverName(getDirectiveArgumentValue(d, RESOLVER_NAME));
             final String options = getDirectiveArgumentValue(d, RESOLVER_OPTIONS);
@@ -406,7 +408,8 @@ public class DefaultQueryExecutor implements QueryExecutor {
 
     private void handleConnectionTypes(ObjectTypeDefinition typeDefinition, TypeDefinitionRegistry typeRegistry) {
         for (FieldDefinition fieldDefinition : typeDefinition.getFieldDefinitions()) {
-            Directive directive = fieldDefinition.getDirective("connection");
+//            Directive directive = fieldDefinition.getDirective("connection");
+            Directive directive = fieldDefinition.getDirectives().stream().filter( i -> "connection".equals(i.getName())).findFirst().orElse(null);
             if (directive != null) {
                 if (directive.getArgument(CONNECTION_FOR) != null) {
                     String forType = ((StringValue) directive.getArgument(CONNECTION_FOR).getValue()).getValue();
