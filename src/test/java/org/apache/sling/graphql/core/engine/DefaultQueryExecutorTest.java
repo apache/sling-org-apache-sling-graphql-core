@@ -165,7 +165,9 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         ValidationResult result = queryExecutor.validate(stmt, Collections.emptyMap(), resource, new String[] {});
         assertFalse(result.isValid());
         String errors = String.join("\n", result.getErrors());
-        assertTrue(errors.contains("Error: type=ValidationError; message=Validation error of type FieldUndefined: Field 'currentRsrc' in type 'Query' is undefined @ 'currentRsrc'; location=1,3;"));
+// 15.0 & 17.4
+//        assertTrue("Wrong response, found errors: '" + errors + "'", errors.contains("Error: type=ValidationError; message=Validation error of type FieldUndefined: Field 'currentRsrc' in type 'Query' is undefined @ 'currentRsrc'; location=1,3;"));
+        assertTrue("Wrong response, found errors: '" + errors + "'", errors.contains("Error: type=ValidationError; message=Validation error (FieldUndefined@[currentRsrc]) : Field 'currentRsrc' in type 'Query' is undefined; location=1,3;"));
     }
 
     @Test
