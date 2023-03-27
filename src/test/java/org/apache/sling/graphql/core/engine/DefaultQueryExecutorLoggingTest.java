@@ -75,6 +75,7 @@ public class DefaultQueryExecutorLoggingTest extends ResourceQueryTestBase {
     }
 
     private void assertQuerySyntaxError(String ... selectors) {
+// This does not work anymore because the error message is based on the query string
 //        final String invalidQuery = "INVALID " + UUID.randomUUID();
         final String invalidQuery = "INVALID " + "4ecae67c-13c5-432e-b36c-7a29d35118c1";
         queryJSON(invalidQuery, selectors);
@@ -83,14 +84,7 @@ public class DefaultQueryExecutorLoggingTest extends ResourceQueryTestBase {
             "Query failed for Resource " + resource.getPath(),
             "query=" + invalidQuery,
             "Errors:Error: type=InvalidSyntax",
-// 15.0
-//            "message=Invalid Syntax : offending token 'INVALID' at line 1 column 1",
-// 17.4
-//            "message=Invalid Syntax : token recognition error at: '4ec' at line 1 column 9",
-// 20.0
-//            "message=Invalid syntax with ANTLR error 'token recognition error at: '4ec'' at line 1 column 9",
-// 20.0 Master branch 2/15/23
-                "message=Invalid syntax with offending token 'INVALID' at line 1 column 1",
+            "message=Invalid syntax with ANTLR error 'token recognition error at: '4ec'' at line 1 column 9",
             String.format("selectors=%s", Arrays.toString(selectors))
         );
     }

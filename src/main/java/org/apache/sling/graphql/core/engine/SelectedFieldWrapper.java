@@ -44,30 +44,6 @@ public class SelectedFieldWrapper implements SelectedField {
     private Map<String, SelectedField> subFieldMap = new HashMap<>();
     private List<SelectedField> subFields;
 
-    //TODO: old 15.0 code -> remove when done with upgrade
-    @Deprecated
-    public SelectedFieldWrapper(Selection selection) {
-        SelectionSet selectionSet = null;
-        if (selection instanceof InlineFragment) {
-            InlineFragment inline = (InlineFragment) selection;
-            this.name = inline.getTypeCondition().getName();
-            this.isInline = true;
-            selectionSet = inline.getSelectionSet();
-        }
-        if (selection instanceof Field) {
-            Field subField = (Field) selection;
-            this.name = subField.getName();
-            selectionSet = subField.getSelectionSet();
-        }
-        if (selectionSet != null) {
-            selectionSet.getSelections().forEach(s -> {
-                SelectedFieldWrapper wrappedField = new SelectedFieldWrapper(s);
-                subFieldMap.put(wrappedField.getName(), wrappedField);
-            });
-        }
-        subFields = subFieldMap.values().stream().collect(Collectors.toList());
-    }
-
     public SelectedFieldWrapper(graphql.schema.SelectedField selectedField) {
         this.name = selectedField.getName();
         this.objectTypeBNames = selectedField.getObjectTypeNames();
