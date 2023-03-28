@@ -124,7 +124,6 @@
       <version>20.1</version>
       <scope>provided</scope>
     </dependency>
-    <!-- The version 3.1.0, 3.1.1 are not valid Maven Bundles and so some IT tests fail -->
     <dependency>
       <groupId>com.graphql-java</groupId>
       <artifactId>java-dataloader</artifactId>

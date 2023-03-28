@@ -254,6 +254,7 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
             assertTrue("Failed to find expected field name: '" + expectedFieldname + "'", selectionSetFields.stream().anyMatch(f -> expectedFieldname.equals(f.getName())));
         }
 
+        // In new graphql-java qualified field names are streamlined and so we don't have sub types
         // Assert it contains the expected results
         String[] expectedQualifiedName = new String[] {
                 "boolValue",
@@ -267,63 +268,19 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
                 "allTests/boolValue",
                 "allTests/resourcePath",
                 "unionTest",
-//                "unionTest/Human",
-//                "unionTest/Human/id",
                 "unionTest/id",
-//                "unionTest/Human/address",
                 "unionTest/address",
-//                "unionTest/Droid",
-//                "unionTest/Droid/id",
-//                "unionTest/Droid/primaryFunction",
                 "unionTest/primaryFunction",
                 "interfaceTest",
                 "interfaceTest/id",
-//                "interfaceTest/Human",
-//                "interfaceTest/Human/address",
                 "interfaceTest/address",
-//                "interfaceTest/Droid",
                 "interfaceTest/primaryFunction"
-//                "interfaceTest/Droid/primaryFunction"
         };
         for (String expectedQN : expectedQualifiedName) {
             assertTrue("Failed to find qualified field name: '" + expectedQN + "'", selectionSet.contains(expectedQN));
         }
 
-//TODO: No more inline fragments in 17.4 -> remove when done upgrading
-//        String[] expectedNonInlineQNs = new String[] {
-//                "boolValue",
-//                "resourcePath",
-//                "aTest",
-//                "aTest/test",
-//                "aTest/boolValue",
-//                "aTest/resourcePath",
-//                "allTests",
-//                "allTests/test",
-//                "allTests/boolValue",
-//                "allTests/resourcePath",
-//                "unionTest",
-//                "unionTest/Human/id",
-//                "unionTest/Human/address",
-//                "unionTest/Droid/id",
-//                "unionTest/Droid/primaryFunction",
-//                "interfaceTest",
-//                "interfaceTest/id",
-//                "interfaceTest/Human/address",
-//                "interfaceTest/Droid/primaryFunction"
-//        };
-//        for (String expectedNonInlineQN : expectedNonInlineQNs) {
-//            assertFalse(Objects.requireNonNull(selectionSet.get(expectedNonInlineQN)).isInline());
-//        }
-//
-//        String[] expectedInlineQNs = new String[] {
-//                "unionTest/Human",
-//                "unionTest/Droid",
-//                "interfaceTest/Human",
-//                "interfaceTest/Droid"
-//        };
-//        for (String expectedInlineQN : expectedInlineQNs) {
-//            assertTrue(Objects.requireNonNull(selectionSet.get(expectedInlineQN)).isInline());
-//        }
+        // No more inline fragments in 17.4 or later
 
         String[] expectedSubFieldNames = new String[] {
                 "test",
