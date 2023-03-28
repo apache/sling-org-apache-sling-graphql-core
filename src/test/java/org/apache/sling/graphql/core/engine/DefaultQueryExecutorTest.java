@@ -165,7 +165,7 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         ValidationResult result = queryExecutor.validate(stmt, Collections.emptyMap(), resource, new String[] {});
         assertFalse(result.isValid());
         String errors = String.join("\n", result.getErrors());
-        assertTrue(errors.contains("Error: type=ValidationError; message=Validation error of type FieldUndefined: Field 'currentRsrc' in type 'Query' is undefined @ 'currentRsrc'; location=1,3;"));
+        assertTrue("Wrong response, found errors: '" + errors + "'", errors.contains("Error: type=ValidationError; message=Validation error (FieldUndefined@[currentRsrc]) : Field 'currentRsrc' in type 'Query' is undefined; location=1,3;"));
     }
 
     @Test
@@ -251,7 +251,7 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         };
         final List<SelectedField> selectionSetFields = selectionSet.getFields();
         for (String expectedFieldname : expectedFieldNames) {
-            assertTrue(selectionSetFields.stream().anyMatch(f -> expectedFieldname.equals(f.getName())));
+            assertTrue("Failed to find expected field name: '" + expectedFieldname + "'", selectionSetFields.stream().anyMatch(f -> expectedFieldname.equals(f.getName())));
         }
 
         // Assert it contains the expected results
@@ -267,57 +267,63 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
                 "allTests/boolValue",
                 "allTests/resourcePath",
                 "unionTest",
-                "unionTest/Human",
-                "unionTest/Human/id",
-                "unionTest/Human/address",
-                "unionTest/Droid",
-                "unionTest/Droid/id",
-                "unionTest/Droid/primaryFunction",
+//                "unionTest/Human",
+//                "unionTest/Human/id",
+                "unionTest/id",
+//                "unionTest/Human/address",
+                "unionTest/address",
+//                "unionTest/Droid",
+//                "unionTest/Droid/id",
+//                "unionTest/Droid/primaryFunction",
+                "unionTest/primaryFunction",
                 "interfaceTest",
                 "interfaceTest/id",
-                "interfaceTest/Human",
-                "interfaceTest/Human/address",
-                "interfaceTest/Droid",
-                "interfaceTest/Droid/primaryFunction"
+//                "interfaceTest/Human",
+//                "interfaceTest/Human/address",
+                "interfaceTest/address",
+//                "interfaceTest/Droid",
+                "interfaceTest/primaryFunction"
+//                "interfaceTest/Droid/primaryFunction"
         };
         for (String expectedQN : expectedQualifiedName) {
-            assertTrue(selectionSet.contains(expectedQN));
+            assertTrue("Failed to find qualified field name: '" + expectedQN + "'", selectionSet.contains(expectedQN));
         }
 
-        String[] expectedNonInlineQNs = new String[] {
-                "boolValue",
-                "resourcePath",
-                "aTest",
-                "aTest/test",
-                "aTest/boolValue",
-                "aTest/resourcePath",
-                "allTests",
-                "allTests/test",
-                "allTests/boolValue",
-                "allTests/resourcePath",
-                "unionTest",
-                "unionTest/Human/id",
-                "unionTest/Human/address",
-                "unionTest/Droid/id",
-                "unionTest/Droid/primaryFunction",
-                "interfaceTest",
-                "interfaceTest/id",
-                "interfaceTest/Human/address",
-                "interfaceTest/Droid/primaryFunction"
-        };
-        for (String expectedNonInlineQN : expectedNonInlineQNs) {
-            assertFalse(Objects.requireNonNull(selectionSet.get(expectedNonInlineQN)).isInline());
-        }
-
-        String[] expectedInlineQNs = new String[] {
-                "unionTest/Human",
-                "unionTest/Droid",
-                "interfaceTest/Human",
-                "interfaceTest/Droid"
-        };
-        for (String expectedInlineQN : expectedInlineQNs) {
-            assertTrue(Objects.requireNonNull(selectionSet.get(expectedInlineQN)).isInline());
-        }
+//TODO: No more inline fragments in 17.4 -> remove when done upgrading
+//        String[] expectedNonInlineQNs = new String[] {
+//                "boolValue",
+//                "resourcePath",
+//                "aTest",
+//                "aTest/test",
+//                "aTest/boolValue",
+//                "aTest/resourcePath",
+//                "allTests",
+//                "allTests/test",
+//                "allTests/boolValue",
+//                "allTests/resourcePath",
+//                "unionTest",
+//                "unionTest/Human/id",
+//                "unionTest/Human/address",
+//                "unionTest/Droid/id",
+//                "unionTest/Droid/primaryFunction",
+//                "interfaceTest",
+//                "interfaceTest/id",
+//                "interfaceTest/Human/address",
+//                "interfaceTest/Droid/primaryFunction"
+//        };
+//        for (String expectedNonInlineQN : expectedNonInlineQNs) {
+//            assertFalse(Objects.requireNonNull(selectionSet.get(expectedNonInlineQN)).isInline());
+//        }
+//
+//        String[] expectedInlineQNs = new String[] {
+//                "unionTest/Human",
+//                "unionTest/Droid",
+//                "interfaceTest/Human",
+//                "interfaceTest/Droid"
+//        };
+//        for (String expectedInlineQN : expectedInlineQNs) {
+//            assertTrue(Objects.requireNonNull(selectionSet.get(expectedInlineQN)).isInline());
+//        }
 
         String[] expectedSubFieldNames = new String[] {
                 "test",
@@ -332,6 +338,7 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
             assertTrue(subSelectedFields.stream().anyMatch(f -> expectedSubFieldname.equals(f.getName())));
         }
     }
+
 
     @Test
     public void testCachedTypeRegistry() throws IOException {
