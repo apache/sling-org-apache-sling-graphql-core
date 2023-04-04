@@ -2,6 +2,16 @@ github:
   description: "Apache Sling GraphQL Core"
   homepage: "https://sling.apache.org/"
   labels:
-    - sling
-    - java
-    - graphql
+  - "sling"
+  - "java"
+  - "graphql"
+  autolink_jira:
+  - "SLING"
+  - "OAK"
+  - "JCR"
+  - "JCRVLT"
+  - "INFRA"
+  - "FELIX"
+  - "MNG"
+notifications:
+  jira_options: "link"
