@@ -25,7 +25,9 @@ import graphql.language.SelectionSet;
 import graphql.schema.DataFetchingFieldSelectionSet;
 import org.apache.sling.graphql.api.SelectedField;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,13 +42,13 @@ public class SelectedFieldWrapper implements SelectedField {
     @Deprecated
     private boolean isInline;
     private boolean conditional;
-    private List<String> objectTypeBNames;
+    private List<String> objectTypeNames;
     private Map<String, SelectedField> subFieldMap = new HashMap<>();
     private List<SelectedField> subFields;
 
     public SelectedFieldWrapper(graphql.schema.SelectedField selectedField) {
         this.name = selectedField.getName();
-        this.objectTypeBNames = selectedField.getObjectTypeNames();
+        this.objectTypeNames = selectedField.getObjectTypeNames() == null ? Collections.emptyList() : selectedField.getObjectTypeNames();
         this.conditional = selectedField.isConditional();
         DataFetchingFieldSelectionSet selectionSet = selectedField.getSelectionSet();
         if (selectionSet != null) {
@@ -81,5 +83,10 @@ public class SelectedFieldWrapper implements SelectedField {
     @Override
     public boolean isInline() {
         return isInline;
+    }
+
+    @Override
+    public List<String> getObjectTypeNames() {
+        return new ArrayList<>(objectTypeNames);
     }
 }

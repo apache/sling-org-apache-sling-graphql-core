@@ -62,4 +62,6 @@ public interface SelectedField {
      * @return true if this field is an inline (i.e: ... on Something { }).
      */
     boolean isInline();
+
+    List<String> getObjectTypeNames();
 }
