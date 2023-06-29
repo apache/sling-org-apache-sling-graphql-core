@@ -18,10 +18,6 @@
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 package org.apache.sling.graphql.core.engine;
 
-import graphql.language.Field;
-import graphql.language.InlineFragment;
-import graphql.language.Selection;
-import graphql.language.SelectionSet;
 import graphql.schema.DataFetchingFieldSelectionSet;
 import org.apache.sling.graphql.api.SelectedField;
 
@@ -48,7 +44,7 @@ public class SelectedFieldWrapper implements SelectedField {
 
     public SelectedFieldWrapper(graphql.schema.SelectedField selectedField) {
         this.name = selectedField.getName();
-        this.objectTypeNames = selectedField.getObjectTypeNames() == null ? Collections.emptyList() : selectedField.getObjectTypeNames();
+        this.objectTypeNames = selectedField.getObjectTypeNames() == null ? Collections.emptyList() : Collections.unmodifiableList(selectedField.getObjectTypeNames());
         this.conditional = selectedField.isConditional();
         DataFetchingFieldSelectionSet selectionSet = selectedField.getSelectionSet();
         if (selectionSet != null) {
@@ -87,6 +83,6 @@ public class SelectedFieldWrapper implements SelectedField {
 
     @Override
     public List<String> getObjectTypeNames() {
-        return new ArrayList<>(objectTypeNames);
+        return objectTypeNames;
     }
 }

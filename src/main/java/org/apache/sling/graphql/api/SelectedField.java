@@ -63,5 +63,9 @@ public interface SelectedField {
      */
     boolean isInline();
 
+    /**
+     * @return List of Object Type Names which is always a List but might be empty
+     */
+    @NotNull
     List<String> getObjectTypeNames();
 }
