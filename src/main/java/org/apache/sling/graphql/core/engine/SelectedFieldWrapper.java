@@ -18,6 +18,7 @@
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 package org.apache.sling.graphql.core.engine;
 
+import graphql.com.google.common.collect.ImmutableList;
 import graphql.schema.DataFetchingFieldSelectionSet;
 import org.apache.sling.graphql.api.SelectedField;
 
@@ -44,13 +45,24 @@ public class SelectedFieldWrapper implements SelectedField {
 
     public SelectedFieldWrapper(graphql.schema.SelectedField selectedField) {
         this.name = selectedField.getName();
-        this.objectTypeNames = selectedField.getObjectTypeNames() == null ? Collections.emptyList() : Collections.unmodifiableList(selectedField.getObjectTypeNames());
+        this.objectTypeNames = selectedField.getObjectTypeNames() == null ? Collections.emptyList() : new ArrayList<>(selectedField.getObjectTypeNames());
         this.conditional = selectedField.isConditional();
         DataFetchingFieldSelectionSet selectionSet = selectedField.getSelectionSet();
         if (selectionSet != null) {
             selectionSet.getImmediateFields().forEach(sf -> {
-                SelectedFieldWrapper selectedChildField = new SelectedFieldWrapper(sf);
-                subFieldMap.put(selectedChildField.getName(), selectedChildField);
+                SelectedFieldWrapper selectedChildField = (SelectedFieldWrapper) subFieldMap.get(sf.getName());
+                // If Selected Field Wrapper with that name is not found -> create one
+                if (selectedChildField == null) {
+                    selectedChildField = new SelectedFieldWrapper(sf);
+                    subFieldMap.put(selectedChildField.getName(), selectedChildField);
+                } else {
+                    // Add Object Type Names if not already added to the list
+                    for (String objectTypeName : sf.getObjectTypeNames()) {
+                        if (!selectedChildField.objectTypeNames.contains(objectTypeName)) {
+                            selectedChildField.objectTypeNames.add(objectTypeName);
+                        }
+                    }
+                }
             });
         }
         subFields = subFieldMap.values().stream().collect(Collectors.toList());
@@ -83,6 +95,6 @@ public class SelectedFieldWrapper implements SelectedField {
 
     @Override
     public List<String> getObjectTypeNames() {
-        return objectTypeNames;
+        return ImmutableList.copyOf(objectTypeNames);
     }
 }

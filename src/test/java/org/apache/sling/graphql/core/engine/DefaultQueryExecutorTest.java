@@ -19,15 +19,19 @@
 package org.apache.sling.graphql.core.engine;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.api.SelectedField;
 import org.apache.sling.graphql.api.SelectionSet;
@@ -65,6 +69,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
 
@@ -254,7 +259,7 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
             assertTrue("Failed to find expected field name: '" + expectedFieldname + "'", selectionSetFields.stream().anyMatch(f -> expectedFieldname.equals(f.getName())));
         }
 
-        // In new graphql-java qualified field names are streamlined and so we don't have sub types
+        // In new graphql-java qualified field names are streamlined and so we don't have inlined sub types (inlined fragments)
         // Assert it contains the expected results
         String[] expectedQualifiedName = new String[] {
                 "boolValue",
@@ -294,8 +299,128 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         for (String expectedSubFieldname : expectedSubFieldNames) {
             assertTrue(subSelectedFields.stream().anyMatch(f -> expectedSubFieldname.equals(f.getName())));
         }
+
+        Map<String, List<String>> expectedObjectTypes = new HashMap<String, List<String>>() {{
+            put("boolValue", Arrays.asList("Test2"));
+            put("resourcePath", Arrays.asList("Test2"));
+            put("aTest", Arrays.asList("Test2"));
+            put("aTest/test", Arrays.asList("Test"));
+            put("aTest/resourcePath", Arrays.asList("Test"));
+            put("aTest/boolValue", Arrays.asList("Test"));
+            put("allTests", Arrays.asList("Test2"));
+            put("allTests/test", Arrays.asList("Test"));
+            put("allTests/resourcePath", Arrays.asList("Test"));
+            put("allTests/boolValue", Arrays.asList("Test"));
+            put("unionTest", Arrays.asList("Test2"));
+            put("unionTest/address", Arrays.asList("Human"));
+            put("unionTest/id", Arrays.asList("Human", "Droid"));
+            put("unionTest/primaryFunction", Arrays.asList("Droid"));
+            put("interfaceTest", Arrays.asList("Test2"));
+            put("interfaceTest/address", Arrays.asList("Human"));
+            put("interfaceTest/id", Arrays.asList("Human", "Droid"));
+            put("interfaceTest/primaryFunction", Arrays.asList("Droid"));
+        }};
+        // Compare size to see if we miss anything or have too many
+        int count = countFields(selectionSetFields);
+        assertFalse("Not enough fields found", count < expectedObjectTypes.size());
+        assertFalse("Too many fields found", count > expectedObjectTypes.size());
+        // Test the Object Type Names of a few fields
+        for(Map.Entry<String, List<String>> entry: expectedObjectTypes.entrySet()) {
+            // Parse path, find field and check object type names
+            String[] tokens = entry.getKey().split("/");
+            SelectedField field = findField(selectionSetFields, tokens);
+            assertNotNull("Field not found with path: " + entry.getKey(), field);
+            assertTrue("Field did not contain the expected Object Type Names: " + field.getName(), CollectionUtils.isEqualCollection(entry.getValue(), field.getObjectTypeNames()));
+        }
     }
 
+    private int countFields(List<SelectedField> subFields) {
+        int answer = subFields.size();
+        for(SelectedField granSubField: subFields) {
+            answer += countFields(granSubField.getSubSelectedFields());
+        }
+        return answer;
+    }
+
+    private SelectedField findField(List<SelectedField> selectedFields, String[] tokens) {
+        SelectedField answer = null;
+        for (String token: tokens) {
+            answer = selectedFields.stream().filter(f -> f.getName().equals(token)).findFirst().orElse(null);
+            if(answer == null) {
+                break;
+            } else {
+                // If found then take its sub-fields (one level down)
+                selectedFields = answer.getSubSelectedFields();
+            }
+        }
+        return answer;
+    }
+
+    @Test
+    public void testInlinedFields() throws Exception {
+        String query = getTextFromResource("test-inlined-fragments-query.txt");
+        queryJSON(query);
+
+        // retrieve the service used
+        ServiceReference<?>[] serviceReferences = context.bundleContext().getServiceReferences(SlingDataFetcher.class.getName(), "(name=combined/fetcher)");
+        EchoDataFetcher echoDataFetcher = (EchoDataFetcher) context.bundleContext().getService(serviceReferences[0]);
+
+        // Access the computed SelectionSet
+        SelectionSet selectionSet = echoDataFetcher.getSelectionSet();
+
+        assertNotNull("No Selection Set found", selectionSet);
+        assertEquals(6, selectionSet.getFields().size());
+
+        final List<SelectedField> selectionSetFields = selectionSet.getFields();
+
+        Map<String, List<String>> expectedObjectTypes = new HashMap<String, List<String>>() {{
+            put("boolValue", Arrays.asList("Test2"));
+            put("resourcePath", Arrays.asList("Test2"));
+            put("aTest", Arrays.asList("Test2"));
+            put("aTest/test", Arrays.asList("Test"));
+            put("aTest/resourcePath", Arrays.asList("Test"));
+            put("aTest/boolValue", Arrays.asList("Test"));
+            put("allTests", Arrays.asList("Test2"));
+            put("allTests/test", Arrays.asList("Test"));
+            put("allTests/resourcePath", Arrays.asList("Test"));
+            put("allTests/boolValue", Arrays.asList("Test"));
+            put("unionTest", Arrays.asList("Test2"));
+            put("unionTest/address", Arrays.asList("Human"));
+            put("unionTest/id", Arrays.asList("Human", "Droid"));
+            put("unionTest/name", Arrays.asList("Human"));
+            put("unionTest/primaryFunction", Arrays.asList("Droid"));
+            put("interfaceTest", Arrays.asList("Test2"));
+            put("interfaceTest/address", Arrays.asList("Human"));
+            put("interfaceTest/id", Arrays.asList("Human", "Droid"));
+            put("interfaceTest/name", Arrays.asList("Droid"));
+            put("interfaceTest/primaryFunction", Arrays.asList("Droid"));
+        }};
+        // Compare size to see if we miss anything or have too many
+        int count = countFields(selectionSetFields);
+        assertFalse("Not enough fields found", count < expectedObjectTypes.size());
+        assertFalse("Too many fields found", count > expectedObjectTypes.size());
+        // Test the Object Type Names of a few fields
+        for(Map.Entry<String, List<String>> entry: expectedObjectTypes.entrySet()) {
+            // Parse path, find field and check object type names
+            String[] tokens = entry.getKey().split("/");
+            SelectedField field = findField(selectionSetFields, tokens);
+            assertNotNull("Field not found with path: " + entry.getKey(), field);
+            assertTrue("Field did not contain the expected Object Type Names: " + field.getName(), CollectionUtils.isEqualCollection(entry.getValue(), field.getObjectTypeNames()));
+        }
+    }
+
+    private String getTextFromResource(String fileName) {
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream(fileName)) {
+            if(is == null) {
+                fail("Test File not found: " + fileName);
+            }
+            final StringWriter w = new StringWriter();
+            IOUtils.copy(is, w);
+            return w.toString();
+        } catch(IOException ioe) {
+            throw new RuntimeException("Error reading Test File" + fileName, ioe);
+        }
+    }
 
     @Test
     public void testCachedTypeRegistry() throws IOException {

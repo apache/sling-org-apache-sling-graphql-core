@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import javax.json.Json;
-import javax.json.JsonObject;
 
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.servlets.ServletResolver;
