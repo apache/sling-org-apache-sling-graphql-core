@@ -52,7 +52,8 @@ public class SimpleGraphQLCacheProviderTest {
         when(metricsService.timer(anyString())).thenReturn(mock(Timer.class));
         context.registerService(MetricsService.class, metricsService);
 
-        MetricRegistry metricRegistry = mock(MetricRegistry.class);
+        // Instead of Mocking a Class we just create it
+        MetricRegistry metricRegistry = new MetricRegistry();
         context.registerService(MetricRegistry.class, metricRegistry, "name", "sling");
     }
 

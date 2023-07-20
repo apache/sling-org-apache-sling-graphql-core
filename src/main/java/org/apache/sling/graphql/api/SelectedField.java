@@ -60,6 +60,17 @@ public interface SelectedField {
 
     /**
      * @return true if this field is an inline (i.e: ... on Something { }).
+     * @deprecated There are no more inlined fragments anymore so this is always false
      */
+    @Deprecated
     boolean isInline();
+
+    /**
+     * The Object Type Name is taken from the Normalized Field from GraphQL Java and denotes
+     * any inlined fragment type that field can be part of
+     *
+     * @return List of Object Type Names which is always a List but might be empty
+     */
+    @NotNull
+    List<String> getObjectTypeNames();
 }

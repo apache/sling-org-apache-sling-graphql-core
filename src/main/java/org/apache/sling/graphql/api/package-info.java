@@ -21,6 +21,6 @@
   * This package contains APIs which are independent of
   * a specific implementation of the underlying graphQL engine.
   */
-@Version("3.3.0")
+@Version("3.4.0")
 package org.apache.sling.graphql.api;
 import org.osgi.annotation.versioning.Version;
