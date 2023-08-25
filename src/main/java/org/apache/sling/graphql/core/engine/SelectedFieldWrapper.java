@@ -62,6 +62,14 @@ public class SelectedFieldWrapper implements SelectedField {
                             selectedChildField.objectTypeNames.add(objectTypeName);
                         }
                     }
+                    // also merge fields
+                    for (graphql.schema.SelectedField field : sf.getSelectionSet().getFields()) {
+                        if (!selectedChildField.subFieldMap.containsKey(field.getName())) {
+                            SelectedFieldWrapper childField = new SelectedFieldWrapper(field);
+                            selectedChildField.subFieldMap.put(field.getName(), childField);
+                            selectedChildField.subFields.add(childField);
+                        }
+                    }
                 }
             });
         }
