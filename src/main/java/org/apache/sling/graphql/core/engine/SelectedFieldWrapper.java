@@ -21,6 +21,8 @@ package org.apache.sling.graphql.core.engine;
 import graphql.com.google.common.collect.ImmutableList;
 import graphql.schema.DataFetchingFieldSelectionSet;
 import org.apache.sling.graphql.api.SelectedField;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,33 +30,50 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Implement a wrapper for GraphQL SelectedField.
  */
 public class SelectedFieldWrapper implements SelectedField {
 
-    private String name;
+    private final String name;
+    private final String fullyQualifiedName;
+    private final String qualifiedName;
     @Deprecated
     private boolean isInline;
-    private boolean conditional;
-    private List<String> objectTypeNames;
-    private Map<String, SelectedField> subFieldMap = new HashMap<>();
-    private List<SelectedField> subFields;
+    private final boolean conditional;
+    private final int level;
+    private final String alias;
+    private final String resultKey;
+    private final List<String> objectTypeNames;
+    private final Map<String, SelectedField> subFieldMap = new HashMap<>();
+    private final Map<String, SelectedField> subFQNFieldMap = new HashMap<>();
+    private final List<SelectedField> subFields;
 
     public SelectedFieldWrapper(graphql.schema.SelectedField selectedField) {
         this.name = selectedField.getName();
+        this.qualifiedName = selectedField.getQualifiedName();
+        this.fullyQualifiedName = selectedField.getFullyQualifiedName();
         this.objectTypeNames = selectedField.getObjectTypeNames() == null ? Collections.emptyList() : new ArrayList<>(selectedField.getObjectTypeNames());
         this.conditional = selectedField.isConditional();
+        this.level = selectedField.getLevel();
+        this.alias = selectedField.getAlias();
+        this.resultKey = selectedField.getResultKey();
         DataFetchingFieldSelectionSet selectionSet = selectedField.getSelectionSet();
         if (selectionSet != null) {
             selectionSet.getImmediateFields().forEach(sf -> {
                 SelectedFieldWrapper selectedChildField = (SelectedFieldWrapper) subFieldMap.get(sf.getName());
                 // If Selected Field Wrapper with that name is not found -> create one
+                if(selectedChildField != null) {
+                    String fqn = selectedChildField.fullyQualifiedName;
+                    if(fqn != null && !fqn.equals(sf.getFullyQualifiedName())) {
+                        selectedChildField = null;
+                    }
+                }
                 if (selectedChildField == null) {
                     selectedChildField = new SelectedFieldWrapper(sf);
                     subFieldMap.put(selectedChildField.getName(), selectedChildField);
+                    subFQNFieldMap.put(selectedChildField.getFullyQualifiedName(), selectedChildField);
                 } else {
                     // Add Object Type Names if not already added to the list
                     for (String objectTypeName : sf.getObjectTypeNames()) {
@@ -65,7 +84,8 @@ public class SelectedFieldWrapper implements SelectedField {
                 }
             });
         }
-        subFields = subFieldMap.values().stream().collect(Collectors.toList());
+        // Fields are not taken from the FQN Map to avoid dropping fields with the same name
+        subFields = new ArrayList<>(subFQNFieldMap.values());
     }
 
     @Override
@@ -74,18 +94,53 @@ public class SelectedFieldWrapper implements SelectedField {
     }
 
     @Override
+    public @Nullable String getQualifiedName() {
+        return qualifiedName;
+    }
+
+    @Override
+    public String getFullyQualifiedName() {
+        return fullyQualifiedName;
+    }
+
+    @Override
+    public boolean isConditional() {
+        return conditional;
+    }
+
+    @Override
+    public int getLevel() {
+        return 0;
+    }
+
+    @Override
+    public String getAlias() {
+        return null;
+    }
+
+    @Override
+    public String getResultKey() {
+        return null;
+    }
+
+    @Override
+    @NotNull
     public List<SelectedField> getSubSelectedFields() {
         return subFields;
     }
 
     @Override
     public SelectedField getSubSelectedField(String name) {
-        return subFieldMap.get(name);
+        return isFQN(name) ?
+            subFQNFieldMap.get(name) :
+            subFieldMap.get(name);
     }
 
     @Override
     public boolean hasSubSelectedFields(String... name) {
-        return Arrays.stream(name).anyMatch(subFieldMap::containsKey);
+        return isFQN(name) ?
+                Arrays.stream(name).anyMatch(subFQNFieldMap::containsKey) :
+                Arrays.stream(name).anyMatch(subFieldMap::containsKey);
     }
 
     @Override
@@ -94,7 +149,16 @@ public class SelectedFieldWrapper implements SelectedField {
     }
 
     @Override
+    @NotNull
     public List<String> getObjectTypeNames() {
         return ImmutableList.copyOf(objectTypeNames);
+    }
+
+    private boolean isFQN(String[] name) {
+        return name.length > 0 && name[0].indexOf('.') >= 0;
+    }
+
+    private boolean isFQN(String name) {
+        return name.indexOf('.') >= 0;
     }
 }

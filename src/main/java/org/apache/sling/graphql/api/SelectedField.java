@@ -39,6 +39,34 @@ public interface SelectedField {
     @Nullable
     String getName();
 
+    /** @return the simple qualified name of the selected field **/
+    @Nullable
+    String getQualifiedName();
+
+    /**
+     * @return the fully qualified name of the item
+     */
+    @Nullable
+    String getFullyQualifiedName();
+
+    /** @return level of the selected field within the query **/
+    int getLevel();
+
+    /** @return whether the field is conditionally present **/
+    boolean isConditional();
+
+    /**
+     * @return the alias of the selected field or null if not alias was used
+     */
+    String getAlias();
+
+    /**
+     * The result key is either the field query alias OR the field name in that preference order
+     *
+     * @return the result key of the selected field
+     */
+    String getResultKey();
+
     /**
      * @return the sub selected fields.
      */
@@ -47,6 +75,8 @@ public interface SelectedField {
 
     /**
      * @param name the sub selected field name.
+     *             Note: If the name contains a dot it is looked up in the map of fully
+     *             qualified names otherwise from the map with the regular names
      * @return the object or null if that doesn't exist.
      */
     @Nullable
@@ -54,6 +84,8 @@ public interface SelectedField {
 
     /**
      * @param name the sub selected field name(s).
+     *             Note: If the name contains a dot it is looked up in the map of fully
+     *             qualified names otherwise from the map with the regular names
      * @return true if any of the sub selected fields exists.
      */
     boolean hasSubSelectedFields(String ...name);
