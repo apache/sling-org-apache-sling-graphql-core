@@ -110,17 +110,17 @@ public class SelectedFieldWrapper implements SelectedField {
 
     @Override
     public int getLevel() {
-        return 0;
+        return level;
     }
 
     @Override
     public String getAlias() {
-        return null;
+        return alias;
     }
 
     @Override
     public String getResultKey() {
-        return null;
+        return resultKey;
     }
 
     @Override

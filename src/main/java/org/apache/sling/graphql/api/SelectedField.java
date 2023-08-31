@@ -58,6 +58,7 @@ public interface SelectedField {
     /**
      * @return the alias of the selected field or null if not alias was used
      */
+    @Nullable
     String getAlias();
 
     /**
@@ -65,6 +66,7 @@ public interface SelectedField {
      *
      * @return the result key of the selected field
      */
+    @Nullable
     String getResultKey();
 
     /**
