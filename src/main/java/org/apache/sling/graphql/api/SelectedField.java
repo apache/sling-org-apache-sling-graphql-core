@@ -82,15 +82,15 @@ public interface SelectedField {
      * @return the object or null if that doesn't exist.
      */
     @Nullable
-    SelectedField getSubSelectedField(String name);
+    SelectedField getSubSelectedField(@NotNull String name);
 
     /**
-     * @param name the sub selected field name(s).
+     * @param name the sub selected field name(s) and they cannot be null
      *             Note: If the name contains a dot it is looked up in the map of fully
      *             qualified names otherwise from the map with the regular names
      * @return true if any of the sub selected fields exists.
      */
-    boolean hasSubSelectedFields(String ...name);
+    boolean hasSubSelectedFields(@NotNull String ...name);
 
     /**
      * @return true if this field is an inline (i.e: ... on Something { }).

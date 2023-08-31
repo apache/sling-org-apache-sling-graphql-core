@@ -130,14 +130,14 @@ public class SelectedFieldWrapper implements SelectedField {
     }
 
     @Override
-    public SelectedField getSubSelectedField(String name) {
+    public SelectedField getSubSelectedField(@NotNull String name) {
         return isFQN(name) ?
             subFQNFieldMap.get(name) :
             subFieldMap.get(name);
     }
 
     @Override
-    public boolean hasSubSelectedFields(String... name) {
+    public boolean hasSubSelectedFields(@NotNull String... name) {
         return isFQN(name) ?
                 Arrays.stream(name).anyMatch(subFQNFieldMap::containsKey) :
                 Arrays.stream(name).anyMatch(subFieldMap::containsKey);
@@ -154,11 +154,11 @@ public class SelectedFieldWrapper implements SelectedField {
         return ImmutableList.copyOf(objectTypeNames);
     }
 
-    private boolean isFQN(String[] name) {
-        return name.length > 0 && name[0].indexOf('.') >= 0;
+    private boolean isFQN(@NotNull String[] name) {
+        return name[0].indexOf('.') >= 0;
     }
 
-    private boolean isFQN(String name) {
+    private boolean isFQN(@NotNull String name) {
         return name.indexOf('.') >= 0;
     }
 }
