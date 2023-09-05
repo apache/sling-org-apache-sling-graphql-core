@@ -22,6 +22,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -77,19 +78,61 @@ public interface SelectedField {
 
     /**
      * @param name the sub selected field name.
+     * @return A collection of selected fields or an empty collection if not found
+     */
+    @NotNull
+    Collection<SelectedField> getSubSelectedFieldByName(@NotNull String name);
+
+    /**
+     * @param name the sub selected field name.
+     * @return The first field in the map of fields by name if found otherwise null
+     */
+    @Nullable
+    SelectedField getFirstSubSelectedFieldByName(@NotNull String name);
+
+    /**
+     * @param name the sub selected field name.
      *             Note: If the name contains a dot it is looked up in the map of fully
      *             qualified names otherwise from the map with the regular names
      * @return the object or null if that doesn't exist.
+     *
+     * @deprecated Please use getSubSelectedFieldByName() or getSubSelectedFieldByFQN() instead
      */
+    @Deprecated
     @Nullable
     SelectedField getSubSelectedField(@NotNull String name);
+
+    /**
+     * @param fullyQualifiedName the sub selected field name.
+     * @return the object or null if that doesn't exist.
+     */
+    @Nullable
+    SelectedField getSubSelectedFieldByFQN(@NotNull String fullyQualifiedName);
+
+    /**
+     * Checks if there are more than one field with the same name
+     * @param name Simple Name of a Field to look for
+     * @return True if a field exists with that and contains more than one field
+     */
+    boolean hasDuplicateFieldByName(@NotNull String name);
+
+    /**
+     * @param name the sub selected field name(s).
+     * @return true if any of the sub selected fields exists.
+     */
+    boolean hasSubSelectedFieldsByName(@NotNull String ...name);
+
+    boolean hasSubSelectedFieldsByFQN(@NotNull String ...fullyQualifiedName);
 
     /**
      * @param name the sub selected field name(s) and they cannot be null
      *             Note: If the name contains a dot it is looked up in the map of fully
      *             qualified names otherwise from the map with the regular names
      * @return true if any of the sub selected fields exists.
+     *
+     * @deprecated Use hasDuplicateFieldByName(), hasSubSelectedFieldsByName() or hasSubSelectedFieldsByFQN
      */
+    @Deprecated
     boolean hasSubSelectedFields(@NotNull String ...name);
 
     /**
