@@ -122,6 +122,7 @@ public class SelectedFieldWrapperTest {
         doReturn(FIELD_SUB_SIMPLE_NAME_1).when(sourceSub1).getQualifiedName();
         doReturn(FIELD_SUB_FULLY_QUALIFIED_NAME_1).when(sourceSub1).getFullyQualifiedName();
         graphql.schema.SelectedField sourceSub2 = mock(graphql.schema.SelectedField.class);
+        // Use the same Simple Field Name to have a duplicate
         doReturn(FIELD_SUB_SIMPLE_NAME_1).when(sourceSub2).getName();
         doReturn(FIELD_SUB_SIMPLE_NAME_1).when(sourceSub2).getQualifiedName();
         doReturn(FIELD_SUB_FULLY_QUALIFIED_NAME_2).when(sourceSub2).getFullyQualifiedName();
@@ -134,11 +135,15 @@ public class SelectedFieldWrapperTest {
         SelectedFieldWrapper targetParent = new SelectedFieldWrapper(sourceParent);
         assertTrue("Duplicate Fields expected for Field 1", targetParent.hasDuplicateFieldByName(FIELD_SUB_SIMPLE_NAME_1));
         assertFalse("No Duplicate Fields expected for Field 2", targetParent.hasDuplicateFieldByName(FIELD_SUB_SIMPLE_NAME_2));
+        assertTrue("First Field not found by Simple Name", targetParent.hasSubSelectedFieldsByName(FIELD_SUB_SIMPLE_NAME_1));
+        assertFalse("Second Field unexpectedly found by Simple Name", targetParent.hasSubSelectedFieldsByName(FIELD_SUB_SIMPLE_NAME_2));
         Collection<SelectedField> foundFields1 = targetParent.getSubSelectedFieldByName(FIELD_SUB_SIMPLE_NAME_1);
         assertNotNull("First Fields not found", foundFields1);
         assertEquals("Expected 2 First Fields", 2, foundFields1.size());
         Collection<SelectedField> foundFields2 = targetParent.getSubSelectedFieldByName(FIELD_SUB_SIMPLE_NAME_2);
         assertNotNull("Second Fields not found", foundFields2);
         assertEquals("Expected No Second Fields", 0, foundFields2.size());
+        assertTrue("First Field not found by FQN", targetParent.hasSubSelectedFieldsByFQN(FIELD_SUB_FULLY_QUALIFIED_NAME_1));
+        assertTrue("Second Field not found by FQN", targetParent.hasSubSelectedFieldsByFQN(FIELD_SUB_FULLY_QUALIFIED_NAME_2));
     }
 }

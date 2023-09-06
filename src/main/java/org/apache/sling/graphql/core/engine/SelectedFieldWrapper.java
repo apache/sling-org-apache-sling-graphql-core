@@ -48,8 +48,6 @@ public class SelectedFieldWrapper implements SelectedField {
     private final String name;
     private final String fullyQualifiedName;
     private final String qualifiedName;
-    @Deprecated
-    private boolean isInline;
     private final boolean conditional;
     private final int level;
     private final String alias;
@@ -155,6 +153,7 @@ public class SelectedFieldWrapper implements SelectedField {
         return Arrays.stream(fullyQualifiedName).anyMatch(subFQNFieldMap::containsKey);
     }
 
+    @Deprecated
     @Override
     public SelectedField getSubSelectedField(@NotNull String name) {
         return name.indexOf('.') >= 0 ?
@@ -162,6 +161,7 @@ public class SelectedFieldWrapper implements SelectedField {
                 getFirstSubSelectedFieldByName(name);
     }
 
+    @Deprecated
     @Override
     public boolean hasSubSelectedFields(@NotNull String... name) {
         return name[0].indexOf('.') >= 0 ?
@@ -169,9 +169,10 @@ public class SelectedFieldWrapper implements SelectedField {
                 Arrays.stream(name).anyMatch(subFieldMap::containsKey);
     }
 
+    @Deprecated
     @Override
     public boolean isInline() {
-        return isInline;
+        return false;
     }
 
     @Override

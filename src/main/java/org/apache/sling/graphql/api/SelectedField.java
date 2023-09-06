@@ -136,7 +136,7 @@ public interface SelectedField {
     boolean hasSubSelectedFields(@NotNull String ...name);
 
     /**
-     * @return true if this field is an inline (i.e: ... on Something { }).
+     * @return Always returns false
      * @deprecated There are no more inlined fragments anymore so this is always false
      */
     @Deprecated
