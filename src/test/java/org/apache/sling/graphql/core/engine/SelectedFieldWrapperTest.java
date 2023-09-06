@@ -99,16 +99,16 @@ public class SelectedFieldWrapperTest {
         assertFalse("No Duplicate Fields expected for Field 2", targetParent.hasDuplicateFieldByName(FIELD_SUB_SIMPLE_NAME_1));
         SelectedField foundField1 = targetParent.getFirstSubSelectedFieldByName(FIELD_SUB_SIMPLE_NAME_1);
         assertNotNull("First Field not found", foundField1);
-        assertEquals("Wrong First Field by Simple Name", foundField1.getName(), FIELD_SUB_SIMPLE_NAME_1);
+        assertEquals("Wrong First Field by Simple Name", FIELD_SUB_SIMPLE_NAME_1, foundField1.getName());
         SelectedField foundFQNField1 = targetParent.getSubSelectedFieldByFQN(FIELD_SUB_FULLY_QUALIFIED_NAME_1);
         assertNotNull("First Field (by FQN) not found", foundFQNField1);
-        assertEquals("Wrong First Field by FQN Name", foundFQNField1.getName(), FIELD_SUB_SIMPLE_NAME_1);
+        assertEquals("Wrong First Field by FQN Name", FIELD_SUB_SIMPLE_NAME_1, foundFQNField1.getName());
         SelectedField foundField2 = targetParent.getFirstSubSelectedFieldByName(FIELD_SUB_SIMPLE_NAME_2);
         assertNotNull("Second Field not found", foundField2);
-        assertEquals("Wrong Second Field by Simple Name", foundField2.getName(), FIELD_SUB_SIMPLE_NAME_2);
+        assertEquals("Wrong Second Field by Simple Name", FIELD_SUB_SIMPLE_NAME_2, foundField2.getName());
         SelectedField foundFQNField2 = targetParent.getSubSelectedFieldByFQN(FIELD_SUB_FULLY_QUALIFIED_NAME_2);
         assertNotNull("Second Field (by FQN) not found", foundFQNField2);
-        assertEquals("Wrong Second Field by FQN Name", foundFQNField2.getName(), FIELD_SUB_SIMPLE_NAME_2);
+        assertEquals("Wrong Second Field by FQN Name", FIELD_SUB_SIMPLE_NAME_2, foundFQNField2.getName());
     }
 
     @Test
@@ -136,9 +136,9 @@ public class SelectedFieldWrapperTest {
         assertFalse("No Duplicate Fields expected for Field 2", targetParent.hasDuplicateFieldByName(FIELD_SUB_SIMPLE_NAME_2));
         Collection<SelectedField> foundFields1 = targetParent.getSubSelectedFieldByName(FIELD_SUB_SIMPLE_NAME_1);
         assertNotNull("First Fields not found", foundFields1);
-        assertEquals("Expected 2 First Fields", foundFields1.size(), 2);
+        assertEquals("Expected 2 First Fields", 2, foundFields1.size());
         Collection<SelectedField> foundFields2 = targetParent.getSubSelectedFieldByName(FIELD_SUB_SIMPLE_NAME_2);
         assertNotNull("Second Fields not found", foundFields2);
-        assertEquals("Expected No Second Fields", foundFields2.size(), 0);
+        assertEquals("Expected No Second Fields", 0, foundFields2.size());
     }
 }
