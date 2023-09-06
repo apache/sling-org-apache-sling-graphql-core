@@ -29,6 +29,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -39,10 +40,9 @@ public class SelectedFieldWrapperTest {
     private static final String FIELD_SUB_SIMPLE_NAME_1 = "subSimpleName1";
     private static final String FIELD_SUB_SIMPLE_NAME_2 = "subSimpleName2";
     private static final String FIELD_QUALIFIED_NAME = "qualifiedName";
-    private static final String FIELD_FULLY_QUALIFIED_NAME = "test/fullyQualifiedName";
-    private static final String FIELD_SUB_FULLY_QUALIFIED_NAME_1 = "test/subFullyQualifiedName1";
-    private static final String FIELD_SUB_FULLY_QUALIFIED_NAME_2 = "test/subFullyQualifiedName2";
-    private static final String FIELD_SUB_FULLY_QUALIFIED_NAME_3 = "test/subFullyQualifiedName3";
+    private static final String FIELD_FULLY_QUALIFIED_NAME = "test.fullyQualifiedName";
+    private static final String FIELD_SUB_FULLY_QUALIFIED_NAME_1 = "test.su0bFullyQualifiedName1";
+    private static final String FIELD_SUB_FULLY_QUALIFIED_NAME_2 = "test.subFullyQualifiedName2";
     private static final boolean FIELD_CONDITIONAL = false;
     private static final int FIELD_LEVEL = 2;
     private static final String FIELD_ALIAS = "testAlias";
@@ -145,5 +145,38 @@ public class SelectedFieldWrapperTest {
         assertEquals("Expected No Second Fields", 0, foundFields2.size());
         assertTrue("First Field not found by FQN", targetParent.hasSubSelectedFieldsByFQN(FIELD_SUB_FULLY_QUALIFIED_NAME_1));
         assertTrue("Second Field not found by FQN", targetParent.hasSubSelectedFieldsByFQN(FIELD_SUB_FULLY_QUALIFIED_NAME_2));
+    }
+
+    @Test
+    public void testDeprecation() {
+        graphql.schema.SelectedField sourceParent = mock(graphql.schema.SelectedField.class);
+        doReturn(FIELD_SIMPLE_NAME).when(sourceParent).getName();
+        doReturn(FIELD_SIMPLE_NAME).when(sourceParent).getQualifiedName();
+        doReturn(FIELD_FULLY_QUALIFIED_NAME).when(sourceParent).getFullyQualifiedName();
+        graphql.schema.SelectedField sourceSub1 = mock(graphql.schema.SelectedField.class);
+        doReturn(FIELD_SUB_SIMPLE_NAME_1).when(sourceSub1).getName();
+        doReturn(FIELD_SUB_SIMPLE_NAME_1).when(sourceSub1).getQualifiedName();
+        doReturn(FIELD_SUB_FULLY_QUALIFIED_NAME_1).when(sourceSub1).getFullyQualifiedName();
+        graphql.schema.SelectedField sourceSub2 = mock(graphql.schema.SelectedField.class);
+        doReturn(FIELD_SUB_SIMPLE_NAME_1).when(sourceSub2).getName();
+        doReturn(FIELD_SUB_SIMPLE_NAME_1).when(sourceSub2).getQualifiedName();
+        doReturn(FIELD_SUB_FULLY_QUALIFIED_NAME_2).when(sourceSub2).getFullyQualifiedName();
+
+        DataFetchingFieldSelectionSet selectionSet = mock(DataFetchingFieldSelectionSet.class);
+        doReturn(selectionSet).when(sourceParent).getSelectionSet();
+        List<graphql.schema.SelectedField> immediateFields = Arrays.asList(sourceSub1, sourceSub2);
+        doReturn(immediateFields).when(selectionSet).getImmediateFields();
+
+        SelectedFieldWrapper targetParent = new SelectedFieldWrapper(sourceParent);
+
+        assertTrue("First Field not found by Simple Name", targetParent.hasSubSelectedFields(FIELD_SUB_SIMPLE_NAME_1));
+        assertTrue("First Field not found by FQN", targetParent.hasSubSelectedFields(FIELD_SUB_FULLY_QUALIFIED_NAME_1));
+        assertFalse("Second Field found but not expected", targetParent.hasSubSelectedFields(FIELD_SUB_SIMPLE_NAME_2));
+        assertTrue("Second Field not found by FQN", targetParent.hasSubSelectedFields(FIELD_SUB_FULLY_QUALIFIED_NAME_2));
+
+        assertNotNull("First Field not found by Simple Name", targetParent.getSubSelectedField(FIELD_SUB_SIMPLE_NAME_1));
+        assertNotNull("First Field not found by FQN", targetParent.getSubSelectedField(FIELD_SUB_FULLY_QUALIFIED_NAME_1));
+        assertNull("Second Field unexpectedly found by FQN", targetParent.getSubSelectedField(FIELD_SUB_SIMPLE_NAME_2));
+        assertNotNull("Second Field not found by FQN", targetParent.getSubSelectedField(FIELD_SUB_FULLY_QUALIFIED_NAME_2));
     }
 }
