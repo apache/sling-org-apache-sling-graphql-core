@@ -123,6 +123,7 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
             mavenBundle().groupId("org.osgi").artifactId("org.osgi.util.converter").versionAsInProject(), // required for the newer Sling API
             mavenBundle().groupId(SlingVersionResolver.SLING_GROUP_ID).artifactId("org.apache.sling.scripting.spi").versionAsInProject(),
             mavenBundle().groupId("org.apache.johnzon").artifactId("johnzon-mapper").versionAsInProject(),
+            mavenBundle().groupId("org.apache.commons").artifactId("commons-collections4").versionAsInProject(),
             slingResourcePresence(),
             slingCommonsMetrics(),
             jsonPath(),
