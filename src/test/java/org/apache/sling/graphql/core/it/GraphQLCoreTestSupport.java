@@ -47,7 +47,6 @@ import org.apache.sling.engine.SlingRequestProcessor;
 import org.apache.sling.graphql.core.mocks.QueryDataFetcherComponent;
 import org.apache.sling.graphql.core.mocks.TestDataFetcherComponent;
 import org.apache.sling.testing.paxexam.SlingOptions;
-import org.apache.sling.testing.paxexam.SlingVersionResolver;
 import org.apache.sling.testing.paxexam.TestSupport;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
@@ -98,15 +97,8 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
         if (StringUtils.isNotEmpty(jacocoOpt)) {
             jacocoCommand = new VMOption(jacocoOpt);
         }
-
-        SlingOptions.versionResolver.setVersionFromProject(SlingVersionResolver.SLING_GROUP_ID, "org.apache.sling.api");
-        SlingOptions.versionResolver.setVersionFromProject(SlingVersionResolver.SLING_GROUP_ID, "org.apache.sling.servlets.resolver");
-        SlingOptions.versionResolver.setVersionFromProject(SlingVersionResolver.SLING_GROUP_ID, "org.apache.sling.engine");
-        SlingOptions.versionResolver.setVersionFromProject(SlingVersionResolver.SLING_GROUP_ID, "org.apache.sling.resourceresolver");
-        SlingOptions.versionResolver.setVersionFromProject(SlingVersionResolver.SLING_GROUP_ID, "org.apache.sling.scripting.api");
-        SlingOptions.versionResolver.setVersionFromProject(SlingVersionResolver.SLING_GROUP_ID, "org.apache.sling.scripting.core");
-        SlingOptions.versionResolver.setVersionFromProject(SlingVersionResolver.SLING_GROUP_ID, "org.apache.sling.commons.compiler");
-        SlingOptions.versionResolver.setVersionFromProject(SlingVersionResolver.SLING_GROUP_ID, "org.apache.sling.jcr.jackrabbit.usermanager");
+        SlingOptions.versionResolver.setVersion("org.apache.felix", "org.apache.felix.http.jetty", "4.2.0");
+        SlingOptions.versionResolver.setVersion("org.apache.felix", "org.apache.felix.http.servlet-api", "2.0.0");
 
         return composite(
             when(vmOption != null).useOptions(vmOption),
@@ -121,7 +113,6 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
             mavenBundle().groupId("org.apache.sling").artifactId("org.apache.sling.servlet-helpers").versionAsInProject(),
             mavenBundle().groupId("org.apache.sling").artifactId("org.apache.sling.commons.johnzon").versionAsInProject(),
             mavenBundle().groupId("org.osgi").artifactId("org.osgi.util.converter").versionAsInProject(), // required for the newer Sling API
-            mavenBundle().groupId(SlingVersionResolver.SLING_GROUP_ID).artifactId("org.apache.sling.scripting.spi").versionAsInProject(),
             mavenBundle().groupId("org.apache.johnzon").artifactId("johnzon-mapper").versionAsInProject(),
             mavenBundle().groupId("org.apache.commons").artifactId("commons-collections4").versionAsInProject(),
             slingResourcePresence(),
