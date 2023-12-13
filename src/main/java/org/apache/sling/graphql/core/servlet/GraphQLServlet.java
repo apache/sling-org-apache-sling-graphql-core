@@ -26,8 +26,8 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.json.Json;
-import javax.json.JsonWriter;
+import jakarta.json.Json;
+import jakarta.json.JsonWriter;
 import javax.servlet.Servlet;
 import javax.servlet.http.HttpServletResponse;
 

@@ -22,7 +22,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 
-import javax.json.Json;
+import jakarta.json.Json;
 
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.servlets.ServletResolver;
