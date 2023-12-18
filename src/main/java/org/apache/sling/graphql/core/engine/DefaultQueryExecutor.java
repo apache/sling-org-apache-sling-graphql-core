@@ -27,9 +27,12 @@ import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Consumer;
 
 import javax.script.ScriptException;
 
+import graphql.GraphQLContext;
+import graphql.parser.ParserOptions;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.api.SlingDataFetcher;
@@ -114,6 +117,10 @@ public class DefaultQueryExecutor implements QueryExecutor {
     private final Lock writeLock = readWriteLock.writeLock();
     private final SchemaGenerator schemaGenerator = new SchemaGenerator();
 
+    private int queryMaxTokens;
+
+    private int queryMaxWhitespaceTokens;
+
     @Reference
     private RankedSchemaProviders schemaProvider;
 
@@ -136,6 +143,18 @@ public class DefaultQueryExecutor implements QueryExecutor {
                         " cached and reused, rather than parsed by the engine all the time. The cache is a LRU and will store up to this number of schemas."
         )
         int schemaCacheSize() default 128;
+
+        @AttributeDefinition(
+                name = "Query Max Tokens",
+                description = "The number of GraphQL query tokens to parse. This is a safety measure to avoid denial of service attacks."
+        )
+        int queryMaxTokens() default 15000;
+
+        @AttributeDefinition(
+                name = "Query Max Whitespace Tokens",
+                description = "The number of GraphQL query whitespace tokens to parse. This is a safety measure to avoid denial of service attacks."
+        )
+        int queryMaxWhitespaceTokens() default 200000;
     }
 
     private class ExecutionContext {
@@ -155,6 +174,7 @@ public class DefaultQueryExecutor implements QueryExecutor {
             input = ExecutionInput.newExecutionInput()
                     .query(query)
                     .variables(variables)
+                    .graphQLContext(getGraphQLContextBuilder())
                     .build();
 
         }
@@ -166,6 +186,9 @@ public class DefaultQueryExecutor implements QueryExecutor {
         if (schemaCacheSize < 0) {
             schemaCacheSize = 0;
         }
+        queryMaxTokens = config.queryMaxTokens();
+        queryMaxWhitespaceTokens = config.queryMaxWhitespaceTokens();
+
         resourceToHashMap = new LRUCache<>(schemaCacheSize);
         hashToSchemaMap = new LRUCache<>(schemaCacheSize);
     }
@@ -392,6 +415,24 @@ public class DefaultQueryExecutor implements QueryExecutor {
         } finally {
             readLock.unlock();
         }
+    }
+
+    private Consumer<GraphQLContext.Builder> getGraphQLContextBuilder() {
+        ParserOptions defaultParserOptions = ParserOptions.getDefaultParserOptions();
+        Consumer<GraphQLContext.Builder> graphQLContextBuilder = builder -> {
+            builder.put(ParserOptions.class, ParserOptions.newParserOptions()
+                    .captureIgnoredChars(defaultParserOptions.isCaptureIgnoredChars())
+                    .captureSourceLocation(defaultParserOptions.isCaptureSourceLocation())
+                    .captureLineComments(defaultParserOptions.isCaptureLineComments())
+                    .readerTrackData(defaultParserOptions.isReaderTrackData())
+                    .maxTokens(queryMaxTokens)
+                    .maxWhitespaceTokens(queryMaxWhitespaceTokens)
+                    .maxRuleDepth(defaultParserOptions.getMaxRuleDepth())
+                    .build()
+            );
+        };
+
+        return graphQLContextBuilder;
     }
 
     private GraphQLSchema buildSchema(@NotNull TypeDefinitionRegistry typeRegistry, @NotNull Resource currentResource) {
