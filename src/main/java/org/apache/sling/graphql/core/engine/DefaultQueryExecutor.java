@@ -180,6 +180,16 @@ public class DefaultQueryExecutor implements QueryExecutor {
                     .build();
 
         }
+
+        private Consumer<GraphQLContext.Builder> getGraphQLContextBuilder() {
+            final ParserOptions parserOptions = ParserOptions.getDefaultParserOptions().transform(builder -> {
+                builder
+                        .maxTokens(maxQueryTokens)
+                        .maxWhitespaceTokens(maxWhitespaceTokens)
+                        .build();
+            });
+            return builder -> builder.put(ParserOptions.class, parserOptions);
+        }
     }
 
     @Activate
@@ -417,16 +427,6 @@ public class DefaultQueryExecutor implements QueryExecutor {
         } finally {
             readLock.unlock();
         }
-    }
-
-    private Consumer<GraphQLContext.Builder> getGraphQLContextBuilder() {
-        final ParserOptions opt = ParserOptions.getDefaultParserOptions().transform(builder -> {
-            builder
-                .maxTokens(maxQueryTokens)
-                .maxWhitespaceTokens(maxWhitespaceTokens)
-                .build();
-        });
-        return builder -> builder.put(ParserOptions.class, opt);
     }
 
     private GraphQLSchema buildSchema(@NotNull TypeDefinitionRegistry typeRegistry, @NotNull Resource currentResource) {
