@@ -42,11 +42,11 @@ import static org.hamcrest.Matchers.containsString;
 
 /** Test the SLING-12198 configurable max tokens */
 @RunWith(Parameterized.class)
-public class QueryMaxTokensTest extends ResourceQueryTestBase {
-  private static final int DEFAULT_MAX_TOKENS = 15000;
+public class MaxQueryTokensTest extends ResourceQueryTestBase {
+  private static final int DEFAULT_MAX_QUERY_TOKENS = 15000;
   private static final String INVALID = "invalid ";
   private static final String WHITESPACE = " {\t";
-  private final Integer maxTokens;
+  private final Integer maxQueryTokens;
   private final Integer maxWhitespaceTokens;
   private final int nOk;
   private final int nTokensFailure;
@@ -55,15 +55,15 @@ public class QueryMaxTokensTest extends ResourceQueryTestBase {
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     final List<Object[]> result = new ArrayList<>();
-    result.add(new Object[] { "default values", null, null, DEFAULT_MAX_TOKENS - 1, DEFAULT_MAX_TOKENS, -1 });
+    result.add(new Object[] { "default values", null, null, DEFAULT_MAX_QUERY_TOKENS - 1, DEFAULT_MAX_QUERY_TOKENS, -1 });
     result.add(new Object[] { "same values", 100, 100, 99, 100, 100 });
     result.add(new Object[] { "more whitespace", 100, 200, 99, 100, 150 });
     return result;
   }
 
-  public QueryMaxTokensTest(String name, Integer maxTokens, Integer maxWhitespaceTokens, int nOk, int nTokensFailure,
+  public MaxQueryTokensTest(String name, Integer maxTokens, Integer maxWhitespaceTokens, int nOk, int nTokensFailure,
       int nWhitespaceFailure) {
-    this.maxTokens = maxTokens;
+    this.maxQueryTokens = maxTokens;
     this.maxWhitespaceTokens = maxWhitespaceTokens;
     this.nOk = nOk;
     this.nTokensFailure = nTokensFailure;
@@ -72,11 +72,11 @@ public class QueryMaxTokensTest extends ResourceQueryTestBase {
 
   protected Map<String, Object> getQueryExecutorProperties() {
     final Map<String, Object> props = new HashMap<>();
-    if (maxTokens != null) {
-      props.put("queryMaxTokens", maxTokens);
+    if (maxQueryTokens != null) {
+      props.put("maxQueryTokens", maxQueryTokens);
     }
     if (maxWhitespaceTokens != null) {
-      props.put("queryMaxWhitespaceTokens", maxWhitespaceTokens);
+      props.put("maxWhitespaceTokens", maxWhitespaceTokens);
     }
     return props;
   }
