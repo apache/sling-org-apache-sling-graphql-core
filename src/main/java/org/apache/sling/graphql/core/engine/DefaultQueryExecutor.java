@@ -418,21 +418,13 @@ public class DefaultQueryExecutor implements QueryExecutor {
     }
 
     private Consumer<GraphQLContext.Builder> getGraphQLContextBuilder() {
-        ParserOptions defaultParserOptions = ParserOptions.getDefaultParserOptions();
-        Consumer<GraphQLContext.Builder> graphQLContextBuilder = builder -> {
-            builder.put(ParserOptions.class, ParserOptions.newParserOptions()
-                    .captureIgnoredChars(defaultParserOptions.isCaptureIgnoredChars())
-                    .captureSourceLocation(defaultParserOptions.isCaptureSourceLocation())
-                    .captureLineComments(defaultParserOptions.isCaptureLineComments())
-                    .readerTrackData(defaultParserOptions.isReaderTrackData())
-                    .maxTokens(queryMaxTokens)
-                    .maxWhitespaceTokens(queryMaxWhitespaceTokens)
-                    .maxRuleDepth(defaultParserOptions.getMaxRuleDepth())
-                    .build()
-            );
-        };
-
-        return graphQLContextBuilder;
+        final ParserOptions opt = ParserOptions.getDefaultParserOptions().transform(builder -> {
+            builder
+                .maxTokens(queryMaxTokens)
+                .maxWhitespaceTokens(queryMaxWhitespaceTokens)
+                .build();
+        });
+        return builder -> builder.put(ParserOptions.class, opt);
     }
 
     private GraphQLSchema buildSchema(@NotNull TypeDefinitionRegistry typeRegistry, @NotNull Resource currentResource) {
