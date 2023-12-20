@@ -182,12 +182,12 @@ public class DefaultQueryExecutor implements QueryExecutor {
         }
 
         private Consumer<GraphQLContext.Builder> getGraphQLContextBuilder() {
-            final ParserOptions parserOptions = ParserOptions.getDefaultParserOptions().transform(builder -> {
+            final ParserOptions parserOptions = ParserOptions.getDefaultParserOptions().transform(builder ->
                 builder
                         .maxTokens(maxQueryTokens)
                         .maxWhitespaceTokens(maxWhitespaceTokens)
-                        .build();
-            });
+                        .build()
+            );
             return builder -> builder.put(ParserOptions.class, parserOptions);
         }
     }
