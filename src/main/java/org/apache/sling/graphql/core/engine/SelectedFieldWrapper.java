@@ -18,7 +18,6 @@
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 package org.apache.sling.graphql.core.engine;
 
-import graphql.com.google.common.collect.ImmutableList;
 import graphql.schema.DataFetchingFieldSelectionSet;
 import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
@@ -178,6 +177,6 @@ public class SelectedFieldWrapper implements SelectedField {
     @Override
     @NotNull
     public List<String> getObjectTypeNames() {
-        return ImmutableList.copyOf(objectTypeNames);
+        return Collections.unmodifiableList(new ArrayList<String>(objectTypeNames));
     }
 }
