@@ -70,7 +70,11 @@ public abstract class ResourceQueryTestBase {
         context.registerInjectActivateService(new SlingTypeResolverSelector());
         context.registerInjectActivateService(new SlingScalarsProvider());
         context.registerInjectActivateService(new RankedSchemaProviders());
-        context.registerInjectActivateService(new DefaultQueryExecutor());
+        context.registerInjectActivateService(new DefaultQueryExecutor(), getQueryExecutorProperties());
+    }
+
+    protected  Map<String, Object> getQueryExecutorProperties() {
+        return null;
     }
 
     protected String queryJSON(String stmt) throws Exception {
