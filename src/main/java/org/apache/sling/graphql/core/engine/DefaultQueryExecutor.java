@@ -24,10 +24,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import javax.script.ScriptException;
 
@@ -60,9 +62,12 @@ import org.slf4j.LoggerFactory;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
+import graphql.GraphQL.Builder;
 import graphql.GraphQLError;
 import graphql.ParseAndValidate;
 import graphql.ParseAndValidateResult;
+import graphql.execution.preparsed.PreparsedDocumentEntry;
+import graphql.execution.preparsed.PreparsedDocumentProvider;
 import graphql.language.Argument;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
@@ -83,6 +88,9 @@ import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 @Component(
         service = QueryExecutor.class
@@ -121,6 +129,8 @@ public class DefaultQueryExecutor implements QueryExecutor {
 
     private int maxWhitespaceTokens;
 
+    Cache<String, PreparsedDocumentEntry> cache;
+
     @Reference
     private RankedSchemaProviders schemaProvider;
 
@@ -133,6 +143,8 @@ public class DefaultQueryExecutor implements QueryExecutor {
     @Reference
     private SlingScalarsProvider scalarsProvider;
 
+    PreparsedDocumentProvider preparsedCache;
+
     @ObjectClassDefinition(
             name = "Apache Sling Default GraphQL Query Executor"
     )
@@ -143,6 +155,12 @@ public class DefaultQueryExecutor implements QueryExecutor {
                         " cached and reused, rather than parsed by the engine all the time. The cache is a LRU and will store up to this number of schemas."
         )
         int schemaCacheSize() default 128;
+
+        @AttributeDefinition(
+                name = "Query Cache Size",
+                description = "The number of preparsed GraphQL queries to cache."
+        )
+        int queryCacheSize() default 128;
 
         @AttributeDefinition(
                 name = "Max Query Tokens",
@@ -195,14 +213,29 @@ public class DefaultQueryExecutor implements QueryExecutor {
     @Activate
     public void activate(Config config) {
         int schemaCacheSize = config.schemaCacheSize();
+        int queryCacheSize = config.queryCacheSize();
         if (schemaCacheSize < 0) {
             schemaCacheSize = 0;
         }
+        if (queryCacheSize < 0) {
+            schemaCacheSize = 0;
+        }
+
         maxQueryTokens = config.maxQueryTokens();
         maxWhitespaceTokens = config.maxWhitespaceTokens();
 
         resourceToHashMap = new LRUCache<>(schemaCacheSize);
         hashToSchemaMap = new LRUCache<>(schemaCacheSize);
+        if (queryCacheSize>0) {
+            cache = Caffeine.newBuilder().maximumSize(queryCacheSize).build();
+            preparsedCache = new PreparsedDocumentProvider() {
+    @Override
+    public CompletableFuture<PreparsedDocumentEntry> getDocumentAsync(ExecutionInput executionInput, Function<ExecutionInput, PreparsedDocumentEntry> computeFunction) {
+            Function<String, PreparsedDocumentEntry> mapCompute = key -> computeFunction.apply(executionInput);
+            return CompletableFuture.completedFuture(cache.get(executionInput.getQuery(), mapCompute));
+    }
+};
+        }        
     }
 
     @Override
@@ -235,7 +268,11 @@ public class DefaultQueryExecutor implements QueryExecutor {
                                                 @NotNull Resource queryResource, @NotNull String[] selectors) {
         try {
             final ExecutionContext ctx = new ExecutionContext(query, variables, queryResource, selectors);
-            final GraphQL graphQL = GraphQL.newGraphQL(ctx.schema).build();
+            Builder graphqlBuilder = GraphQL.newGraphQL(ctx.schema);
+            if (preparsedCache!=null) {
+                graphqlBuilder.preparsedDocumentProvider(preparsedCache); 
+            }
+            final GraphQL graphQL = graphqlBuilder.build();
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Executing query\n[{}]\nat [{}] with variables [{}]",
                         cleanLog.sanitize(query), queryResource.getPath(), cleanLog.sanitize(variables.toString()));

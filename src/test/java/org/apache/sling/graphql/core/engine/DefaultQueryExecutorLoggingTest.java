@@ -82,9 +82,9 @@ public class DefaultQueryExecutorLoggingTest extends ResourceQueryTestBase {
         capture.assertContains(
             Level.ERROR,
             "Query failed for Resource " + resource.getPath(),
-            "query=" + invalidQuery,
+            "query=INVALID",
             "Errors:Error: type=InvalidSyntax",
-            "message=Invalid syntax with ANTLR error 'token recognition error at: '4ec'' at line 1 column 9",
+            "message=Invalid syntax with offending token 'INVALID' at line 1 column 1",
             String.format("selectors=%s", Arrays.toString(selectors))
         );
     }

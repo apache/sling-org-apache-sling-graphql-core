@@ -266,6 +266,7 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
 
     @Override
     public void doPost(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) throws IOException {
+        LOGGER.info("DoPost start");
         requestsServed.increment();
         Timer.Context requestTimerContext = requestTimer.time();
         try {
@@ -282,6 +283,7 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
         } finally {
             requestTimerContext.stop();
         }
+        LOGGER.info("DoPost end");
     }
 
     private void doPostPersistedQuery(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response)
@@ -306,6 +308,7 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
     }
 
     private void execute(Resource resource, SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
+        LOGGER.info("Start execution of GraphQL query");
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
         final QueryParser.Result result = QueryParser.fromRequest(request);
@@ -326,6 +329,7 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
         } catch(Exception ex) {
             throw new IOException(ex);
         }
+        LOGGER.info("Finished execution of GraphQL query");
     }
 
     private void execute(@NotNull String persistedQuery, SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
