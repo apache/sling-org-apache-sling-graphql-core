@@ -127,7 +127,7 @@
     <dependency>
       <groupId>com.graphql-java</groupId>
       <artifactId>graphql-java</artifactId>
-      <version>22.3</version>
+      <version>23.1</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -137,23 +137,11 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>com.github.ben-manes.caffeine</groupId>
-      <artifactId>caffeine</artifactId>
-      <version>3.2.0</version>
+      <groupId>org.jspecify</groupId>
+      <artifactId>jspecify</artifactId>
+      <version>1.0.0</version>
       <scope>provided</scope>
-  </dependency>
-  <dependency>
-    <groupId>org.jspecify</groupId>
-    <artifactId>jspecify</artifactId>
-    <version>1.0.0</version>
-    <scope>provided</scope>
-</dependency>
-<dependency>
-  <groupId>com.google.errorprone</groupId>
-  <artifactId>error_prone_annotations</artifactId>
-  <version>2.36.0</version>
-  <scope>provided</scope>
-</dependency>
+    </dependency>
     <dependency>
       <groupId>org.antlr</groupId>
       <artifactId>antlr4-runtime</artifactId>
