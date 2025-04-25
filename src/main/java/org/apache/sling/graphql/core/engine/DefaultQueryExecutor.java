@@ -107,6 +107,7 @@ public class DefaultQueryExecutor implements QueryExecutor {
     public static final String TYPE_STRING = "String";
     public static final String TYPE_BOOLEAN = "Boolean";
     public static final String TYPE_PAGE_INFO = "PageInfo";
+
     private static final LogSanitizer cleanLog = new LogSanitizer();
 
     private Map<String, String> resourceToHashMap;
