@@ -75,6 +75,7 @@ import graphql.language.StringValue;
 import graphql.language.TypeDefinition;
 import graphql.language.TypeName;
 import graphql.language.UnionTypeDefinition;
+import graphql.normalized.ExecutableNormalizedOperationFactory;
 import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchema;
@@ -157,6 +158,13 @@ public class DefaultQueryExecutor implements QueryExecutor {
                         " Change ONLY if you know exactly what you are doing."
         )
         int maxWhitespaceTokens() default 200000;
+
+        @AttributeDefinition(
+                name = "Maximum Field Count",
+                description = "The number of fields queried with an GraphQL request. This is a safety measure to avoid denial of service attacks." +
+                        " Change ONLY if you know exactly what you are doing."
+        )
+        int maxFieldCount() default 200000;
     }
 
     private class ExecutionContext {
@@ -203,6 +211,7 @@ public class DefaultQueryExecutor implements QueryExecutor {
 
         resourceToHashMap = new LRUCache<>(schemaCacheSize);
         hashToSchemaMap = new LRUCache<>(schemaCacheSize);
+        ExecutableNormalizedOperationFactory.Options.setDefaultOptions(ExecutableNormalizedOperationFactory.Options.defaultOptions().maxFieldsCount(config.maxFieldCount()));
     }
 
     @Override
