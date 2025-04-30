@@ -52,10 +52,12 @@ import org.apache.sling.graphql.core.mocks.TestUtil;
 import org.apache.sling.graphql.core.schema.RankedSchemaProviders;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 
+import graphql.normalized.ExecutableNormalizedOperationFactory;
 import graphql.schema.idl.TypeDefinitionRegistry;
 
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
@@ -510,4 +512,17 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
 
     }
 
+    @Test
+    public void testMaxFieldCountConfig() {
+        DefaultQueryExecutor.Config config = Mockito.mock(DefaultQueryExecutor.Config.class);
+        Mockito.when(config.maxFieldCount()).thenReturn(1000);
+
+        DefaultQueryExecutor executor = new DefaultQueryExecutor();
+        executor.activate(config);
+
+        int expectedMaxFieldCount = 1000;
+        int actualMaxFieldCount = ExecutableNormalizedOperationFactory.Options.defaultOptions().getMaxFieldsCount();
+
+        assertEquals("Max field count should match the configured value", expectedMaxFieldCount, actualMaxFieldCount);
+    }
 }
