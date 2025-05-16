@@ -158,7 +158,6 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
             mavenBundle().groupId("com.graphql-java").artifactId("graphql-java").versionAsInProject(),
             mavenBundle().groupId("org.antlr").artifactId("antlr4-runtime").versionAsInProject(),
             mavenBundle().groupId("com.graphql-java").artifactId("java-dataloader").versionAsInProject(),
-            mavenBundle().groupId("org.jspecify").artifactId("jspecify").versionAsInProject(),
             mavenBundle().groupId("org.reactivestreams").artifactId("reactive-streams").versionAsInProject()
         );
     }
