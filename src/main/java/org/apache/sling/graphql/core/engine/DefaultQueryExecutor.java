@@ -164,7 +164,7 @@ public class DefaultQueryExecutor implements QueryExecutor {
                 description = "The number of fields queried with an GraphQL request. This is a safety measure to avoid denial of service attacks." +
                         " Change ONLY if you know exactly what you are doing."
         )
-        int maxFieldCount() default 200000;
+        int maxFieldCount() default 100000;
     }
 
     private class ExecutionContext {
