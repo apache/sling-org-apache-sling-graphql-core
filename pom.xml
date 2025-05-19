@@ -127,13 +127,13 @@
     <dependency>
       <groupId>com.graphql-java</groupId>
       <artifactId>graphql-java</artifactId>
-      <version>20.3</version>
+      <version>24.0</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>com.graphql-java</groupId>
       <artifactId>java-dataloader</artifactId>
-      <version>3.2.0</version>
+      <version>5.0.0</version>
       <scope>provided</scope>
     </dependency>
     <dependency>

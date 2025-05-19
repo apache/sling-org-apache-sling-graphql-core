@@ -45,7 +45,7 @@ import static org.hamcrest.Matchers.containsString;
 public class MaxQueryTokensTest extends ResourceQueryTestBase {
   private static final int DEFAULT_MAX_QUERY_TOKENS = 15000;
   private static final String INVALID = "invalid ";
-  private static final String WHITESPACE = " {\t";
+  private static final String WHITESPACE = " \t";
   private final Integer maxQueryTokens;
   private final Integer maxWhitespaceTokens;
   private final int nOk;
@@ -115,14 +115,14 @@ public class MaxQueryTokensTest extends ResourceQueryTestBase {
 
   @Test
   public void tooManyTokens() throws Exception {
-    assertQueryFailure(repeat(INVALID, nTokensFailure),
+    assertQueryFailure("{" +  repeat(INVALID, nTokensFailure) + "}",
         "'grammar' tokens have been presented. To prevent Denial Of Service");
   }
 
   @Test
   public void tooManyWhitespaceTokens() throws Exception {
     if (nWhitespaceFailure >= 0) {
-      assertQueryFailure(repeat(WHITESPACE, nWhitespaceFailure),
+      assertQueryFailure("{" + repeat(WHITESPACE, nWhitespaceFailure) + "}",
           "'whitespace' tokens have been presented. To prevent Denial Of Service");
     }
   }
