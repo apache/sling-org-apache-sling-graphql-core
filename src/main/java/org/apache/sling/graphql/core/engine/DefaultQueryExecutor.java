@@ -63,6 +63,8 @@ import graphql.GraphQL;
 import graphql.GraphQLError;
 import graphql.ParseAndValidate;
 import graphql.ParseAndValidateResult;
+import graphql.execution.values.InputInterceptor;
+import graphql.execution.values.legacycoercing.LegacyCoercingInputInterceptor;
 import graphql.language.Argument;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
@@ -196,7 +198,8 @@ public class DefaultQueryExecutor implements QueryExecutor {
                         .maxWhitespaceTokens(maxWhitespaceTokens)
                         .build()
             );
-            return builder -> builder.put(ParserOptions.class, parserOptions);
+            return builder -> builder.put(ParserOptions.class, parserOptions).put(InputInterceptor.class,
+                    LegacyCoercingInputInterceptor.migratesValues());
         }
     }
 

@@ -33,7 +33,7 @@ type Query {
     # Test interface query
     interfaceQuery: CharactersAsInterface @fetcher(name:"character/fetcher")
 
-    lazyQuery : ExpensiveObject @fetcher(name:"lazy/fetcher")
+    lazyQuery(boolVar : Boolean, intVar : Int, floatVar: Float) : ExpensiveObject @fetcher(name:"lazy/fetcher")
 }
 
 interface CharacterInterface @resolver(name:"character/resolver" source:"CharacterInterface") {

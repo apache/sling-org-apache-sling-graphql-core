@@ -78,13 +78,17 @@ public abstract class ResourceQueryTestBase {
     }
 
     protected String queryJSON(String stmt) throws Exception {
-        return queryJSON(stmt, new String[]{});
+        return queryJSON(stmt, Collections.emptyMap(), new String[]{});
     }
 
     protected String queryJSON(String stmt, String ... selectors) {
+        return queryJSON(stmt, Collections.emptyMap(), selectors);  
+    }
+
+    protected String queryJSON(String stmt, Map<String, Object> variables, String ... selectors) {
         final QueryExecutor queryExecutor = context.getService(QueryExecutor.class);
         assertNotNull(queryExecutor);
-        Map<String, Object> executionResult = queryExecutor.execute(stmt, Collections.emptyMap(), resource, selectors);
+        Map<String, Object> executionResult = queryExecutor.execute(stmt, variables, resource, selectors);
         return Json.createObjectBuilder(executionResult).build().asJsonObject().toString();
     }
 
