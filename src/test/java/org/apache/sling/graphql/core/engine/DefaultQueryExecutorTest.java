@@ -61,6 +61,7 @@ import graphql.normalized.ExecutableNormalizedOperationFactory;
 import graphql.schema.idl.TypeDefinitionRegistry;
 
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
+import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasNoJsonPath;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -524,5 +525,32 @@ public class DefaultQueryExecutorTest extends ResourceQueryTestBase {
         int actualMaxFieldCount = ExecutableNormalizedOperationFactory.Options.defaultOptions().getMaxFieldsCount();
 
         assertEquals("Max field count should match the configured value", expectedMaxFieldCount, actualMaxFieldCount);
+    }
+
+    @Test
+    public void testBooleanVariable() throws Exception {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("boolVar", "false");
+
+        final String json = queryJSON("query($boolVar: Boolean) { lazyQuery(boolVar: $boolVar) { cheapCount }}", variables);
+        assertThat(json, hasNoJsonPath("$.errors"));
+    }
+
+    @Test
+    public void testIntegerVariable() throws Exception {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("intVar", "10");
+
+        final String json = queryJSON("query($intVar: Int) { lazyQuery(intVar: $intVar) { cheapCount }}", variables);
+        assertThat(json, hasNoJsonPath("$.errors"));
+    }
+
+    @Test
+    public void testFloatVariable() throws Exception {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("floatVar", "10.1");
+
+        final String json = queryJSON("query($floatVar: Float) { lazyQuery(floatVar: $floatVar) { cheapCount }}", variables);
+        assertThat(json, hasNoJsonPath("$.errors"));
     }
 }
