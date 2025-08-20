@@ -405,12 +405,12 @@ public class DefaultQueryExecutor implements QueryExecutor {
          */
         String resourceToHashMapKey = getCacheKey(currentResource, selectors);
         String oldHash = resourceToHashMap.get(resourceToHashMapKey);
-        if (!newHash.equals(oldHash)) {
+        if (!newHash.equals(oldHash) || hashToSchemaMap.get(newHash) == null) {
             readLock.unlock();
             writeLock.lock();
             try {
                 oldHash = resourceToHashMap.get(resourceToHashMapKey);
-                if (!newHash.equals(oldHash)) {
+                if (!newHash.equals(oldHash) || hashToSchemaMap.get(newHash) == null) {
                     typeRegistry = new SchemaParser().parse(sdl);
                     typeRegistry.add(Directives.CONNECTION);
                     typeRegistry.add(Directives.FETCHER);
