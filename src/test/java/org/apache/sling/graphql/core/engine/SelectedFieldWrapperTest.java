@@ -179,4 +179,89 @@ public class SelectedFieldWrapperTest {
         assertNull("Second Field unexpectedly found by FQN", targetParent.getSubSelectedField(FIELD_SUB_SIMPLE_NAME_2));
         assertNotNull("Second Field not found by FQN", targetParent.getSubSelectedField(FIELD_SUB_FULLY_QUALIFIED_NAME_2));
     }
+
+    /**
+     * Tests the mergeSubFields behavior (SITES-42449): when graphql-java returns
+     * two immediate children with the same FQN (e.g. two "items" entries from aliased
+     * inline fragments), their sub-fields must be merged rather than the first being
+     * overwritten by the second.
+     *
+     * Simulates: { parentList { items { ... on ModelA { fieldA } ... on ModelB { fieldB } } } }
+     * where graphql-java produces two "items" entries with FQN "Parent.items", each
+     * carrying different sub-fields (ModelA.fieldA vs ModelB.fieldB).
+     */
+    @Test
+    public void testMergeSubFieldsForDuplicateFQN() {
+        // FQN shared by both "items" entries
+        String itemsFqn = "Parent.items";
+        String itemsName = "items";
+
+        // Sub-fields from the first inline fragment (ModelA)
+        String subFqnA = "ModelA.fieldA";
+        String subNameA = "fieldA";
+        graphql.schema.SelectedField sourceSubA = mock(graphql.schema.SelectedField.class);
+        doReturn(subNameA).when(sourceSubA).getName();
+        doReturn(subNameA).when(sourceSubA).getQualifiedName();
+        doReturn(subFqnA).when(sourceSubA).getFullyQualifiedName();
+
+        DataFetchingFieldSelectionSet selSetItems1 = mock(DataFetchingFieldSelectionSet.class);
+        doReturn(Arrays.asList(sourceSubA)).when(selSetItems1).getImmediateFields();
+
+        graphql.schema.SelectedField sourceItems1 = mock(graphql.schema.SelectedField.class);
+        doReturn(itemsName).when(sourceItems1).getName();
+        doReturn(itemsName).when(sourceItems1).getQualifiedName();
+        doReturn(itemsFqn).when(sourceItems1).getFullyQualifiedName();
+        doReturn(selSetItems1).when(sourceItems1).getSelectionSet();
+
+        // Sub-fields from the second inline fragment (ModelB)
+        String subFqnB = "ModelB.fieldB";
+        String subNameB = "fieldB";
+        graphql.schema.SelectedField sourceSubB = mock(graphql.schema.SelectedField.class);
+        doReturn(subNameB).when(sourceSubB).getName();
+        doReturn(subNameB).when(sourceSubB).getQualifiedName();
+        doReturn(subFqnB).when(sourceSubB).getFullyQualifiedName();
+
+        DataFetchingFieldSelectionSet selSetItems2 = mock(DataFetchingFieldSelectionSet.class);
+        doReturn(Arrays.asList(sourceSubB)).when(selSetItems2).getImmediateFields();
+
+        graphql.schema.SelectedField sourceItems2 = mock(graphql.schema.SelectedField.class);
+        doReturn(itemsName).when(sourceItems2).getName();
+        doReturn(itemsName).when(sourceItems2).getQualifiedName();
+        doReturn(itemsFqn).when(sourceItems2).getFullyQualifiedName();
+        doReturn(selSetItems2).when(sourceItems2).getSelectionSet();
+
+        // Parent field with both "items" entries as immediate children
+        graphql.schema.SelectedField sourceParent = mock(graphql.schema.SelectedField.class);
+        doReturn("parent").when(sourceParent).getName();
+        doReturn("parent").when(sourceParent).getQualifiedName();
+        doReturn("Query.parent").when(sourceParent).getFullyQualifiedName();
+
+        DataFetchingFieldSelectionSet parentSelSet = mock(DataFetchingFieldSelectionSet.class);
+        doReturn(Arrays.asList(sourceItems1, sourceItems2)).when(parentSelSet).getImmediateFields();
+        doReturn(parentSelSet).when(sourceParent).getSelectionSet();
+
+        SelectedFieldWrapper parent = new SelectedFieldWrapper(sourceParent);
+
+        // The parent should have exactly one "items" child (merged, not duplicated)
+        SelectedField itemsField = parent.getSubSelectedFieldByFQN(itemsFqn);
+        assertNotNull("Items field not found by FQN", itemsField);
+
+        // The merged "items" field should contain sub-fields from BOTH inline fragments
+        assertTrue("Sub-field from first inline fragment (ModelA.fieldA) missing",
+                itemsField.hasSubSelectedFieldsByFQN(subFqnA));
+        assertTrue("Sub-field from second inline fragment (ModelB.fieldB) missing",
+                itemsField.hasSubSelectedFieldsByFQN(subFqnB));
+
+        // Verify by direct lookup
+        SelectedField foundA = itemsField.getSubSelectedFieldByFQN(subFqnA);
+        assertNotNull("fieldA not found by FQN", foundA);
+        assertEquals("Wrong name for fieldA", subNameA, foundA.getName());
+
+        SelectedField foundB = itemsField.getSubSelectedFieldByFQN(subFqnB);
+        assertNotNull("fieldB not found by FQN", foundB);
+        assertEquals("Wrong name for fieldB", subNameB, foundB.getName());
+
+        // Total sub-fields count should be 2 (one from each inline fragment)
+        assertEquals("Expected 2 merged sub-fields", 2, itemsField.getSubSelectedFields().size());
+    }
 }

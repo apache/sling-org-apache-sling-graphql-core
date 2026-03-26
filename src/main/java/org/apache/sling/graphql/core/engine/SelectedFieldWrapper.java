@@ -70,11 +70,36 @@ public class SelectedFieldWrapper implements SelectedField {
             selectionSet.getImmediateFields().forEach(sf -> {
                 SelectedFieldWrapper selectedChildField = new SelectedFieldWrapper(sf);
                 subFieldMap.put(sf.getName(), selectedChildField);
-                subFQNFieldMap.put(sf.getFullyQualifiedName(), selectedChildField);
+                String fqn = sf.getFullyQualifiedName();
+                SelectedField existing = subFQNFieldMap.get(fqn);
+                if (existing instanceof SelectedFieldWrapper) {
+                    // Merge sub-fields from duplicate entries (e.g. aliased selections
+                    // of the same field with different inline fragments)
+                    ((SelectedFieldWrapper) existing).mergeSubFields(selectedChildField);
+                } else {
+                    subFQNFieldMap.put(fqn, selectedChildField);
+                }
             });
         }
         // Fields are not taken from the FQN Map to avoid dropping fields with the same name
         subFields = new ArrayList<>(subFQNFieldMap.values());
+    }
+
+    /**
+     * Merge sub-fields from another SelectedFieldWrapper into this one.
+     * This handles the case where the same field is selected multiple times
+     * (e.g. via aliases with different inline fragments), and the sub-selections
+     * need to be combined.
+     */
+    void mergeSubFields(SelectedFieldWrapper other) {
+        for (SelectedField otherSub : other.getSubSelectedFields()) {
+            String fqn = otherSub.getFullyQualifiedName();
+            if (fqn != null && !subFQNFieldMap.containsKey(fqn)) {
+                subFQNFieldMap.put(fqn, otherSub);
+                subFieldMap.put(otherSub.getName(), otherSub);
+                subFields.add(otherSub);
+            }
+        }
     }
 
     @Override
