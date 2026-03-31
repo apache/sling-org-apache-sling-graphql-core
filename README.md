@@ -480,4 +480,3 @@ supply XPath query elements for expressions like `Folder.title`.
 
 The Query might have additional options such as `withXpathGenerator`, `withObjectMapper` for edge cases
 where the built-in logic is not sufficient.
-
