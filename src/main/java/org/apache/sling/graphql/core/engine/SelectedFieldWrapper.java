@@ -36,7 +36,9 @@ import java.util.Map;
 /**
  * Implement a wrapper for GraphQL SelectedField.
  *
- * ATTENTION: here we are assuming that fields added are unqiue by the Fully Qualified Name (FQN).
+ * ATTENTION: here we are assuming that fields added are unique by the Fully Qualified Name (FQN).
+ * When multiple children share the same FQN (e.g. aliased selections with different inline fragments),
+ * their sub-fields are merged into a single wrapper rather than kept as separate entries.
  *
  * This updated version is keeping duplicate fields by field's simple name. Use getFirstSubSelectedFieldByName() if
  * you are sure that there is only one field with that simple name otherwise use hasDuplicateFieldByName() to determine
@@ -69,7 +71,6 @@ public class SelectedFieldWrapper implements SelectedField {
         if (selectionSet != null) {
             selectionSet.getImmediateFields().forEach(sf -> {
                 SelectedFieldWrapper selectedChildField = new SelectedFieldWrapper(sf);
-                subFieldMap.put(sf.getName(), selectedChildField);
                 String fqn = sf.getFullyQualifiedName();
                 SelectedField existing = subFQNFieldMap.get(fqn);
                 if (existing instanceof SelectedFieldWrapper) {
@@ -78,6 +79,7 @@ public class SelectedFieldWrapper implements SelectedField {
                     ((SelectedFieldWrapper) existing).mergeSubFields(selectedChildField);
                 } else {
                     subFQNFieldMap.put(fqn, selectedChildField);
+                    subFieldMap.put(sf.getName(), selectedChildField);
                 }
             });
         }

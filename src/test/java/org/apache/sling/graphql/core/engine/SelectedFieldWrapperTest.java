@@ -264,4 +264,76 @@ public class SelectedFieldWrapperTest {
         // Total sub-fields count should be 2 (one from each inline fragment)
         assertEquals("Expected 2 merged sub-fields", 2, itemsField.getSubSelectedFields().size());
     }
+
+    /**
+     * Verifies that when two immediate children share the same FQN (and simple name),
+     * the merged-away duplicate does NOT remain in subFieldMap.
+     *
+     * Before the fix, subFieldMap.put() ran unconditionally before the FQN dedup merge,
+     * leaving a stale wrapper in the map. This caused hasDuplicateFieldByName() to report
+     * a false positive and getSubSelectedFieldByName() to return both the merged wrapper
+     * and the stale one.
+     */
+    @Test
+    public void testNoDuplicateInSubFieldMapAfterFQNMerge() {
+        String itemsFqn = "Parent.items";
+        String itemsName = "items";
+
+        // First "items" child with one sub-field
+        graphql.schema.SelectedField sourceSubA = mock(graphql.schema.SelectedField.class);
+        doReturn("fieldA").when(sourceSubA).getName();
+        doReturn("fieldA").when(sourceSubA).getQualifiedName();
+        doReturn("ModelA.fieldA").when(sourceSubA).getFullyQualifiedName();
+
+        DataFetchingFieldSelectionSet selSetItems1 = mock(DataFetchingFieldSelectionSet.class);
+        doReturn(Arrays.asList(sourceSubA)).when(selSetItems1).getImmediateFields();
+
+        graphql.schema.SelectedField sourceItems1 = mock(graphql.schema.SelectedField.class);
+        doReturn(itemsName).when(sourceItems1).getName();
+        doReturn(itemsName).when(sourceItems1).getQualifiedName();
+        doReturn(itemsFqn).when(sourceItems1).getFullyQualifiedName();
+        doReturn(selSetItems1).when(sourceItems1).getSelectionSet();
+
+        // Second "items" child (same name + same FQN) with a different sub-field
+        graphql.schema.SelectedField sourceSubB = mock(graphql.schema.SelectedField.class);
+        doReturn("fieldB").when(sourceSubB).getName();
+        doReturn("fieldB").when(sourceSubB).getQualifiedName();
+        doReturn("ModelB.fieldB").when(sourceSubB).getFullyQualifiedName();
+
+        DataFetchingFieldSelectionSet selSetItems2 = mock(DataFetchingFieldSelectionSet.class);
+        doReturn(Arrays.asList(sourceSubB)).when(selSetItems2).getImmediateFields();
+
+        graphql.schema.SelectedField sourceItems2 = mock(graphql.schema.SelectedField.class);
+        doReturn(itemsName).when(sourceItems2).getName();
+        doReturn(itemsName).when(sourceItems2).getQualifiedName();
+        doReturn(itemsFqn).when(sourceItems2).getFullyQualifiedName();
+        doReturn(selSetItems2).when(sourceItems2).getSelectionSet();
+
+        // Parent with both "items" entries
+        graphql.schema.SelectedField sourceParent = mock(graphql.schema.SelectedField.class);
+        doReturn("parent").when(sourceParent).getName();
+        doReturn("parent").when(sourceParent).getQualifiedName();
+        doReturn("Query.parent").when(sourceParent).getFullyQualifiedName();
+
+        DataFetchingFieldSelectionSet parentSelSet = mock(DataFetchingFieldSelectionSet.class);
+        doReturn(Arrays.asList(sourceItems1, sourceItems2)).when(parentSelSet).getImmediateFields();
+        doReturn(parentSelSet).when(sourceParent).getSelectionSet();
+
+        SelectedFieldWrapper parent = new SelectedFieldWrapper(sourceParent);
+
+        // subFieldMap must contain exactly one entry for "items" (the merged wrapper),
+        // NOT two (merged + stale)
+        assertFalse("Same-FQN children must not be reported as duplicates by simple name",
+                parent.hasDuplicateFieldByName(itemsName));
+        Collection<SelectedField> byName = parent.getSubSelectedFieldByName(itemsName);
+        assertEquals("Expected exactly 1 entry in subFieldMap for same-FQN children", 1, byName.size());
+
+        // The single entry must be the merged wrapper containing sub-fields from both fragments
+        SelectedField merged = byName.iterator().next();
+        assertEquals("Expected 2 sub-fields in merged wrapper", 2, merged.getSubSelectedFields().size());
+        assertTrue("fieldA missing from merged wrapper",
+                merged.hasSubSelectedFieldsByFQN("ModelA.fieldA"));
+        assertTrue("fieldB missing from merged wrapper",
+                merged.hasSubSelectedFieldsByFQN("ModelB.fieldB"));
+    }
 }
