@@ -94,10 +94,12 @@ public class SelectedFieldWrapper implements SelectedField {
     void mergeSubFields(SelectedFieldWrapper other) {
         for (SelectedField otherSub : other.getSubSelectedFields()) {
             String fqn = otherSub.getFullyQualifiedName();
-            if (fqn != null && !subFQNFieldMap.containsKey(fqn)) {
-                subFQNFieldMap.put(fqn, otherSub);
-                subFieldMap.put(otherSub.getName(), otherSub);
-                subFields.add(otherSub);
+            if (fqn != null) {
+                subFQNFieldMap.computeIfAbsent(fqn, k -> {
+                    subFieldMap.put(otherSub.getName(), otherSub);
+                    subFields.add(otherSub);
+                    return otherSub;
+                });
             }
         }
     }
