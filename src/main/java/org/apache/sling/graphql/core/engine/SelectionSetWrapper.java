@@ -49,6 +49,13 @@ public class SelectionSetWrapper implements SelectionSet {
                     if (!name.contains("/")) {
                         fields.add(selectedField);
                     }
+                } else {
+                    // Merge sub-fields from duplicate field entries (e.g. aliased
+                    // selections of the same field with different inline fragments)
+                    SelectedField existing = fieldsMap.get(name);
+                    if (existing instanceof SelectedFieldWrapper) {
+                        ((SelectedFieldWrapper) existing).mergeSubFields(selectedField);
+                    }
                 }
             });
             initFlatMap(fields, "");
