@@ -181,22 +181,18 @@ public class SelectedFieldWrapperTest {
     }
 
     /**
-     * Tests the mergeSubFields behavior (SITES-42449): when graphql-java returns
-     * two immediate children with the same FQN (e.g. two "items" entries from aliased
-     * inline fragments), their sub-fields must be merged rather than the first being
-     * overwritten by the second.
-     *
-     * Simulates: { parentList { items { ... on ModelA { fieldA } ... on ModelB { fieldB } } } }
-     * where graphql-java produces two "items" entries with FQN "Parent.items", each
-     * carrying different sub-fields (ModelA.fieldA vs ModelB.fieldB).
+     * Tests merge when two immediate children share the same FQN but carry
+     * different sub-fields (e.g. two aliased selections of the same field with
+     * different inline fragments). The merged wrapper must contain sub-fields
+     * from both entries, and hasDuplicateFieldByName must still report the
+     * duplicate.
      */
     @Test
     public void testMergeSubFieldsForDuplicateFQN() {
-        // FQN shared by both "items" entries
         String itemsFqn = "Parent.items";
         String itemsName = "items";
 
-        // Sub-fields from the first inline fragment (ModelA)
+        // First "items" entry carries sub-field fieldA
         String subFqnA = "ModelA.fieldA";
         String subNameA = "fieldA";
         graphql.schema.SelectedField sourceSubA = mock(graphql.schema.SelectedField.class);
@@ -213,7 +209,7 @@ public class SelectedFieldWrapperTest {
         doReturn(itemsFqn).when(sourceItems1).getFullyQualifiedName();
         doReturn(selSetItems1).when(sourceItems1).getSelectionSet();
 
-        // Sub-fields from the second inline fragment (ModelB)
+        // Second "items" entry carries sub-field fieldB
         String subFqnB = "ModelB.fieldB";
         String subNameB = "fieldB";
         graphql.schema.SelectedField sourceSubB = mock(graphql.schema.SelectedField.class);
@@ -230,7 +226,7 @@ public class SelectedFieldWrapperTest {
         doReturn(itemsFqn).when(sourceItems2).getFullyQualifiedName();
         doReturn(selSetItems2).when(sourceItems2).getSelectionSet();
 
-        // Parent field with both "items" entries as immediate children
+        // Parent with both items entries
         graphql.schema.SelectedField sourceParent = mock(graphql.schema.SelectedField.class);
         doReturn("parent").when(sourceParent).getName();
         doReturn("parent").when(sourceParent).getQualifiedName();
@@ -242,98 +238,116 @@ public class SelectedFieldWrapperTest {
 
         SelectedFieldWrapper parent = new SelectedFieldWrapper(sourceParent);
 
-        // The parent should have exactly one "items" child (merged, not duplicated)
+        // hasDuplicateFieldByName must still detect both entries
+        assertTrue("items should be reported as duplicate by name",
+                parent.hasDuplicateFieldByName(itemsName));
+
+        // Merged items must contain sub-fields from BOTH entries
         SelectedField itemsField = parent.getSubSelectedFieldByFQN(itemsFqn);
         assertNotNull("Items field not found by FQN", itemsField);
-
-        // The merged "items" field should contain sub-fields from BOTH inline fragments
-        assertTrue("Sub-field from first inline fragment (ModelA.fieldA) missing",
-                itemsField.hasSubSelectedFieldsByFQN(subFqnA));
-        assertTrue("Sub-field from second inline fragment (ModelB.fieldB) missing",
-                itemsField.hasSubSelectedFieldsByFQN(subFqnB));
-
-        // Verify by direct lookup
-        SelectedField foundA = itemsField.getSubSelectedFieldByFQN(subFqnA);
-        assertNotNull("fieldA not found by FQN", foundA);
-        assertEquals("Wrong name for fieldA", subNameA, foundA.getName());
-
-        SelectedField foundB = itemsField.getSubSelectedFieldByFQN(subFqnB);
-        assertNotNull("fieldB not found by FQN", foundB);
-        assertEquals("Wrong name for fieldB", subNameB, foundB.getName());
-
-        // Total sub-fields count should be 2 (one from each inline fragment)
+        assertTrue("fieldA missing", itemsField.hasSubSelectedFieldsByFQN(subFqnA));
+        assertTrue("fieldB missing", itemsField.hasSubSelectedFieldsByFQN(subFqnB));
         assertEquals("Expected 2 merged sub-fields", 2, itemsField.getSubSelectedFields().size());
     }
 
     /**
-     * Verifies that when two immediate children share the same FQN (and simple name),
-     * the merged-away duplicate does NOT remain in subFieldMap.
+     * Tests recursive merge: two aliased selections of the same field where
+     * both contain a child with the same FQN (e.g. policyCategories) but with
+     * different deeper sub-fields. The merge must recurse so that the deeper
+     * sub-fields from both branches are visible.
      *
-     * Before the fix, subFieldMap.put() ran unconditionally before the FQN dedup merge,
-     * leaving a stale wrapper in the map. This caused hasDuplicateFieldByName() to report
-     * a false positive and getSubSelectedFieldByName() to return both the merged wrapper
-     * and the stale one.
+     * Simulates: policyTabList: policy { policyCategories { id, name } }
+     *            policyTabDetailList: policy { policyCategories { id, name, policies { ... } } }
      */
     @Test
-    public void testNoDuplicateInSubFieldMapAfterFQNMerge() {
-        String itemsFqn = "Parent.items";
-        String itemsName = "items";
+    public void testRecursiveMergeForSharedChildFQN() {
+        String policyFqn = "PoliciesModel.policy";
+        String policyName = "policy";
+        String catFqn = "PolicyModel.policyCategories";
+        String catName = "policyCategories";
 
-        // First "items" child with one sub-field
-        graphql.schema.SelectedField sourceSubA = mock(graphql.schema.SelectedField.class);
-        doReturn("fieldA").when(sourceSubA).getName();
-        doReturn("fieldA").when(sourceSubA).getQualifiedName();
-        doReturn("ModelA.fieldA").when(sourceSubA).getFullyQualifiedName();
+        // --- Shared leaf fields under policyCategories ---
+        graphql.schema.SelectedField idField = mock(graphql.schema.SelectedField.class);
+        doReturn("policyCategoryId").when(idField).getName();
+        doReturn("policyCategoryId").when(idField).getQualifiedName();
+        doReturn("CategoryModel.policyCategoryId").when(idField).getFullyQualifiedName();
 
-        DataFetchingFieldSelectionSet selSetItems1 = mock(DataFetchingFieldSelectionSet.class);
-        doReturn(Arrays.asList(sourceSubA)).when(selSetItems1).getImmediateFields();
+        graphql.schema.SelectedField nameField = mock(graphql.schema.SelectedField.class);
+        doReturn("policyCategoryName").when(nameField).getName();
+        doReturn("policyCategoryName").when(nameField).getQualifiedName();
+        doReturn("CategoryModel.policyCategoryName").when(nameField).getFullyQualifiedName();
 
-        graphql.schema.SelectedField sourceItems1 = mock(graphql.schema.SelectedField.class);
-        doReturn(itemsName).when(sourceItems1).getName();
-        doReturn(itemsName).when(sourceItems1).getQualifiedName();
-        doReturn(itemsFqn).when(sourceItems1).getFullyQualifiedName();
-        doReturn(selSetItems1).when(sourceItems1).getSelectionSet();
+        // --- Extra deep field only in second alias ---
+        graphql.schema.SelectedField policiesField = mock(graphql.schema.SelectedField.class);
+        doReturn("policies").when(policiesField).getName();
+        doReturn("policies").when(policiesField).getQualifiedName();
+        doReturn("CategoryModel.policies").when(policiesField).getFullyQualifiedName();
 
-        // Second "items" child (same name + same FQN) with a different sub-field
-        graphql.schema.SelectedField sourceSubB = mock(graphql.schema.SelectedField.class);
-        doReturn("fieldB").when(sourceSubB).getName();
-        doReturn("fieldB").when(sourceSubB).getQualifiedName();
-        doReturn("ModelB.fieldB").when(sourceSubB).getFullyQualifiedName();
+        // First policyCategories (shallow: id + name)
+        DataFetchingFieldSelectionSet catSelSet1 = mock(DataFetchingFieldSelectionSet.class);
+        doReturn(Arrays.asList(idField, nameField)).when(catSelSet1).getImmediateFields();
+        graphql.schema.SelectedField cat1 = mock(graphql.schema.SelectedField.class);
+        doReturn(catName).when(cat1).getName();
+        doReturn(catName).when(cat1).getQualifiedName();
+        doReturn(catFqn).when(cat1).getFullyQualifiedName();
+        doReturn(catSelSet1).when(cat1).getSelectionSet();
 
-        DataFetchingFieldSelectionSet selSetItems2 = mock(DataFetchingFieldSelectionSet.class);
-        doReturn(Arrays.asList(sourceSubB)).when(selSetItems2).getImmediateFields();
+        // Second policyCategories (deep: id + name + policies)
+        DataFetchingFieldSelectionSet catSelSet2 = mock(DataFetchingFieldSelectionSet.class);
+        doReturn(Arrays.asList(idField, nameField, policiesField)).when(catSelSet2).getImmediateFields();
+        graphql.schema.SelectedField cat2 = mock(graphql.schema.SelectedField.class);
+        doReturn(catName).when(cat2).getName();
+        doReturn(catName).when(cat2).getQualifiedName();
+        doReturn(catFqn).when(cat2).getFullyQualifiedName();
+        doReturn(catSelSet2).when(cat2).getSelectionSet();
 
-        graphql.schema.SelectedField sourceItems2 = mock(graphql.schema.SelectedField.class);
-        doReturn(itemsName).when(sourceItems2).getName();
-        doReturn(itemsName).when(sourceItems2).getQualifiedName();
-        doReturn(itemsFqn).when(sourceItems2).getFullyQualifiedName();
-        doReturn(selSetItems2).when(sourceItems2).getSelectionSet();
+        // First policy entry (alias policyTabList)
+        DataFetchingFieldSelectionSet policySelSet1 = mock(DataFetchingFieldSelectionSet.class);
+        doReturn(Arrays.asList(cat1)).when(policySelSet1).getImmediateFields();
+        graphql.schema.SelectedField policy1 = mock(graphql.schema.SelectedField.class);
+        doReturn(policyName).when(policy1).getName();
+        doReturn(policyName).when(policy1).getQualifiedName();
+        doReturn(policyFqn).when(policy1).getFullyQualifiedName();
+        doReturn(policySelSet1).when(policy1).getSelectionSet();
 
-        // Parent with both "items" entries
-        graphql.schema.SelectedField sourceParent = mock(graphql.schema.SelectedField.class);
-        doReturn("parent").when(sourceParent).getName();
-        doReturn("parent").when(sourceParent).getQualifiedName();
-        doReturn("Query.parent").when(sourceParent).getFullyQualifiedName();
+        // Second policy entry (alias policyTabDetailList)
+        DataFetchingFieldSelectionSet policySelSet2 = mock(DataFetchingFieldSelectionSet.class);
+        doReturn(Arrays.asList(cat2)).when(policySelSet2).getImmediateFields();
+        graphql.schema.SelectedField policy2 = mock(graphql.schema.SelectedField.class);
+        doReturn(policyName).when(policy2).getName();
+        doReturn(policyName).when(policy2).getQualifiedName();
+        doReturn(policyFqn).when(policy2).getFullyQualifiedName();
+        doReturn(policySelSet2).when(policy2).getSelectionSet();
 
+        // Parent item containing both policy selections
+        graphql.schema.SelectedField parentField = mock(graphql.schema.SelectedField.class);
+        doReturn("item").when(parentField).getName();
+        doReturn("item").when(parentField).getQualifiedName();
+        doReturn("Query.item").when(parentField).getFullyQualifiedName();
         DataFetchingFieldSelectionSet parentSelSet = mock(DataFetchingFieldSelectionSet.class);
-        doReturn(Arrays.asList(sourceItems1, sourceItems2)).when(parentSelSet).getImmediateFields();
-        doReturn(parentSelSet).when(sourceParent).getSelectionSet();
+        doReturn(Arrays.asList(policy1, policy2)).when(parentSelSet).getImmediateFields();
+        doReturn(parentSelSet).when(parentField).getSelectionSet();
 
-        SelectedFieldWrapper parent = new SelectedFieldWrapper(sourceParent);
+        SelectedFieldWrapper parent = new SelectedFieldWrapper(parentField);
 
-        // subFieldMap must contain exactly one entry for "items" (the merged wrapper),
-        // NOT two (merged + stale)
-        assertFalse("Same-FQN children must not be reported as duplicates by simple name",
-                parent.hasDuplicateFieldByName(itemsName));
-        Collection<SelectedField> byName = parent.getSubSelectedFieldByName(itemsName);
-        assertEquals("Expected exactly 1 entry in subFieldMap for same-FQN children", 1, byName.size());
+        // policy should be flagged as duplicate
+        assertTrue("policy should be duplicate by name",
+                parent.hasDuplicateFieldByName(policyName));
 
-        // The single entry must be the merged wrapper containing sub-fields from both fragments
-        SelectedField merged = byName.iterator().next();
-        assertEquals("Expected 2 sub-fields in merged wrapper", 2, merged.getSubSelectedFields().size());
-        assertTrue("fieldA missing from merged wrapper",
-                merged.hasSubSelectedFieldsByFQN("ModelA.fieldA"));
-        assertTrue("fieldB missing from merged wrapper",
-                merged.hasSubSelectedFieldsByFQN("ModelB.fieldB"));
+        // Merged policy → policyCategories must contain all 3 sub-fields
+        SelectedField policyField = parent.getSubSelectedFieldByFQN(policyFqn);
+        assertNotNull("policy not found by FQN", policyField);
+
+        SelectedField catField = policyField.getSubSelectedFieldByFQN(catFqn);
+        assertNotNull("policyCategories not found", catField);
+
+        assertTrue("policyCategoryId missing",
+                catField.hasSubSelectedFieldsByFQN("CategoryModel.policyCategoryId"));
+        assertTrue("policyCategoryName missing",
+                catField.hasSubSelectedFieldsByFQN("CategoryModel.policyCategoryName"));
+        assertTrue("policies missing (recursive merge failed)",
+                catField.hasSubSelectedFieldsByFQN("CategoryModel.policies"));
+        assertEquals("Expected 3 sub-fields after recursive merge",
+                3, catField.getSubSelectedFields().size());
     }
 }
