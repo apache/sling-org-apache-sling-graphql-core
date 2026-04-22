@@ -96,6 +96,9 @@ public class SelectedFieldWrapper implements SelectedField {
      * child with the same FQN, their sub-fields are merged in turn rather than
      * silently dropping one.
      */
+    // S3824: computeIfAbsent cannot be used here because the existing-value branch
+    // must trigger a recursive merge rather than a replacement.
+    @SuppressWarnings("java:S3824")
     void mergeSubFields(SelectedFieldWrapper other) {
         for (SelectedField otherSub : other.getSubSelectedFields()) {
             String fqn = otherSub.getFullyQualifiedName();

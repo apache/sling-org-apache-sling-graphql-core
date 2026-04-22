@@ -72,12 +72,12 @@ public class SelectionSetWrapperTest {
         // Sub-field present only in the second alias
         graphql.schema.SelectedField subB = mockField("subB", "ItemModel.subB");
 
-        // First alias: item { subA }
+        // First alias selects only subA
         DataFetchingFieldSelectionSet selSet1 = mock(DataFetchingFieldSelectionSet.class);
         doReturn(Arrays.asList(subA)).when(selSet1).getImmediateFields();
         graphql.schema.SelectedField item1 = mockFieldWithSelectionSet("item", "HolderModel.item", selSet1);
 
-        // Second alias: item { subB }
+        // Second alias selects only subB
         DataFetchingFieldSelectionSet selSet2 = mock(DataFetchingFieldSelectionSet.class);
         doReturn(Arrays.asList(subB)).when(selSet2).getImmediateFields();
         graphql.schema.SelectedField item2 = mockFieldWithSelectionSet("item", "HolderModel.item", selSet2);
