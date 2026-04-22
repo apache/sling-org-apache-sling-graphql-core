@@ -350,4 +350,63 @@ public class SelectedFieldWrapperTest {
         assertEquals("Expected 3 sub-fields after recursive merge",
                 3, catField.getSubSelectedFields().size());
     }
+
+    /**
+     * Tests that mergeSubFields silently skips sub-fields whose FQN is null.
+     * Such entries must not be added to the merged wrapper.
+     */
+    @Test
+    public void testMergeSubFieldsSkipsNullFqn() {
+        String itemsFqn = "Parent.items";
+        String itemsName = "items";
+
+        // First "items" entry with a real sub-field
+        graphql.schema.SelectedField realSub = mock(graphql.schema.SelectedField.class);
+        doReturn("realField").when(realSub).getName();
+        doReturn("realField").when(realSub).getQualifiedName();
+        doReturn("Model.realField").when(realSub).getFullyQualifiedName();
+
+        DataFetchingFieldSelectionSet selSet1 = mock(DataFetchingFieldSelectionSet.class);
+        doReturn(Arrays.asList(realSub)).when(selSet1).getImmediateFields();
+
+        graphql.schema.SelectedField items1 = mock(graphql.schema.SelectedField.class);
+        doReturn(itemsName).when(items1).getName();
+        doReturn(itemsName).when(items1).getQualifiedName();
+        doReturn(itemsFqn).when(items1).getFullyQualifiedName();
+        doReturn(selSet1).when(items1).getSelectionSet();
+
+        // Second "items" entry with a sub-field whose FQN is null
+        graphql.schema.SelectedField nullFqnSub = mock(graphql.schema.SelectedField.class);
+        doReturn("ghostField").when(nullFqnSub).getName();
+        doReturn("ghostField").when(nullFqnSub).getQualifiedName();
+        doReturn(null).when(nullFqnSub).getFullyQualifiedName();
+
+        DataFetchingFieldSelectionSet selSet2 = mock(DataFetchingFieldSelectionSet.class);
+        doReturn(Arrays.asList(nullFqnSub)).when(selSet2).getImmediateFields();
+
+        graphql.schema.SelectedField items2 = mock(graphql.schema.SelectedField.class);
+        doReturn(itemsName).when(items2).getName();
+        doReturn(itemsName).when(items2).getQualifiedName();
+        doReturn(itemsFqn).when(items2).getFullyQualifiedName();
+        doReturn(selSet2).when(items2).getSelectionSet();
+
+        // Parent with both items entries
+        graphql.schema.SelectedField sourceParent = mock(graphql.schema.SelectedField.class);
+        doReturn("parent").when(sourceParent).getName();
+        doReturn("parent").when(sourceParent).getQualifiedName();
+        doReturn("Query.parent").when(sourceParent).getFullyQualifiedName();
+        DataFetchingFieldSelectionSet parentSelSet = mock(DataFetchingFieldSelectionSet.class);
+        doReturn(Arrays.asList(items1, items2)).when(parentSelSet).getImmediateFields();
+        doReturn(parentSelSet).when(sourceParent).getSelectionSet();
+
+        SelectedFieldWrapper parent = new SelectedFieldWrapper(sourceParent);
+
+        SelectedField itemsField = parent.getSubSelectedFieldByFQN(itemsFqn);
+        assertNotNull("items not found by FQN", itemsField);
+
+        // realField must be present
+        assertTrue("realField missing after merge", itemsField.hasSubSelectedFieldsByFQN("Model.realField"));
+        // null-FQN ghost must be silently skipped — only 1 sub-field in merged wrapper
+        assertEquals("Null-FQN sub-field must be skipped during merge", 1, itemsField.getSubSelectedFields().size());
+    }
 }
