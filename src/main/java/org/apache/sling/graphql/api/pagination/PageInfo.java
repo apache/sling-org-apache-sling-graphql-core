@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
- package org.apache.sling.graphql.api.pagination;
+package org.apache.sling.graphql.api.pagination;
 
 import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ConsumerType;
@@ -29,9 +28,11 @@ import org.osgi.annotation.versioning.ConsumerType;
  */
 @ConsumerType
 public interface PageInfo {
-    @NotNull Cursor getStartCursor();
+    @NotNull
+    Cursor getStartCursor();
 
-    @NotNull Cursor getEndCursor();
+    @NotNull
+    Cursor getEndCursor();
 
     boolean isHasPreviousPage();
 

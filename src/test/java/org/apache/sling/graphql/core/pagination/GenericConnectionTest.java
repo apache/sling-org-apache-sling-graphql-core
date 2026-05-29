@@ -18,12 +18,6 @@
  */
 package org.apache.sling.graphql.core.pagination;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -39,36 +33,57 @@ import org.apache.sling.graphql.api.pagination.Edge;
 import org.apache.sling.graphql.helpers.GenericConnection;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 public class GenericConnectionTest {
     private static final int HIGH_LIMIT = 99;
-    private static final List<Integer> data = Arrays.asList(1,2,3,4,5 );
+    private static final List<Integer> data = Arrays.asList(1, 2, 3, 4, 5);
     private static final Function<Integer, String> cursorize = (i) -> "cursor-" + i;
 
-    private static void assertValues(Connection<Integer> data, int start, int end, boolean hasPreviousPage, boolean hasNextPage)  {
+    private static void assertValues(
+            Connection<Integer> data, int start, int end, boolean hasPreviousPage, boolean hasNextPage) {
         // assert edge values
         final AtomicInteger current = new AtomicInteger(start);
-        StreamSupport.stream(data.getEdges().spliterator(), false).map(edge -> edge.getNode()).forEach(actual -> {
-            assertEquals(Integer.valueOf(current.get()), actual);
-            if(actual > end) {
-                fail("Got a value after expected end: " + actual);
-            }
-            current.incrementAndGet();
-        });
+        StreamSupport.stream(data.getEdges().spliterator(), false)
+                .map(edge -> edge.getNode())
+                .forEach(actual -> {
+                    assertEquals(Integer.valueOf(current.get()), actual);
+                    if (actual > end) {
+                        fail("Got a value after expected end: " + actual);
+                    }
+                    current.incrementAndGet();
+                });
 
         // cursors and previous/next page
         final Iterator<Edge<Integer>> it = data.getEdges().iterator();
-        if(it.hasNext()) {
+        if (it.hasNext()) {
             final Cursor startCursor = new Cursor(cursorize.apply(it.next().getNode()));
-            assertEquals("Expecting start cursor " + startCursor, startCursor, data.getPageInfo().getStartCursor());
+            assertEquals(
+                    "Expecting start cursor " + startCursor,
+                    startCursor,
+                    data.getPageInfo().getStartCursor());
             final Cursor endCursor = new Cursor(cursorize.apply(end));
-            assertEquals("Expecting end cursor " + endCursor, endCursor, data.getPageInfo().getEndCursor());
+            assertEquals(
+                    "Expecting end cursor " + endCursor,
+                    endCursor,
+                    data.getPageInfo().getEndCursor());
         } else {
             // Empty data stream
             assertEquals(null, data.getPageInfo().getStartCursor());
             assertEquals(null, data.getPageInfo().getEndCursor());
         }
-        assertEquals("Expecting hasNextPage=" + hasNextPage, hasNextPage, data.getPageInfo().isHasNextPage());
-        assertEquals("Expecting hasPreviousPage=" + hasPreviousPage, hasPreviousPage, data.getPageInfo().isHasPreviousPage());
+        assertEquals(
+                "Expecting hasNextPage=" + hasNextPage,
+                hasNextPage,
+                data.getPageInfo().isHasNextPage());
+        assertEquals(
+                "Expecting hasPreviousPage=" + hasPreviousPage,
+                hasPreviousPage,
+                data.getPageInfo().isHasPreviousPage());
     }
 
     @Test
@@ -80,79 +95,78 @@ public class GenericConnectionTest {
     @Test
     public void minimalArguments() {
         final Connection<Integer> c = new GenericConnection.Builder<>(data.iterator(), cursorize)
-            .withLimit(2)
-            .build();
+                .withLimit(2)
+                .build();
         assertValues(c, 1, 2, false, true);
     }
 
     @Test
     public void zeroLimit() {
         final Connection<Integer> c = new GenericConnection.Builder<>(data.iterator(), cursorize)
-            .withLimit(0)
-            .build();
+                .withLimit(0)
+                .build();
         assertValues(c, -1, -1, false, true);
     }
 
     @Test
     public void largeLimit() {
         final Connection<Integer> c = new GenericConnection.Builder<>(data.iterator(), cursorize)
-            .withLimit(HIGH_LIMIT)
-            .build();
+                .withLimit(HIGH_LIMIT)
+                .build();
         assertValues(c, 1, 5, false, false);
     }
 
     @Test
     public void forcePreviousPage() {
         final Connection<Integer> c = new GenericConnection.Builder<>(data.iterator(), cursorize)
-            .withLimit(HIGH_LIMIT)
-            .withPreviousPage(true)
-            .build();
+                .withLimit(HIGH_LIMIT)
+                .withPreviousPage(true)
+                .build();
         assertValues(c, 1, 5, true, false);
     }
 
     @Test
     public void forceNextPage() {
         final Connection<Integer> c = new GenericConnection.Builder<>(data.iterator(), cursorize)
-            .withLimit(HIGH_LIMIT)
-            .withNextPage(true)
-            .build();
+                .withLimit(HIGH_LIMIT)
+                .withNextPage(true)
+                .build();
         assertValues(c, 1, 5, false, true);
     }
 
     @Test
     public void startAtThree() {
         final Connection<Integer> c = new GenericConnection.Builder<>(data.iterator(), cursorize)
-            .withLimit(2)
-            .withStartAfter(new Cursor(cursorize.apply(2)))
-            .build();
+                .withLimit(2)
+                .withStartAfter(new Cursor(cursorize.apply(2)))
+                .build();
         assertValues(c, 3, 4, true, true);
     }
 
     @Test
     public void startAtFourLargeLimit() {
         final Connection<Integer> c = new GenericConnection.Builder<>(data.iterator(), cursorize)
-            .withLimit(HIGH_LIMIT)
-            .withStartAfter(new Cursor(cursorize.apply(3)))
-            .build();
+                .withLimit(HIGH_LIMIT)
+                .withStartAfter(new Cursor(cursorize.apply(3)))
+                .build();
         assertValues(c, 4, 5, true, false);
     }
 
     @Test
     public void justTwo() {
         final Connection<Integer> c = new GenericConnection.Builder<>(data.iterator(), cursorize)
-            .withLimit(1)
-            .withStartAfter(new Cursor(cursorize.apply(1)))
-            .build();
+                .withLimit(1)
+                .withStartAfter(new Cursor(cursorize.apply(1)))
+                .build();
         assertValues(c, 2, 2, true, true);
     }
 
     @Test
     public void startCursorNotFound() {
         final GenericConnection.Builder<Integer> b = new GenericConnection.Builder<>(data.iterator(), cursorize)
-            .withLimit(2)
-            .withStartAfter(new Cursor(cursorize.apply(HIGH_LIMIT)))
-        ;
-        final Throwable rex = assertThrows(RuntimeException.class, () -> b.build() );
+                .withLimit(2)
+                .withStartAfter(new Cursor(cursorize.apply(HIGH_LIMIT)));
+        final Throwable rex = assertThrows(RuntimeException.class, () -> b.build());
         assertTrue(rex.getMessage().contains("Start cursor not found"));
     }
 
@@ -178,16 +192,17 @@ public class GenericConnectionTest {
 
     @Test
     public void testEmptyResultSet() {
-        final Connection<String> empty = new GenericConnection.Builder<String>(Collections.emptyIterator(), s -> s).build();
+        final Connection<String> empty =
+                new GenericConnection.Builder<String>(Collections.emptyIterator(), s -> s).build();
         assertFalse("Expecting no data", empty.getEdges().iterator().hasNext());
     }
 
     @Test
     public void testEmptyResultSetWithCursor() {
-        final GenericConnection.Builder<String> b = new GenericConnection.Builder<String>(Collections.emptyIterator(), s -> s)
-            .withStartAfter(new Cursor("won't be used"))
-        ;
-        final Throwable rex = assertThrows(RuntimeException.class, () -> b.build() );
+        final GenericConnection.Builder<String> b = new GenericConnection.Builder<String>(
+                        Collections.emptyIterator(), s -> s)
+                .withStartAfter(new Cursor("won't be used"));
+        final Throwable rex = assertThrows(RuntimeException.class, () -> b.build());
         assertTrue(rex.getMessage().contains("Start cursor not found"));
     }
 }

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.api;
 
 import java.util.Map;
@@ -27,7 +26,6 @@ import org.osgi.annotation.versioning.ProviderType;
 
 /** Provides contextual information to the {#link SlingDataFetcher} */
 @SuppressWarnings("TypeParameterUnusedInFormals")
-
 @ProviderType
 public interface SlingDataFetcherEnvironment {
 

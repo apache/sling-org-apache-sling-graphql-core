@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import jakarta.json.Json;
-
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.graphql.api.SchemaProvider;
@@ -63,7 +62,8 @@ public abstract class ResourceQueryTestBase {
         // integration tests we use a real script
         final MockScriptServlet mss = new MockScriptServlet();
         final ServletResolver servletResolver = Mockito.mock(ServletResolver.class);
-        Mockito.when(servletResolver.resolveServlet(Mockito.any(Resource.class), Mockito.any(String.class))).thenReturn(mss);
+        Mockito.when(servletResolver.resolveServlet(Mockito.any(Resource.class), Mockito.any(String.class)))
+                .thenReturn(mss);
         context.bundleContext().registerService(ServletResolver.class, servletResolver, null);
 
         context.registerInjectActivateService(new SlingDataFetcherSelector());
@@ -73,27 +73,26 @@ public abstract class ResourceQueryTestBase {
         context.registerInjectActivateService(new DefaultQueryExecutor(), getQueryExecutorProperties());
     }
 
-    protected  Map<String, Object> getQueryExecutorProperties() {
+    protected Map<String, Object> getQueryExecutorProperties() {
         return null;
     }
 
     protected String queryJSON(String stmt) throws Exception {
-        return queryJSON(stmt, Collections.emptyMap(), new String[]{});
+        return queryJSON(stmt, Collections.emptyMap(), new String[] {});
     }
 
-    protected String queryJSON(String stmt, String ... selectors) {
-        return queryJSON(stmt, Collections.emptyMap(), selectors);  
+    protected String queryJSON(String stmt, String... selectors) {
+        return queryJSON(stmt, Collections.emptyMap(), selectors);
     }
 
-    protected String queryJSON(String stmt, Map<String, Object> variables, String ... selectors) {
+    protected String queryJSON(String stmt, Map<String, Object> variables, String... selectors) {
         final QueryExecutor queryExecutor = context.getService(QueryExecutor.class);
         assertNotNull(queryExecutor);
         Map<String, Object> executionResult = queryExecutor.execute(stmt, variables, resource, selectors);
         return Json.createObjectBuilder(executionResult).build().asJsonObject().toString();
     }
 
-    protected void setupAdditionalServices() {
-    }
+    protected void setupAdditionalServices() {}
 
     protected String getTestSchemaName() {
         return "test-schema";

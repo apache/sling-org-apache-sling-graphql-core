@@ -16,21 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.core.engine;
 
 import java.util.Map;
 
+import graphql.schema.DataFetchingEnvironment;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.graphql.api.SelectionSet;
 import org.apache.sling.graphql.api.SlingDataFetcherEnvironment;
 
-import graphql.schema.DataFetchingEnvironment;
-
-/** Wraps the graphql-java DataFetchingEnvironment to provide 
+/** Wraps the graphql-java DataFetchingEnvironment to provide
  *  our own SlingDataFetcherEnvironment interface. This avoids
  *  having to expose the graphql-java APIs in our own API.
-  */
+ */
 class DataFetchingEnvironmentWrapper implements SlingDataFetcherEnvironment {
     private final DataFetchingEnvironment env;
     private final Resource currentResource;
@@ -38,7 +36,8 @@ class DataFetchingEnvironmentWrapper implements SlingDataFetcherEnvironment {
     private final String source;
     private final SelectionSet selectionSet;
 
-    DataFetchingEnvironmentWrapper(DataFetchingEnvironment env, Resource currentResource, String options, String source) {
+    DataFetchingEnvironmentWrapper(
+            DataFetchingEnvironment env, Resource currentResource, String options, String source) {
         this.env = env;
         this.currentResource = currentResource;
         this.options = options;

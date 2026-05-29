@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.api;
 
 import org.apache.sling.api.resource.Resource;
@@ -28,7 +27,6 @@ import org.osgi.annotation.versioning.ProviderType;
  * Provides contextual information to the {@link SlingTypeResolver}
  */
 @SuppressWarnings("TypeParameterUnusedInFormals")
-
 @ProviderType
 public interface SlingTypeResolverEnvironment<T> {
 

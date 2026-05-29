@@ -1,4 +1,3 @@
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.core.scalars;
 
 import java.util.HashMap;
@@ -27,9 +25,12 @@ import java.util.Optional;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
+import graphql.language.ScalarTypeDefinition;
+import graphql.schema.GraphQLScalarType;
+import graphql.schema.idl.ScalarInfo;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.sling.graphql.api.SlingScalarConverter;
 import org.apache.sling.graphql.api.SlingGraphQLException;
+import org.apache.sling.graphql.api.SlingScalarConverter;
 import org.apache.sling.graphql.core.osgi.ServiceReferenceObjectTuple;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceReference;
@@ -38,27 +39,27 @@ import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
 
-import graphql.language.ScalarTypeDefinition;
-import graphql.schema.GraphQLScalarType;
-import graphql.schema.idl.ScalarInfo;
-
 /**
  * Provides GraphQL Scalars (leaf data types) for query execution
  */
-@Component(service = SlingScalarsProvider.class, property = {
-    Constants.SERVICE_DESCRIPTION + "=Apache Sling Scripting GraphQL Scalars Provider",
-    Constants.SERVICE_VENDOR + "=The Apache Software Foundation" })
+@Component(
+        service = SlingScalarsProvider.class,
+        property = {
+            Constants.SERVICE_DESCRIPTION + "=Apache Sling Scripting GraphQL Scalars Provider",
+            Constants.SERVICE_VENDOR + "=The Apache Software Foundation"
+        })
 public class SlingScalarsProvider {
 
-    private final Map<String, TreeSet<ServiceReferenceObjectTuple<SlingScalarConverter<Object, Object>>>> scalars = new HashMap<>();
+    private final Map<String, TreeSet<ServiceReferenceObjectTuple<SlingScalarConverter<Object, Object>>>> scalars =
+            new HashMap<>();
 
     @Reference(
             service = SlingScalarConverter.class,
             cardinality = ReferenceCardinality.MULTIPLE,
-            policy = ReferencePolicy.DYNAMIC
-    )
-    private void bindSlingScalarConverter(ServiceReference<SlingScalarConverter<Object, Object>> serviceReference,
-                                          SlingScalarConverter<Object, Object> scalarConverter) {
+            policy = ReferencePolicy.DYNAMIC)
+    private void bindSlingScalarConverter(
+            ServiceReference<SlingScalarConverter<Object, Object>> serviceReference,
+            SlingScalarConverter<Object, Object> scalarConverter) {
         String name = (String) serviceReference.getProperty(SlingScalarConverter.NAME_SERVICE_PROPERTY);
         if (StringUtils.isNotEmpty(name)) {
             synchronized (scalars) {
@@ -77,7 +78,9 @@ public class SlingScalarsProvider {
                 TreeSet<ServiceReferenceObjectTuple<SlingScalarConverter<Object, Object>>> set = scalars.get(name);
                 if (set != null) {
                     Optional<ServiceReferenceObjectTuple<SlingScalarConverter<Object, Object>>> tupleToRemove =
-                            set.stream().filter(tuple -> serviceReference.equals(tuple.getServiceReference())).findFirst();
+                            set.stream()
+                                    .filter(tuple -> serviceReference.equals(tuple.getServiceReference()))
+                                    .findFirst();
                     tupleToRemove.ifPresent(set::remove);
                 }
             }
@@ -86,7 +89,7 @@ public class SlingScalarsProvider {
 
     private GraphQLScalarType getScalar(String name) {
         // Ignore standard scalars
-        if(ScalarInfo.isGraphqlSpecifiedScalar(name)) {
+        if (ScalarInfo.isGraphqlSpecifiedScalar(name)) {
             return null;
         }
         TreeSet<ServiceReferenceObjectTuple<SlingScalarConverter<Object, Object>>> set = scalars.get(name);
@@ -96,18 +99,17 @@ public class SlingScalarsProvider {
         SlingScalarConverter<Object, Object> converter = set.last().getServiceObject();
 
         return GraphQLScalarType.newScalar()
-            .name(name)
-            .description(converter.toString())
-            .coercing(new SlingCoercingWrapper(converter))
-            .build();
+                .name(name)
+                .description(converter.toString())
+                .coercing(new SlingCoercingWrapper(converter))
+                .build();
     }
 
-    public Iterable<GraphQLScalarType> getCustomScalars(Map<String,ScalarTypeDefinition> schemaScalars) {
+    public Iterable<GraphQLScalarType> getCustomScalars(Map<String, ScalarTypeDefinition> schemaScalars) {
         // Using just the names for now, not sure why we'd need the ScalarTypeDefinitions
         return schemaScalars.keySet().stream()
-            .map(this::getScalar)
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
+                .map(this::getScalar)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
-
 }

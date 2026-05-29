@@ -18,8 +18,6 @@
  */
 package org.apache.sling.graphql.core.mocks;
 
-import static org.junit.Assert.fail;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
@@ -27,6 +25,8 @@ import java.io.StringWriter;
 import org.apache.commons.io.IOUtils;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.graphql.api.SchemaProvider;
+
+import static org.junit.Assert.fail;
 
 public class MockSchemaProvider implements SchemaProvider {
 
@@ -43,13 +43,13 @@ public class MockSchemaProvider implements SchemaProvider {
 
     @Override
     public String getSchema(Resource r, String[] selectors) {
-        if(schemaException != null) {
+        if (schemaException != null) {
             throw schemaException;
         }
         final StringBuilder sb = new StringBuilder();
         sb.append("/").append(basename);
-        if(selectors != null) {
-            for(String s : selectors) {
+        if (selectors != null) {
+            for (String s : selectors) {
                 sb.append("-").append(s);
             }
         }
@@ -58,15 +58,14 @@ public class MockSchemaProvider implements SchemaProvider {
         final String path = sb.toString();
 
         try (InputStream is = MockSchemaProvider.class.getResourceAsStream(path)) {
-            if(is == null) {
+            if (is == null) {
                 fail("Test schema not found: " + path);
             }
             final StringWriter w = new StringWriter();
             IOUtils.copy(is, w);
             return w.toString();
-        } catch(IOException ioe) {
+        } catch (IOException ioe) {
             throw new RuntimeException("Error reading " + path, ioe);
         }
     }
-
 }

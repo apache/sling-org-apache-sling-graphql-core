@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.core.mocks;
 
 import java.net.URL;
@@ -31,7 +30,7 @@ public class URLScalarConverter implements SlingScalarConverter<URL, String> {
     public @Nullable URL parseValue(@Nullable String input) throws ScalarConversionException {
         try {
             return new URL(input);
-        } catch(Exception e) {
+        } catch (Exception e) {
             throw new ScalarConversionException(getClass().getSimpleName() + ":Invalid URL:" + input, e);
         }
     }

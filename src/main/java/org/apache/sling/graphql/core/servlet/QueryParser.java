@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.core.servlet;
 
 import java.io.IOException;
@@ -27,7 +26,6 @@ import java.util.Map;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
-
 import org.apache.johnzon.mapper.Mapper;
 import org.apache.johnzon.mapper.MapperBuilder;
 import org.apache.sling.api.SlingHttpServletRequest;
@@ -70,10 +68,10 @@ public class QueryParser {
 
     private static boolean isJsonContentType(SlingHttpServletRequest request) {
         final String contentType = request.getContentType();
-        if(MIME_TYPE_JSON.equals(contentType)) {
+        if (MIME_TYPE_JSON.equals(contentType)) {
             return true;
-        } else if(contentType != null) {
-            final String [] parts = contentType.split(";");
+        } else if (contentType != null) {
+            final String[] parts = contentType.split(";");
             return MIME_TYPE_JSON.equals(parts[0].trim());
         } else {
             return false;
@@ -117,7 +115,7 @@ public class QueryParser {
             if (query != null) {
                 Map<String, Object> variables = null;
                 if (jsonInput.containsKey(JSON_KEY_VARIABLES)) {
-                     variables= MAPPER.readObject(jsonInput.get(JSON_KEY_VARIABLES), Map.class);
+                    variables = MAPPER.readObject(jsonInput.get(JSON_KEY_VARIABLES), Map.class);
                 } else {
                     variables = Collections.emptyMap();
                 }

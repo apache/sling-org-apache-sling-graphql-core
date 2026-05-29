@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.core.engine;
 
 import graphql.TypeResolutionEnvironment;
@@ -37,8 +36,8 @@ class TypeResolverEnvironmentWrapper implements SlingTypeResolverEnvironment<Gra
     private final String options;
     private final String source;
 
-    TypeResolverEnvironmentWrapper(TypeResolutionEnvironment env, Resource currentResource, String options,
-                                   String source) {
+    TypeResolverEnvironmentWrapper(
+            TypeResolutionEnvironment env, Resource currentResource, String options, String source) {
         this.env = env;
         this.currentResource = currentResource;
         this.options = options;

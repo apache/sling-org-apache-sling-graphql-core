@@ -1,4 +1,3 @@
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.core.servlet;
+
+import javax.servlet.Servlet;
+import javax.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -26,11 +27,10 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.codahale.metrics.Gauge;
+import com.codahale.metrics.MetricRegistry;
 import jakarta.json.Json;
 import jakarta.json.JsonWriter;
-import javax.servlet.Servlet;
-import javax.servlet.http.HttpServletResponse;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
@@ -59,9 +59,6 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.Gauge;
-import com.codahale.metrics.MetricRegistry;
-
 /** Servlet that can be activated to implement the standard
  *  GraphQL "protocol" as per https://graphql.org/learn/serving-over-http/
  *
@@ -71,17 +68,13 @@ import com.codahale.metrics.MetricRegistry;
  *  types and selectors to turn specific Sling Resources into GraphQL
  *  endpoints.
  */
-
 @Component(
-    service = Servlet.class,
-    name = "org.apache.sling.graphql.core.GraphQLServlet",
-    immediate = true,
-    configurationPolicy=ConfigurationPolicy.REQUIRE,
-    property = {
-        "service.description=Sling GraphQL Servlet",
-        "service.vendor=The Apache Software Foundation"
-    })
-@Designate(ocd = GraphQLServlet.Config.class, factory=true)
+        service = Servlet.class,
+        name = "org.apache.sling.graphql.core.GraphQLServlet",
+        immediate = true,
+        configurationPolicy = ConfigurationPolicy.REQUIRE,
+        property = {"service.description=Sling GraphQL Servlet", "service.vendor=The Apache Software Foundation"})
+@Designate(ocd = GraphQLServlet.Config.class, factory = true)
 public class GraphQLServlet extends SlingAllMethodsServlet {
     private static final long serialVersionUID = 1L;
     private static final Logger LOGGER = LoggerFactory.getLogger(GraphQLServlet.class);
@@ -89,42 +82,34 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
     public static final String P_QUERY = "query";
 
     @ObjectClassDefinition(
-        name = "Apache Sling GraphQL Servlet",
-        description = "Servlet that implements GraphQL endpoints")
+            name = "Apache Sling GraphQL Servlet",
+            description = "Servlet that implements GraphQL endpoints")
     public @interface Config {
-        @AttributeDefinition(
-            name = "Selectors",
-            description="Standard Sling servlet property")
+        @AttributeDefinition(name = "Selectors", description = "Standard Sling servlet property")
         String[] sling_servlet_selectors() default "";
 
-        @AttributeDefinition(
-            name = "Resource Types",
-            description="Standard Sling servlet property")
+        @AttributeDefinition(name = "Resource Types", description = "Standard Sling servlet property")
         String[] sling_servlet_resourceTypes() default "sling/servlet/default";
 
-        @AttributeDefinition(
-            name = "Methods",
-            description="Standard Sling servlet property")
+        @AttributeDefinition(name = "Methods", description = "Standard Sling servlet property")
         String[] sling_servlet_methods() default "GET";
 
-        @AttributeDefinition(
-            name = "Extensions",
-            description="Standard Sling servlet property")
+        @AttributeDefinition(name = "Extensions", description = "Standard Sling servlet property")
         String[] sling_servlet_extensions() default "gql";
 
         @AttributeDefinition(
                 name = "Persisted queries suffix",
-                description = "The request suffix under which the HTTP API for persisted queries should be made available."
-        )
+                description =
+                        "The request suffix under which the HTTP API for persisted queries should be made available.")
         String persistedQueries_suffix() default "/persisted";
 
         @AttributeDefinition(
                 name = "Persisted Queries Cache-Control max-age",
-                description = "The maximum amount of time a persisted query resource is considered fresh (in seconds). A negative value " +
-                        "will be interpreted as 0.",
+                description =
+                        "The maximum amount of time a persisted query resource is considered fresh (in seconds). A negative value "
+                                + "will be interpreted as 0.",
                 min = "0",
-                type = AttributeType.INTEGER
-        )
+                type = AttributeType.INTEGER)
         int cache$_$control_max$_$age() default 60;
     }
 
@@ -153,8 +138,8 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
 
     @Activate
     private void activate(Config config, ComponentContext componentContext) {
-        String servicePid = PropertiesUtil.toString(componentContext.getProperties().get(Constants.SERVICE_PID),
-                GraphQLServlet.class.getName());
+        String servicePid = PropertiesUtil.toString(
+                componentContext.getProperties().get(Constants.SERVICE_PID), GraphQLServlet.class.getName());
         String[] extensions = config.sling_servlet_extensions();
         StringBuilder extensionsPattern = new StringBuilder();
         for (String extension : extensions) {
@@ -171,8 +156,8 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
         String suffix = config.persistedQueries_suffix();
         if (StringUtils.isNotEmpty(suffix) && suffix.startsWith("/")) {
             suffixPersisted = suffix;
-            patternGetPersistedQuery = Pattern.compile("^" + suffixPersisted + "/([a-f0-9]{64})" + (extensionsPattern.length() > 0 ?
-                    "\\." + extensionsPattern.toString()  + "$" : "$"));
+            patternGetPersistedQuery = Pattern.compile("^" + suffixPersisted + "/([a-f0-9]{64})"
+                    + (extensionsPattern.length() > 0 ? "\\." + extensionsPattern.toString() + "$" : "$"));
         } else {
             suffixPersisted = null;
             patternGetPersistedQuery = null;
@@ -230,11 +215,15 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
                         String requestExtension = request.getRequestPathInfo().getExtension();
                         if (requestExtension != null && requestExtension.equals(extension)) {
                             if (StringUtils.isNotEmpty(queryHash)) {
-                                String query = cacheProvider.getQuery(queryHash, request.getResource().getResourceType(),
+                                String query = cacheProvider.getQuery(
+                                        queryHash,
+                                        request.getResource().getResourceType(),
                                         request.getRequestPathInfo().getSelectorString());
                                 if (query != null) {
-                                    boolean isAuthenticated = request.getHeaders("Authorization").hasMoreElements();
-                                    StringBuilder cacheControlValue = new StringBuilder("max-age=").append(cacheControlMaxAge);
+                                    boolean isAuthenticated =
+                                            request.getHeaders("Authorization").hasMoreElements();
+                                    StringBuilder cacheControlValue =
+                                            new StringBuilder("max-age=").append(cacheControlMaxAge);
                                     if (isAuthenticated) {
                                         cacheControlValue.append(",private");
                                     }
@@ -243,12 +232,15 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
                                     cacheHits.increment();
                                 } else {
                                     cacheMisses.increment();
-                                    response.sendError(HttpServletResponse.SC_NOT_FOUND, "Cannot find persisted query " + queryHash);
+                                    response.sendError(
+                                            HttpServletResponse.SC_NOT_FOUND,
+                                            "Cannot find persisted query " + queryHash);
                                 }
                             }
                         } else {
-                            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "The persisted query's extension does not match the " +
-                                    "servlet extension.");
+                            response.sendError(
+                                    HttpServletResponse.SC_BAD_REQUEST,
+                                    "The persisted query's extension does not match the " + "servlet extension.");
                         }
                     } else {
                         response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unexpected hash.");
@@ -265,7 +257,8 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
     }
 
     @Override
-    public void doPost(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) throws IOException {
+    public void doPost(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response)
+            throws IOException {
         requestsServed.increment();
         Timer.Context requestTimerContext = requestTimer.time();
         try {
@@ -284,14 +277,19 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
         }
     }
 
-    private void doPostPersistedQuery(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response)
-            throws IOException {
+    private void doPostPersistedQuery(
+            @NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) throws IOException {
         String rawQuery = IOUtils.toString(request.getReader());
         QueryParser.Result query = QueryParser.fromJSON(rawQuery);
-        ValidationResult validationResult = queryExecutor
-                .validate(query.getQuery(), query.getVariables(), request.getResource(), request.getRequestPathInfo().getSelectors());
+        ValidationResult validationResult = queryExecutor.validate(
+                query.getQuery(),
+                query.getVariables(),
+                request.getResource(),
+                request.getRequestPathInfo().getSelectors());
         if (validationResult.isValid()) {
-            String hash = cacheProvider.cacheQuery(rawQuery, request.getResource().getResourceType(),
+            String hash = cacheProvider.cacheQuery(
+                    rawQuery,
+                    request.getResource().getResourceType(),
                     request.getRequestPathInfo().getSelectorString());
             if (hash != null) {
                 response.addHeader("Location", getLocationHeaderValue(request, hash));
@@ -305,7 +303,8 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
         }
     }
 
-    private void execute(Resource resource, SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
+    private void execute(Resource resource, SlingHttpServletRequest request, SlingHttpServletResponse response)
+            throws IOException {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
         final QueryParser.Result result = QueryParser.fromRequest(request);
@@ -320,20 +319,28 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
         }
 
         try (JsonWriter writer = Json.createWriter(response.getWriter())) {
-            Map<String, Object> executionResult = queryExecutor.execute(query, result.getVariables(), resource,
+            Map<String, Object> executionResult = queryExecutor.execute(
+                    query,
+                    result.getVariables(),
+                    resource,
                     request.getRequestPathInfo().getSelectors());
             writer.write(Json.createObjectBuilder(executionResult).build().asJsonObject());
-        } catch(Exception ex) {
+        } catch (Exception ex) {
             throw new IOException(ex);
         }
     }
 
-    private void execute(@NotNull String persistedQuery, SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
+    private void execute(
+            @NotNull String persistedQuery, SlingHttpServletRequest request, SlingHttpServletResponse response)
+            throws IOException {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
         try (JsonWriter writer = Json.createWriter(response.getWriter())) {
             final QueryParser.Result result = QueryParser.fromJSON(persistedQuery);
-            Map<String, Object> executionResult = queryExecutor.execute(result.getQuery(), result.getVariables(), request.getResource(),
+            Map<String, Object> executionResult = queryExecutor.execute(
+                    result.getQuery(),
+                    result.getVariables(),
+                    request.getResource(),
                     request.getRequestPathInfo().getSelectors());
             writer.write(Json.createObjectBuilder(executionResult).build().asJsonObject());
         } catch (Exception ex) {
@@ -351,10 +358,11 @@ public class GraphQLServlet extends SlingAllMethodsServlet {
             location.append(":").append(localPort);
         }
         String extension = request.getRequestPathInfo().getExtension();
-        location.append(request.getContextPath()).append(request.getPathInfo()).append("/").append(hash)
+        location.append(request.getContextPath())
+                .append(request.getPathInfo())
+                .append("/")
+                .append(hash)
                 .append(StringUtils.isNotEmpty(extension) ? "." + extension : "");
         return location.toString();
     }
-
-
 }

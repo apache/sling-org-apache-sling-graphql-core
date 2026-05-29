@@ -18,9 +18,6 @@
  */
 package org.apache.sling.graphql.core.it;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
 import javax.inject.Inject;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
@@ -34,6 +31,9 @@ import org.ops4j.pax.exam.junit.PaxExam;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerClass;
 import org.ops4j.pax.exam.util.Filter;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerClass.class)
@@ -49,7 +49,7 @@ public class GraphQLScriptEngineIT extends GraphQLCoreTestSupport {
 
     @Configuration
     public Option[] configuration() {
-        return new Option[] { baseConfiguration() };
+        return new Option[] {baseConfiguration()};
     }
 
     @Test
@@ -57,8 +57,13 @@ public class GraphQLScriptEngineIT extends GraphQLCoreTestSupport {
         assertNotNull("Expecting ScriptEngineFactory to be present", graphQLScriptEngine);
         final ScriptEngine engine = graphQLScriptEngine.getScriptEngine();
         assertNotNull("Expecting ScriptEngine to be provided", engine);
-        assertEquals("Expecting our GraphQLScriptEngine", "GraphQLScriptEngine", engine.getClass().getSimpleName());
-        assertEquals("Expected to get the GraphQLScriptEngine when filtering by mime type.", graphQLScriptEngine,
+        assertEquals(
+                "Expecting our GraphQLScriptEngine",
+                "GraphQLScriptEngine",
+                engine.getClass().getSimpleName());
+        assertEquals(
+                "Expected to get the GraphQLScriptEngine when filtering by mime type.",
+                graphQLScriptEngine,
                 graphQLScriptEngineByMimeType);
     }
 }

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.core.mocks;
 
 import org.apache.sling.graphql.api.SelectionSet;
@@ -34,9 +33,9 @@ public class EchoDataFetcher implements SlingDataFetcher<Object> {
 
     @Override
     public Object get(SlingDataFetcherEnvironment e) throws Exception {
-        if("null".equals(e.getFetcherOptions())) {
+        if ("null".equals(e.getFetcherOptions())) {
             return null;
-        } else if(data == null) {
+        } else if (data == null) {
             return e.getCurrentResource();
         }
         selectionSet = e.getSelectionSet();

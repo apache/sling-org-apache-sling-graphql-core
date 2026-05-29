@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.api;
 
 import java.io.IOException;
@@ -28,7 +27,7 @@ import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType
 public interface SchemaProvider {
-    
+
     /** Get a GraphQL Schema definition for the given resource and optional selectors
      *
      *  @param r The Resource to which the schema applies
@@ -39,5 +38,5 @@ public interface SchemaProvider {
      *  @throws java.io.IOException if the schema cannot be retrieved
      */
     @Nullable
-    String getSchema(@NotNull Resource r, @Nullable String [] selectors) throws IOException;
+    String getSchema(@NotNull Resource r, @Nullable String[] selectors) throws IOException;
 }

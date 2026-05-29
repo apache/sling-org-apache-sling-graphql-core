@@ -18,21 +18,20 @@
  */
 package org.apache.sling.graphql.core.engine;
 
+import com.example.resolvers.DoNothingTypeResolver;
 import org.apache.sling.graphql.api.SlingTypeResolver;
 import org.apache.sling.graphql.api.SlingTypeResolverEnvironment;
+import org.apache.sling.graphql.core.mocks.CharacterTypeResolver;
 import org.apache.sling.graphql.core.mocks.DummyTypeResolver;
 import org.apache.sling.graphql.core.mocks.TestUtil;
-import org.apache.sling.graphql.core.mocks.CharacterTypeResolver;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import com.example.resolvers.DoNothingTypeResolver;
-
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;

@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
- package org.apache.sling.graphql.api.pagination;
+package org.apache.sling.graphql.api.pagination;
 
 import java.util.Base64;
 import java.util.Objects;
@@ -56,10 +55,10 @@ public class Cursor {
         if (this == obj) {
             return true;
         }
-        if(!(obj instanceof Cursor)) {
+        if (!(obj instanceof Cursor)) {
             return false;
         }
-        final Cursor other = (Cursor)obj;
+        final Cursor other = (Cursor) obj;
         return Objects.equals(rawValue, other.rawValue) && Objects.equals(encoded, other.encoded);
     }
 
@@ -76,11 +75,11 @@ public class Cursor {
      */
     @Nullable
     public static Cursor fromEncodedString(@Nullable String encoded) {
-        if(encoded == null) {
+        if (encoded == null) {
             return null;
         }
         encoded = encoded.trim();
-        if(encoded.length() == 0) {
+        if (encoded.length() == 0) {
             return null;
         }
         return new Cursor(decode(encoded));

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.core.mocks;
 
 import java.util.ArrayList;
@@ -29,11 +28,13 @@ import org.apache.sling.graphql.api.SlingDataFetcherEnvironment;
 import org.apache.sling.graphql.helpers.GenericConnection;
 import org.osgi.service.component.annotations.Component;
 
-@Component(service=SlingDataFetcher.class, property = { "name=test/query"})
+@Component(
+        service = SlingDataFetcher.class,
+        property = {"name=test/query"})
 public class QueryDataFetcherComponent implements SlingDataFetcher<Object> {
 
     @Override
-	public Object get(SlingDataFetcherEnvironment env) throws Exception {
+    public Object get(SlingDataFetcherEnvironment env) throws Exception {
         // Not a real query, just simulating that to test pagination
         final List<Resource> data = new ArrayList<>();
         data.add(env.getCurrentResource());

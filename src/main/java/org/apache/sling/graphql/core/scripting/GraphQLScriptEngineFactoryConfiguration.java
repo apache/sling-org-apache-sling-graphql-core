@@ -22,23 +22,14 @@ import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
 @ObjectClassDefinition(
-    name = "Apache Sling Scripting GraphQL ScriptEngineFactory",
-    description = "Scripting engine for GraphQL queries"
-)
+        name = "Apache Sling Scripting GraphQL ScriptEngineFactory",
+        description = "Scripting engine for GraphQL queries")
 @interface GraphQLScriptEngineFactoryConfiguration {
 
-    @AttributeDefinition(
-        name = "extensions",
-        description = "extensions"
-    )
-    String[] extensions() default {
-        "gql"
-    };
+    @AttributeDefinition(name = "extensions", description = "extensions")
+    String[] extensions() default {"gql"};
 
-    @AttributeDefinition(
-        name = "mime types",
-        description = "mime types"
-    )
+    @AttributeDefinition(name = "mime types", description = "mime types")
     String[] mimeTypes() default {
         /*
         see https://graphql.org/learn/serving-over-http/ where it is documented that a request using the "application/graphql"
@@ -47,12 +38,6 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
         "application/graphql"
     };
 
-    @AttributeDefinition(
-        name = "names",
-        description = "names"
-    )
-    String[] names() default {
-        "GraphQL",
-        "graphql"
-    };
+    @AttributeDefinition(name = "names", description = "names")
+    String[] names() default {"GraphQL", "graphql"};
 }

@@ -18,13 +18,13 @@
  */
 package org.apache.sling.graphql.core.engine;
 
-import graphql.schema.DataFetchingFieldSelectionSet;
-import org.apache.sling.graphql.api.SelectedField;
-import org.junit.Test;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+
+import graphql.schema.DataFetchingFieldSelectionSet;
+import org.apache.sling.graphql.api.SelectedField;
+import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -47,7 +47,8 @@ public class SelectedFieldWrapperTest {
     private static final int FIELD_LEVEL = 2;
     private static final String FIELD_ALIAS = "testAlias";
     private static final String FIELD_RESULT_KEY = "testResultKey";
-    private static final List<String> FIELD_OBJECT_TYPE_NAMES = Arrays.asList("testObjectTypeName1", "testObjectTypeName2");
+    private static final List<String> FIELD_OBJECT_TYPE_NAMES =
+            Arrays.asList("testObjectTypeName1", "testObjectTypeName2");
 
     @Test
     public void testFields() {
@@ -95,8 +96,12 @@ public class SelectedFieldWrapperTest {
         doReturn(immediateFields).when(selectionSet).getImmediateFields();
 
         SelectedFieldWrapper targetParent = new SelectedFieldWrapper(sourceParent);
-        assertFalse("No Duplicate Fields expected for Field 1", targetParent.hasDuplicateFieldByName(FIELD_SUB_SIMPLE_NAME_1));
-        assertFalse("No Duplicate Fields expected for Field 2", targetParent.hasDuplicateFieldByName(FIELD_SUB_SIMPLE_NAME_1));
+        assertFalse(
+                "No Duplicate Fields expected for Field 1",
+                targetParent.hasDuplicateFieldByName(FIELD_SUB_SIMPLE_NAME_1));
+        assertFalse(
+                "No Duplicate Fields expected for Field 2",
+                targetParent.hasDuplicateFieldByName(FIELD_SUB_SIMPLE_NAME_1));
         SelectedField foundField1 = targetParent.getFirstSubSelectedFieldByName(FIELD_SUB_SIMPLE_NAME_1);
         assertNotNull("First Field not found", foundField1);
         assertEquals("Wrong First Field by Simple Name", FIELD_SUB_SIMPLE_NAME_1, foundField1.getName());
@@ -133,18 +138,29 @@ public class SelectedFieldWrapperTest {
         doReturn(immediateFields).when(selectionSet).getImmediateFields();
 
         SelectedFieldWrapper targetParent = new SelectedFieldWrapper(sourceParent);
-        assertTrue("Duplicate Fields expected for Field 1", targetParent.hasDuplicateFieldByName(FIELD_SUB_SIMPLE_NAME_1));
-        assertFalse("No Duplicate Fields expected for Field 2", targetParent.hasDuplicateFieldByName(FIELD_SUB_SIMPLE_NAME_2));
-        assertTrue("First Field not found by Simple Name", targetParent.hasSubSelectedFieldsByName(FIELD_SUB_SIMPLE_NAME_1));
-        assertFalse("Second Field unexpectedly found by Simple Name", targetParent.hasSubSelectedFieldsByName(FIELD_SUB_SIMPLE_NAME_2));
+        assertTrue(
+                "Duplicate Fields expected for Field 1", targetParent.hasDuplicateFieldByName(FIELD_SUB_SIMPLE_NAME_1));
+        assertFalse(
+                "No Duplicate Fields expected for Field 2",
+                targetParent.hasDuplicateFieldByName(FIELD_SUB_SIMPLE_NAME_2));
+        assertTrue(
+                "First Field not found by Simple Name",
+                targetParent.hasSubSelectedFieldsByName(FIELD_SUB_SIMPLE_NAME_1));
+        assertFalse(
+                "Second Field unexpectedly found by Simple Name",
+                targetParent.hasSubSelectedFieldsByName(FIELD_SUB_SIMPLE_NAME_2));
         Collection<SelectedField> foundFields1 = targetParent.getSubSelectedFieldByName(FIELD_SUB_SIMPLE_NAME_1);
         assertNotNull("First Fields not found", foundFields1);
         assertEquals("Expected 2 First Fields", 2, foundFields1.size());
         Collection<SelectedField> foundFields2 = targetParent.getSubSelectedFieldByName(FIELD_SUB_SIMPLE_NAME_2);
         assertNotNull("Second Fields not found", foundFields2);
         assertEquals("Expected No Second Fields", 0, foundFields2.size());
-        assertTrue("First Field not found by FQN", targetParent.hasSubSelectedFieldsByFQN(FIELD_SUB_FULLY_QUALIFIED_NAME_1));
-        assertTrue("Second Field not found by FQN", targetParent.hasSubSelectedFieldsByFQN(FIELD_SUB_FULLY_QUALIFIED_NAME_2));
+        assertTrue(
+                "First Field not found by FQN",
+                targetParent.hasSubSelectedFieldsByFQN(FIELD_SUB_FULLY_QUALIFIED_NAME_1));
+        assertTrue(
+                "Second Field not found by FQN",
+                targetParent.hasSubSelectedFieldsByFQN(FIELD_SUB_FULLY_QUALIFIED_NAME_2));
     }
 
     @Test
@@ -172,12 +188,16 @@ public class SelectedFieldWrapperTest {
         assertTrue("First Field not found by Simple Name", targetParent.hasSubSelectedFields(FIELD_SUB_SIMPLE_NAME_1));
         assertTrue("First Field not found by FQN", targetParent.hasSubSelectedFields(FIELD_SUB_FULLY_QUALIFIED_NAME_1));
         assertFalse("Second Field found but not expected", targetParent.hasSubSelectedFields(FIELD_SUB_SIMPLE_NAME_2));
-        assertTrue("Second Field not found by FQN", targetParent.hasSubSelectedFields(FIELD_SUB_FULLY_QUALIFIED_NAME_2));
+        assertTrue(
+                "Second Field not found by FQN", targetParent.hasSubSelectedFields(FIELD_SUB_FULLY_QUALIFIED_NAME_2));
 
-        assertNotNull("First Field not found by Simple Name", targetParent.getSubSelectedField(FIELD_SUB_SIMPLE_NAME_1));
-        assertNotNull("First Field not found by FQN", targetParent.getSubSelectedField(FIELD_SUB_FULLY_QUALIFIED_NAME_1));
+        assertNotNull(
+                "First Field not found by Simple Name", targetParent.getSubSelectedField(FIELD_SUB_SIMPLE_NAME_1));
+        assertNotNull(
+                "First Field not found by FQN", targetParent.getSubSelectedField(FIELD_SUB_FULLY_QUALIFIED_NAME_1));
         assertNull("Second Field unexpectedly found by FQN", targetParent.getSubSelectedField(FIELD_SUB_SIMPLE_NAME_2));
-        assertNotNull("Second Field not found by FQN", targetParent.getSubSelectedField(FIELD_SUB_FULLY_QUALIFIED_NAME_2));
+        assertNotNull(
+                "Second Field not found by FQN", targetParent.getSubSelectedField(FIELD_SUB_FULLY_QUALIFIED_NAME_2));
     }
 
     /**
@@ -239,15 +259,17 @@ public class SelectedFieldWrapperTest {
         SelectedFieldWrapper parent = new SelectedFieldWrapper(sourceParent);
 
         // hasDuplicateFieldByName must still detect both entries
-        assertTrue("items should be reported as duplicate by name",
-                parent.hasDuplicateFieldByName(itemsName));
+        assertTrue("items should be reported as duplicate by name", parent.hasDuplicateFieldByName(itemsName));
 
         // Merged items must contain sub-fields from BOTH entries
         SelectedField itemsField = parent.getSubSelectedFieldByFQN(itemsFqn);
         assertNotNull("Items field not found by FQN", itemsField);
         assertTrue("fieldA missing", itemsField.hasSubSelectedFieldsByFQN(subFqnA));
         assertTrue("fieldB missing", itemsField.hasSubSelectedFieldsByFQN(subFqnB));
-        assertEquals("Expected 2 merged sub-fields", 2, itemsField.getSubSelectedFields().size());
+        assertEquals(
+                "Expected 2 merged sub-fields",
+                2,
+                itemsField.getSubSelectedFields().size());
     }
 
     /**
@@ -294,7 +316,9 @@ public class SelectedFieldWrapperTest {
 
         // Second policyCategories (deep: id + name + policies)
         DataFetchingFieldSelectionSet catSelSet2 = mock(DataFetchingFieldSelectionSet.class);
-        doReturn(Arrays.asList(idField, nameField, policiesField)).when(catSelSet2).getImmediateFields();
+        doReturn(Arrays.asList(idField, nameField, policiesField))
+                .when(catSelSet2)
+                .getImmediateFields();
         graphql.schema.SelectedField cat2 = mock(graphql.schema.SelectedField.class);
         doReturn(catName).when(cat2).getName();
         doReturn(catName).when(cat2).getQualifiedName();
@@ -331,8 +355,7 @@ public class SelectedFieldWrapperTest {
         SelectedFieldWrapper parent = new SelectedFieldWrapper(parentField);
 
         // policy should be flagged as duplicate
-        assertTrue("policy should be duplicate by name",
-                parent.hasDuplicateFieldByName(policyName));
+        assertTrue("policy should be duplicate by name", parent.hasDuplicateFieldByName(policyName));
 
         // Merged policy → policyCategories must contain all 3 sub-fields
         SelectedField policyField = parent.getSubSelectedFieldByFQN(policyFqn);
@@ -341,14 +364,16 @@ public class SelectedFieldWrapperTest {
         SelectedField catField = policyField.getSubSelectedFieldByFQN(catFqn);
         assertNotNull("policyCategories not found", catField);
 
-        assertTrue("policyCategoryId missing",
-                catField.hasSubSelectedFieldsByFQN("CategoryModel.policyCategoryId"));
-        assertTrue("policyCategoryName missing",
-                catField.hasSubSelectedFieldsByFQN("CategoryModel.policyCategoryName"));
-        assertTrue("policies missing (recursive merge failed)",
+        assertTrue("policyCategoryId missing", catField.hasSubSelectedFieldsByFQN("CategoryModel.policyCategoryId"));
+        assertTrue(
+                "policyCategoryName missing", catField.hasSubSelectedFieldsByFQN("CategoryModel.policyCategoryName"));
+        assertTrue(
+                "policies missing (recursive merge failed)",
                 catField.hasSubSelectedFieldsByFQN("CategoryModel.policies"));
-        assertEquals("Expected 3 sub-fields after recursive merge",
-                3, catField.getSubSelectedFields().size());
+        assertEquals(
+                "Expected 3 sub-fields after recursive merge",
+                3,
+                catField.getSubSelectedFields().size());
     }
 
     /**
@@ -407,6 +432,9 @@ public class SelectedFieldWrapperTest {
         // realField must be present
         assertTrue("realField missing after merge", itemsField.hasSubSelectedFieldsByFQN("Model.realField"));
         // null-FQN ghost must be silently skipped — only 1 sub-field in merged wrapper
-        assertEquals("Null-FQN sub-field must be skipped during merge", 1, itemsField.getSubSelectedFields().size());
+        assertEquals(
+                "Null-FQN sub-field must be skipped during merge",
+                1,
+                itemsField.getSubSelectedFields().size());
     }
 }

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.core.scripting;
 
 import javax.script.ScriptEngine;
@@ -32,17 +31,12 @@ import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.metatype.annotations.Designate;
 
 @Component(
-    service = ScriptEngineFactory.class,
-    property = {
-        Constants.SERVICE_DESCRIPTION + "=Apache Sling Scripting GraphQL ScriptEngineFactory",
-        Constants.SERVICE_VENDOR + "=The Apache Software Foundation"
-    }
-)
-
-@Designate(
-    ocd = GraphQLScriptEngineFactoryConfiguration.class
-)
-
+        service = ScriptEngineFactory.class,
+        property = {
+            Constants.SERVICE_DESCRIPTION + "=Apache Sling Scripting GraphQL ScriptEngineFactory",
+            Constants.SERVICE_VENDOR + "=The Apache Software Foundation"
+        })
+@Designate(ocd = GraphQLScriptEngineFactoryConfiguration.class)
 public class GraphQLScriptEngineFactory extends AbstractScriptEngineFactory {
 
     public static final String LANGUAGE_NAME = "GraphQL";

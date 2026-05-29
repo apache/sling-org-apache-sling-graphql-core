@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.api.pagination;
 
 import org.jetbrains.annotations.NotNull;
@@ -30,7 +29,9 @@ import org.osgi.annotation.versioning.ConsumerType;
 @ConsumerType
 public interface Connection<T> {
 
-    @NotNull Iterable<Edge<T>> getEdges();
+    @NotNull
+    Iterable<Edge<T>> getEdges();
 
-    @NotNull PageInfo getPageInfo();
+    @NotNull
+    PageInfo getPageInfo();
 }

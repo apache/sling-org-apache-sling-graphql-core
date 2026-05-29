@@ -44,11 +44,11 @@ public class GraphQLServletNoConfigIT extends GraphQLCoreTestSupport {
 
     @Configuration
     public Option[] configuration() {
-        return new Option[]{
+        return new Option[] {
             baseConfiguration(),
             factoryConfiguration("org.apache.sling.resource.presence.internal.ResourcePresenter")
-                .put("path", "/apps/graphql/test/one/json.gql")
-                .asOption(),
+                    .put("path", "/apps/graphql/test/one/json.gql")
+                    .asOption(),
         };
     }
 

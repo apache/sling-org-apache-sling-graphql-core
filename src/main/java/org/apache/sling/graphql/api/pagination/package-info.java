@@ -17,10 +17,11 @@
  * under the License.
  */
 
- /**
-  * This package contains APIs which are independent of
-  * a specific implementation of the underlying graphQL engine.
-  */
+/**
+ * This package contains APIs which are independent of
+ * a specific implementation of the underlying graphQL engine.
+ */
 @Version("0.0.1")
 package org.apache.sling.graphql.api.pagination;
+
 import org.osgi.annotation.versioning.Version;

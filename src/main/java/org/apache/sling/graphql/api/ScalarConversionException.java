@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.api;
 
 import javax.script.ScriptException;
@@ -32,7 +31,7 @@ public class ScalarConversionException extends ScriptException {
 
     public ScalarConversionException(@NotNull String reason, @Nullable Throwable cause) {
         super(reason);
-        if(cause != null) {
+        if (cause != null) {
             initCause(cause);
         }
     }
