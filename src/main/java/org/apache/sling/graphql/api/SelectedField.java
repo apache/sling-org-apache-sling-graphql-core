@@ -1,29 +1,29 @@
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- ~ Licensed to the Apache Software Foundation (ASF) under one
- ~ or more contributor license agreements.  See the NOTICE file
- ~ distributed with this work for additional information
- ~ regarding copyright ownership.  The ASF licenses this file
- ~ to you under the Apache License, Version 2.0 (the
- ~ "License"); you may not use this file except in compliance
- ~ with the License.  You may obtain a copy of the License at
- ~
- ~   http://www.apache.org/licenses/LICENSE-2.0
- ~
- ~ Unless required by applicable law or agreed to in writing,
- ~ software distributed under the License is distributed on an
- ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- ~ KIND, either express or implied.  See the License for the
- ~ specific language governing permissions and limitations
- ~ under the License.
- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.apache.sling.graphql.api;
+
+import java.util.Collection;
+import java.util.List;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
-
-import java.util.Collection;
-import java.util.List;
 
 /**
  * Interface to wrap information from <a href="https://javadoc.io/doc/com.graphql-java/graphql-java/latest/graphql/schema/SelectedField.html">GraphQL SelectedField</a>.
@@ -120,9 +120,9 @@ public interface SelectedField {
      * @param name the sub selected field name(s).
      * @return true if any of the sub selected fields exists.
      */
-    boolean hasSubSelectedFieldsByName(@NotNull String ...name);
+    boolean hasSubSelectedFieldsByName(@NotNull String... name);
 
-    boolean hasSubSelectedFieldsByFQN(@NotNull String ...fullyQualifiedName);
+    boolean hasSubSelectedFieldsByFQN(@NotNull String... fullyQualifiedName);
 
     /**
      * @param name the sub selected field name(s) and they cannot be null
@@ -133,7 +133,7 @@ public interface SelectedField {
      * @deprecated Use hasDuplicateFieldByName(), hasSubSelectedFieldsByName() or hasSubSelectedFieldsByFQN
      */
     @Deprecated
-    boolean hasSubSelectedFields(@NotNull String ...name);
+    boolean hasSubSelectedFields(@NotNull String... name);
 
     /**
      * @return Always returns false

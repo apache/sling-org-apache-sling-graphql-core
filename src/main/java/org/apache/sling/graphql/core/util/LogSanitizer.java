@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.core.util;
 
 import java.text.CharacterIterator;
@@ -29,12 +28,12 @@ public class LogSanitizer {
     public static final char REPLACEMENT_CHAR = '_';
 
     public String sanitize(String input) {
-        if(input == null) {
+        if (input == null) {
             return null;
         }
         final StringBuilder result = new StringBuilder(input.length());
         final StringCharacterIterator it = new StringCharacterIterator(input);
-        for(char c = it.first(); c != CharacterIterator.DONE; c = it.next()) {
+        for (char c = it.first(); c != CharacterIterator.DONE; c = it.next()) {
             result.append(accept(c) ? c : REPLACEMENT_CHAR);
         }
         return result.toString();
@@ -44,11 +43,11 @@ public class LogSanitizer {
      *  control chars which are not end-of-line chars.
      */
     private static boolean accept(char c) {
-        if(c > 0x7f) {
+        if (c > 0x7f) {
             return false;
-        } else if(c == '\n' || c == '\r')  {
+        } else if (c == '\n' || c == '\r') {
             return true;
-        } else if(Character.isISOControl(c)) {
+        } else if (Character.isISOControl(c)) {
             return false;
         }
         return true;

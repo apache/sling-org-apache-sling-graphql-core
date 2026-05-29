@@ -18,12 +18,12 @@
  */
 package org.apache.sling.graphql.core.it;
 
+import javax.inject.Inject;
+
 import java.io.StringReader;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.inject.Inject;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -86,24 +86,24 @@ public class GraphQLServletIT extends GraphQLCoreTestSupport {
 
     @Configuration
     public Option[] configuration() {
-        return new Option[]{
+        return new Option[] {
             baseConfiguration(),
             testDataFetchers(),
             factoryConfiguration("org.apache.sling.resource.presence.internal.ResourcePresenter")
-                .put("path", "/content/graphql/two")
-                .asOption(),
+                    .put("path", "/content/graphql/two")
+                    .asOption(),
 
             // The GraphQL servlet is disabled by default, try setting up two of them
             factoryConfiguration(GRAPHQL_SERVLET_CONFIG_PID)
-                .put("sling.servlet.resourceTypes", "sling/servlet/default")
-                .put("sling.servlet.extensions", "gql")
-                .put("sling.servlet.methods", new String[] { "GET", "POST" })
-                .asOption(),
+                    .put("sling.servlet.resourceTypes", "sling/servlet/default")
+                    .put("sling.servlet.extensions", "gql")
+                    .put("sling.servlet.methods", new String[] {"GET", "POST"})
+                    .asOption(),
             factoryConfiguration(GRAPHQL_SERVLET_CONFIG_PID)
-                .put("sling.servlet.resourceTypes", "graphql/test/two")
-                .put("sling.servlet.selectors", new String[] { "testing", "another" })
-                .put("sling.servlet.extensions", "otherExt")
-                .asOption(),
+                    .put("sling.servlet.resourceTypes", "graphql/test/two")
+                    .put("sling.servlet.selectors", new String[] {"testing", "another"})
+                    .put("sling.servlet.extensions", "otherExt")
+                    .asOption(),
         };
     }
 
@@ -126,15 +126,21 @@ public class GraphQLServletIT extends GraphQLCoreTestSupport {
     @Test
     public void testPersistedQueriesBasic() throws Exception {
         String queryHash = "a16982712f6ecdeba5d950d42e3c13df0fc26d008c497f6bf012701b57e02a51";
-        SlingHttpServletResponseResult response = persistQuery("/graphql/two.gql", "{ currentResource { resourceType name } }", null);
+        SlingHttpServletResponseResult response =
+                persistQuery("/graphql/two.gql", "{ currentResource { resourceType name } }", null);
         assertEquals("Expected to have stored a persisted query.", 201, response.getStatus());
-        assertEquals("The value of the Location header does not look correct.",
+        assertEquals(
+                "The value of the Location header does not look correct.",
                 "http://localhost/graphql/two.gql/persisted/" + queryHash + ".gql",
                 response.getHeader("Location"));
 
-        response =
-                executeRequest("GET", "/graphql/two.gql/persisted/" + queryHash + ".gql", null, "application/json", new StringReader(""),
-                        200);
+        response = executeRequest(
+                "GET",
+                "/graphql/two.gql/persisted/" + queryHash + ".gql",
+                null,
+                "application/json",
+                new StringReader(""),
+                200);
         assertEquals("max-age=60", response.getHeader("Cache-Control"));
         final String json = response.getOutputAsString();
         assertThat(json, hasJsonPath("$.data.currentResource.resourceType", equalTo("graphql/test/two")));
@@ -156,10 +162,15 @@ public class GraphQLServletIT extends GraphQLCoreTestSupport {
             post.setEntity(new ByteArrayEntity(json.getBytes(), ContentType.APPLICATION_JSON));
 
             try (CloseableHttpResponse postResponse = client.execute(targetHost, post, context)) {
-                assertEquals("Did not expect to persist an invalid query.", 400, postResponse.getStatusLine().getStatusCode());
+                assertEquals(
+                        "Did not expect to persist an invalid query.",
+                        400,
+                        postResponse.getStatusLine().getStatusCode());
                 String content = IOUtils.toString(postResponse.getEntity().getContent());
                 assertTrue("Expected a Sling error page.", StringUtils.isNotEmpty(content));
-                assertTrue("Expected to find the failure reason in the Sling error page.", content.contains("400 Invalid GraphQL query."));
+                assertTrue(
+                        "Expected to find the failure reason in the Sling error page.",
+                        content.contains("400 Invalid GraphQL query."));
             }
         }
     }
@@ -170,8 +181,7 @@ public class GraphQLServletIT extends GraphQLCoreTestSupport {
         CredentialsProvider credsProvider = new BasicCredentialsProvider();
         credsProvider.setCredentials(
                 new AuthScope(targetHost.getHostName(), targetHost.getPort()),
-                new UsernamePasswordCredentials("admin", "admin")
-        );
+                new UsernamePasswordCredentials("admin", "admin"));
         AuthCache authCache = new BasicAuthCache();
         BasicScheme basicAuth = new BasicScheme();
         authCache.put(targetHost, basicAuth);
@@ -190,18 +200,25 @@ public class GraphQLServletIT extends GraphQLCoreTestSupport {
             post.setEntity(new ByteArrayEntity(json.getBytes(), ContentType.APPLICATION_JSON));
 
             try (CloseableHttpResponse postResponse = client.execute(targetHost, post, context)) {
-                assertEquals("Expected to have stored a persisted query.", 201, postResponse.getStatusLine().getStatusCode());
+                assertEquals(
+                        "Expected to have stored a persisted query.",
+                        201,
+                        postResponse.getStatusLine().getStatusCode());
                 Header locationHeader = postResponse.getFirstHeader(HttpHeaders.LOCATION);
                 assertNotNull(locationHeader);
                 String location = locationHeader.getValue();
                 HttpGet get = new HttpGet(location);
                 try (CloseableHttpResponse getResponse = client.execute(targetHost, get, context)) {
-                    assertEquals("Expected to find a persisted query.", 200, getResponse.getStatusLine().getStatusCode());
+                    assertEquals(
+                            "Expected to find a persisted query.",
+                            200,
+                            getResponse.getStatusLine().getStatusCode());
                     Header cacheControl = getResponse.getFirstHeader("Cache-Control");
                     assertNotNull("Expected a Cache-Control header.", cacheControl);
                     assertEquals("max-age=60,private", cacheControl.getValue());
                     String getJson = IOUtils.toString(getResponse.getEntity().getContent());
-                    assertThat(getJson, hasJsonPath("$.data.currentResource.resourceType", equalTo("graphql/test/two")));
+                    assertThat(
+                            getJson, hasJsonPath("$.data.currentResource.resourceType", equalTo("graphql/test/two")));
                     assertThat(getJson, hasJsonPath("$.data.currentResource.name", equalTo("two")));
                     assertThat(getJson, hasNoJsonPath("$.data.currentResource.path"));
                 }
@@ -209,17 +226,18 @@ public class GraphQLServletIT extends GraphQLCoreTestSupport {
         }
     }
 
-
     @Test
     public void testOtherExtAndTestingSelector() throws Exception {
         executeRequest("GET", "/graphql/two.otherExt", null, null, null, 404);
-        final String json = getContent("/graphql/two.testing.otherExt", "query", "{ withTestingSelector { farenheit } }");
+        final String json =
+                getContent("/graphql/two.testing.otherExt", "query", "{ withTestingSelector { farenheit } }");
         assertThat(json, hasJsonPath("$.data.withTestingSelector.farenheit", equalTo(451)));
     }
 
     @Test
     public void testOtherExtAndOtherSelector() throws Exception {
-        final String json = getContent("/graphql/two.another.otherExt", "query", "{ currentResource { resourceType name } }");
+        final String json =
+                getContent("/graphql/two.another.otherExt", "query", "{ currentResource { resourceType name } }");
         assertThat(json, hasJsonPath("$.data.currentResource.resourceType", equalTo("graphql/test/two")));
         assertThat(json, hasJsonPath("$.data.currentResource.name", equalTo("two")));
         assertThat(json, hasNoJsonPath("$.data.currentResource.path"));
@@ -240,8 +258,10 @@ public class GraphQLServletIT extends GraphQLCoreTestSupport {
 
     @Test
     public void testMultipleSchemaProviders() throws Exception {
-        new ReplacingSchemaProvider("currentResource", "REPLACED").register(bundleContext, defaultSchemaProvider, Integer.MAX_VALUE);
-        new ReplacingSchemaProvider("currentResource", "NOT_THIS_ONE").register(bundleContext, defaultSchemaProvider, 1);
+        new ReplacingSchemaProvider("currentResource", "REPLACED")
+                .register(bundleContext, defaultSchemaProvider, Integer.MAX_VALUE);
+        new ReplacingSchemaProvider("currentResource", "NOT_THIS_ONE")
+                .register(bundleContext, defaultSchemaProvider, 1);
         final String json = getContent("/graphql/two.gql", "query", "{ REPLACED { resourceType name } }");
         assertThat(json, hasJsonPath("$.data.REPLACED.resourceType", equalTo("graphql/test/two")));
         assertThat(json, hasJsonPath("$.data.REPLACED.name", equalTo("two")));

@@ -16,10 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.core.mocks;
-
-import static org.junit.Assert.fail;
 
 import java.util.Dictionary;
 import java.util.Hashtable;
@@ -31,33 +28,38 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 
+import static org.junit.Assert.fail;
+
 public class TestUtil {
 
-    public static ServiceRegistration<?> registerSlingDataFetcher(BundleContext bc, String name, SlingDataFetcher<?> f) {
+    public static ServiceRegistration<?> registerSlingDataFetcher(
+            BundleContext bc, String name, SlingDataFetcher<?> f) {
         return registerSlingDataFetcher(bc, name, 0, f);
     }
 
-    public static ServiceRegistration<?> registerSlingDataFetcher(BundleContext bc, String name, int serviceRanking,
-                                                                  SlingDataFetcher<?> f) {
+    public static ServiceRegistration<?> registerSlingDataFetcher(
+            BundleContext bc, String name, int serviceRanking, SlingDataFetcher<?> f) {
         final Dictionary<String, Object> props = new Hashtable<>();
         props.put(SlingDataFetcher.NAME_SERVICE_PROPERTY, name);
         props.put(Constants.SERVICE_RANKING, serviceRanking);
         return bc.registerService(SlingDataFetcher.class, f, props);
     }
 
-    public static ServiceRegistration<?> registerSlingTypeResolver(BundleContext bc, String name, SlingTypeResolver<?> tr) {
+    public static ServiceRegistration<?> registerSlingTypeResolver(
+            BundleContext bc, String name, SlingTypeResolver<?> tr) {
         return registerSlingTypeResolver(bc, name, 0, tr);
     }
 
-    public static ServiceRegistration<?> registerSlingTypeResolver(BundleContext bc, String name, int serviceRanking,
-                                                                   SlingTypeResolver<?> tr) {
+    public static ServiceRegistration<?> registerSlingTypeResolver(
+            BundleContext bc, String name, int serviceRanking, SlingTypeResolver<?> tr) {
         final Dictionary<String, Object> props = new Hashtable<>();
         props.put(SlingTypeResolver.NAME_SERVICE_PROPERTY, name);
         props.put(Constants.SERVICE_RANKING, serviceRanking);
         return bc.registerService(SlingTypeResolver.class, tr, props);
     }
 
-    public static ServiceRegistration<?> registerSlingScalarConverter(BundleContext bc, String name, SlingScalarConverter<?,?> c) {
+    public static ServiceRegistration<?> registerSlingScalarConverter(
+            BundleContext bc, String name, SlingScalarConverter<?, ?> c) {
         final Dictionary<String, Object> props = new Hashtable<>();
         props.put(SlingScalarConverter.NAME_SERVICE_PROPERTY, name);
         return bc.registerService(SlingScalarConverter.class, c, props);
@@ -65,16 +67,16 @@ public class TestUtil {
 
     public static void assertNestedException(Throwable t, Class<?> clazz, String messageContains) {
         boolean found = false;
-        while(t != null) {
-            if(t.getClass().equals(clazz) && t.getMessage().contains(messageContains)) {
+        while (t != null) {
+            if (t.getClass().equals(clazz) && t.getMessage().contains(messageContains)) {
                 found = true;
                 break;
             }
             t = t.getCause();
         }
-        if(!found) {
-            fail(String.format("Did not get %s exception with message containing '%s'", 
-                clazz.getName(), messageContains));
+        if (!found) {
+            fail(String.format(
+                    "Did not get %s exception with message containing '%s'", clazz.getName(), messageContains));
         }
     }
 }

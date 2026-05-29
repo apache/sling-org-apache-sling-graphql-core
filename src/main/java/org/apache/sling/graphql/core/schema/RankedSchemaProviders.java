@@ -1,4 +1,3 @@
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.core.schema;
 
 import java.io.IOException;
@@ -44,38 +42,38 @@ import org.osgi.service.component.annotations.ReferencePolicyOption;
 public class RankedSchemaProviders implements SchemaProvider {
 
     /*
-        before SLING-9800 this was using an ASCENDING order, using the SchemaProvider with the lowest service ranking that returned a
-        non-null schema; however, this was considered inconsistent with how service implementations are provided by OSGi containers,
-        where the service with the highest ranking will be returned
-     */
+       before SLING-9800 this was using an ASCENDING order, using the SchemaProvider with the lowest service ranking that returned a
+       non-null schema; however, this was considered inconsistent with how service implementations are provided by OSGi containers,
+       where the service with the highest ranking will be returned
+    */
     final RankedServices<SchemaProvider> providers = new RankedServices<>(Order.DESCENDING);
 
     @Override
-    public @Nullable String getSchema(@NotNull final Resource r, @Nullable final String[] selectors) throws IOException {
+    public @Nullable String getSchema(@NotNull final Resource r, @Nullable final String[] selectors)
+            throws IOException {
         String result = null;
 
-        for(SchemaProvider p : providers) {
+        for (SchemaProvider p : providers) {
             result = p.getSchema(r, selectors);
-            if(result != null) {
+            if (result != null) {
                 break;
             }
         }
 
-        if(result == null) {
+        if (result == null) {
             final String selectorsInfo = selectors == null ? null : " / " + Arrays.asList(selectors);
             throw new IOException(
-                "No schema found for " + r.getPath() + selectorsInfo
-                + ", SchemaProviders=" + providers);
+                    "No schema found for " + r.getPath() + selectorsInfo + ", SchemaProviders=" + providers);
         }
 
         return result;
     }
 
     @Reference(
-        service = SchemaProvider.class,
-        cardinality = ReferenceCardinality.AT_LEAST_ONE,
-        policy = ReferencePolicy.DYNAMIC,
-        policyOption = ReferencePolicyOption.GREEDY)
+            service = SchemaProvider.class,
+            cardinality = ReferenceCardinality.AT_LEAST_ONE,
+            policy = ReferencePolicy.DYNAMIC,
+            policyOption = ReferencePolicyOption.GREEDY)
     protected void bindSchemaProvider(SchemaProvider service, Map<String, Object> props) {
         providers.bind(service, props);
     }

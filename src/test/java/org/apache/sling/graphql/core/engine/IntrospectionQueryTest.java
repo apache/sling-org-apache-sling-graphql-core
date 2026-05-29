@@ -23,16 +23,15 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
 
-import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-
-import org.apache.sling.graphql.core.mocks.EchoDataFetcher;
-import org.apache.sling.graphql.core.mocks.TestUtil;
-import org.apache.sling.graphql.core.mocks.DroidDTO;
-import org.apache.sling.graphql.core.mocks.HumanDTO;
 import org.apache.sling.graphql.core.mocks.CharacterTypeResolver;
+import org.apache.sling.graphql.core.mocks.DroidDTO;
+import org.apache.sling.graphql.core.mocks.EchoDataFetcher;
+import org.apache.sling.graphql.core.mocks.HumanDTO;
+import org.apache.sling.graphql.core.mocks.TestUtil;
 import org.junit.Test;
+
+import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class IntrospectionQueryTest extends ResourceQueryTestBase {
 
@@ -57,5 +56,4 @@ public class IntrospectionQueryTest extends ResourceQueryTestBase {
         assertThat(json, hasJsonPath("$.data.__schema.directives"));
         assertThat(json, hasJsonPath("$.data.__schema.directives..description"));
     }
-
 }

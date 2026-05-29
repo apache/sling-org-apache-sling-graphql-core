@@ -1,4 +1,3 @@
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,15 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.core.scalars;
-
-import org.apache.sling.graphql.api.ScalarConversionException;
-import org.apache.sling.graphql.api.SlingScalarConverter;
 
 import graphql.language.StringValue;
 import graphql.schema.Coercing;
 import graphql.schema.CoercingSerializeException;
+import org.apache.sling.graphql.api.ScalarConversionException;
+import org.apache.sling.graphql.api.SlingScalarConverter;
 
 /** Wraps {@link SlingScalarConverter} into a GraphQL-java Coercing */
 class SlingCoercingWrapper implements Coercing<Object, Object> {
@@ -39,7 +36,7 @@ class SlingCoercingWrapper implements Coercing<Object, Object> {
     public Object serialize(Object dataFetcherResult) {
         try {
             return converter.serialize(dataFetcherResult);
-        } catch(ScalarConversionException sce) {
+        } catch (ScalarConversionException sce) {
             throw new CoercingSerializeException(sce);
         }
     }
@@ -48,7 +45,7 @@ class SlingCoercingWrapper implements Coercing<Object, Object> {
     public Object parseValue(Object input) {
         try {
             return converter.parseValue(input);
-        } catch(ScalarConversionException sce) {
+        } catch (ScalarConversionException sce) {
             throw new CoercingSerializeException(sce);
         }
     }
@@ -59,14 +56,13 @@ class SlingCoercingWrapper implements Coercing<Object, Object> {
         // So far we handle StringValue only and unfortunately there's no common
         // interface for the getValue() method.
         try {
-            if(input instanceof StringValue) {
-                return converter.parseValue(((StringValue)input).getValue());
+            if (input instanceof StringValue) {
+                return converter.parseValue(((StringValue) input).getValue());
             } else {
                 return converter.parseValue(input);
             }
-        } catch(ScalarConversionException sce) {
+        } catch (ScalarConversionException sce) {
             throw new CoercingSerializeException(sce);
         }
     }
-
- }
+}

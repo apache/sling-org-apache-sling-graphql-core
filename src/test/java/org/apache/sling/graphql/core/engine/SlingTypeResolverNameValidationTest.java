@@ -35,16 +35,16 @@ public class SlingTypeResolverNameValidationTest {
     @Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         final List<Object[]> result = new ArrayList<>();
-        result.add(new Object[]{"with/slash", true});
-        result.add(new Object[]{"missingSlash", false});
-        result.add(new Object[]{"", false});
-        result.add(new Object[]{"one/two/three", true});
-        result.add(new Object[]{"one/two/three/four_and/five_and_451_six_6", true});
-        result.add(new Object[]{"uno/1/x42", true});
-        result.add(new Object[]{"uno_due/tre", true});
-        result.add(new Object[]{"the:colon/bad", false});
-        result.add(new Object[]{"/startingslash", false});
-        result.add(new Object[]{"/starting/ending", false});
+        result.add(new Object[] {"with/slash", true});
+        result.add(new Object[] {"missingSlash", false});
+        result.add(new Object[] {"", false});
+        result.add(new Object[] {"one/two/three", true});
+        result.add(new Object[] {"one/two/three/four_and/five_and_451_six_6", true});
+        result.add(new Object[] {"uno/1/x42", true});
+        result.add(new Object[] {"uno_due/tre", true});
+        result.add(new Object[] {"the:colon/bad", false});
+        result.add(new Object[] {"/startingslash", false});
+        result.add(new Object[] {"/starting/ending", false});
         return result;
     }
 
@@ -61,5 +61,4 @@ public class SlingTypeResolverNameValidationTest {
         final String msg = String.format("Expecting '%s' to be %s", name, expectValid ? "valid" : "invalid");
         assertEquals(msg, SlingTypeResolverSelector.nameMatchesPattern(name), expectValid);
     }
-
 }

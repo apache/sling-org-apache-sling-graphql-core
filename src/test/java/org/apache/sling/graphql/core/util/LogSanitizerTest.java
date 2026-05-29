@@ -18,8 +18,6 @@
  */
 package org.apache.sling.graphql.core.util;
 
-import static org.junit.Assert.assertEquals;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -29,6 +27,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import static org.junit.Assert.assertEquals;
+
 @RunWith(Parameterized.class)
 public class LogSanitizerTest {
     private static final String UNCHANGED = "\u0451";
@@ -36,7 +36,7 @@ public class LogSanitizerTest {
     private final String in;
     private final String out;
 
-    @Parameters(name="{0}")
+    @Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         final List<Object[]> result = new ArrayList<>();
         testCase(result, null, UNCHANGED);
@@ -52,7 +52,7 @@ public class LogSanitizerTest {
     }
 
     private static void testCase(List<Object[]> result, String in, String out) {
-        result.add(new Object[] { in, out});
+        result.add(new Object[] {in, out});
     }
 
     public LogSanitizerTest(String in, String out) {
@@ -62,7 +62,7 @@ public class LogSanitizerTest {
 
     @Test
     public void verify() {
-        if(out.equals(UNCHANGED)) {
+        if (out.equals(UNCHANGED)) {
             assertEquals(in, s.sanitize(in));
         } else {
             assertEquals(out, s.sanitize(in));

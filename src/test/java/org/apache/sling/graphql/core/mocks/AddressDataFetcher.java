@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.core.mocks;
 
 import java.net.URL;
@@ -31,8 +30,8 @@ public class AddressDataFetcher implements SlingDataFetcher<Object> {
     @Override
     public Object get(SlingDataFetcherEnvironment e) throws Exception {
         final Object p = e.getArgument("url");
-        if(p instanceof URL) {
-            final URL url = (URL)p;
+        if (p instanceof URL) {
+            final URL url = (URL) p;
             final Dictionary<String, Object> result = new Hashtable<>();
             result.put("url", url);
             result.put("hostname", url.getHost());

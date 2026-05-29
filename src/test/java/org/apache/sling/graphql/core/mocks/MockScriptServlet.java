@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.core.mocks;
 
 import java.util.HashMap;
@@ -39,8 +38,8 @@ public class MockScriptServlet extends SlingSafeMethodsServlet implements SlingS
 
     @Override
     public Object eval(SlingBindings props) {
-        final Resource r = (Resource)props.get("resource");
-        final SlingDataFetcherEnvironment env = (SlingDataFetcherEnvironment)props.get("environment");
+        final Resource r = (Resource) props.get("resource");
+        final SlingDataFetcherEnvironment env = (SlingDataFetcherEnvironment) props.get("environment");
 
         final Map<String, Object> result = new HashMap<>();
         result.put("testingArgument", env == null ? null : env.getArgument("testing"));

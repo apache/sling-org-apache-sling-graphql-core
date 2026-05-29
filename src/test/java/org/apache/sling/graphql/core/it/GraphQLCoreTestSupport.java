@@ -18,6 +18,8 @@
  */
 package org.apache.sling.graphql.core.it;
 
+import javax.inject.Inject;
+
 import java.io.Reader;
 import java.io.StringReader;
 import java.time.Duration;
@@ -29,8 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-
-import javax.inject.Inject;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -77,7 +77,7 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GraphQLCoreTestSupport.class);
 
-    private final static int STARTUP_WAIT_SECONDS = 30;
+    private static final int STARTUP_WAIT_SECONDS = 30;
 
     @Inject
     protected ResourceResolverFactory resourceResolverFactory;
@@ -99,27 +99,46 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
         }
         SlingOptions.versionResolver.setVersion("org.apache.felix", "org.apache.felix.http.jetty", "4.2.0");
         SlingOptions.versionResolver.setVersion("org.apache.felix", "org.apache.felix.http.servlet-api", "2.0.0");
+        SlingOptions.versionResolver.setVersion("org.ow2.asm", "asm", "9.7.1");
+        SlingOptions.versionResolver.setVersion("org.ow2.asm", "asm-analysis", "9.7.1");
+        SlingOptions.versionResolver.setVersion("org.ow2.asm", "asm-commons", "9.7.1");
+        SlingOptions.versionResolver.setVersion("org.ow2.asm", "asm-tree", "9.7.1");
+        SlingOptions.versionResolver.setVersion("org.ow2.asm", "asm-util", "9.7.1");
 
         return composite(
-            when(vmOption != null).useOptions(vmOption),
-            when(jacocoCommand != null).useOptions(jacocoCommand),
-            super.baseConfiguration(),
-            slingQuickstart(),
-            graphQLJava(),
-            testBundle("bundle.filename"),
-            newConfiguration("org.apache.sling.jcr.base.internal.LoginAdminWhitelist")
-                .put("whitelist.bundles.regexp", "^PAXEXAM.*$")
-                .asOption(),
-            mavenBundle().groupId("org.apache.sling").artifactId("org.apache.sling.servlet-helpers").versionAsInProject(),
-            mavenBundle().groupId("org.apache.sling").artifactId("org.apache.sling.commons.johnzon").versionAsInProject(),
-            mavenBundle().groupId("org.osgi").artifactId("org.osgi.util.converter").versionAsInProject(), // required for the newer Sling API
-            mavenBundle().groupId("org.apache.johnzon").artifactId("johnzon-mapper").versionAsInProject(),
-            mavenBundle().groupId("org.apache.commons").artifactId("commons-collections4").versionAsInProject(),
-            slingResourcePresence(),
-            slingCommonsMetrics(),
-            jsonPath(),
-            junitBundles()
-        );
+                when(vmOption != null).useOptions(vmOption),
+                when(jacocoCommand != null).useOptions(jacocoCommand),
+                super.baseConfiguration(),
+                slingQuickstart(),
+                graphQLJava(),
+                testBundle("bundle.filename"),
+                newConfiguration("org.apache.sling.jcr.base.internal.LoginAdminWhitelist")
+                        .put("whitelist.bundles.regexp", "^PAXEXAM.*$")
+                        .asOption(),
+                mavenBundle()
+                        .groupId("org.apache.sling")
+                        .artifactId("org.apache.sling.servlet-helpers")
+                        .versionAsInProject(),
+                mavenBundle()
+                        .groupId("org.apache.sling")
+                        .artifactId("org.apache.sling.commons.johnzon")
+                        .versionAsInProject(),
+                mavenBundle()
+                        .groupId("org.osgi")
+                        .artifactId("org.osgi.util.converter")
+                        .versionAsInProject(), // required for the newer Sling API
+                mavenBundle()
+                        .groupId("org.apache.johnzon")
+                        .artifactId("johnzon-mapper")
+                        .versionAsInProject(),
+                mavenBundle()
+                        .groupId("org.apache.commons")
+                        .artifactId("commons-collections4")
+                        .versionAsInProject(),
+                slingResourcePresence(),
+                slingCommonsMetrics(),
+                jsonPath(),
+                junitBundles());
     }
 
     @ProbeBuilder
@@ -135,31 +154,46 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
     protected Option slingQuickstart() {
         final int httpPort = findFreePort();
         final String workingDirectory = workingDirectory();
-        return composite(
-            slingQuickstartOakTar(workingDirectory, httpPort),
-            slingScripting(),
-            slingScriptingJsp()
-        );
+        return composite(slingQuickstartOakTar(workingDirectory, httpPort), slingScripting(), slingScriptingJsp());
     }
 
     protected Option jsonPath() {
         return composite(
-            mavenBundle().groupId("com.jayway.jsonpath").artifactId("json-path").versionAsInProject(),
-            mavenBundle().groupId("net.minidev").artifactId("json-smart").versionAsInProject(),
-            mavenBundle().groupId("net.minidev").artifactId("accessors-smart").versionAsInProject(),
-            mavenBundle().groupId("org.ow2.asm").artifactId("asm").versionAsInProject(),
-            mavenBundle().groupId("com.jayway.jsonpath").artifactId("json-path-assert").versionAsInProject(),
-            mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.hamcrest").versionAsInProject()
-        );
+                mavenBundle()
+                        .groupId("com.jayway.jsonpath")
+                        .artifactId("json-path")
+                        .versionAsInProject(),
+                mavenBundle().groupId("net.minidev").artifactId("json-smart").versionAsInProject(),
+                mavenBundle()
+                        .groupId("net.minidev")
+                        .artifactId("accessors-smart")
+                        .versionAsInProject(),
+                mavenBundle().groupId("org.ow2.asm").artifactId("asm").versionAsInProject(),
+                mavenBundle()
+                        .groupId("com.jayway.jsonpath")
+                        .artifactId("json-path-assert")
+                        .versionAsInProject(),
+                mavenBundle()
+                        .groupId("org.apache.servicemix.bundles")
+                        .artifactId("org.apache.servicemix.bundles.hamcrest")
+                        .versionAsInProject());
     }
 
     protected Option graphQLJava() {
         return composite(
-            mavenBundle().groupId("com.graphql-java").artifactId("graphql-java").versionAsInProject(),
-            mavenBundle().groupId("org.antlr").artifactId("antlr4-runtime").versionAsInProject(),
-            mavenBundle().groupId("com.graphql-java").artifactId("java-dataloader").versionAsInProject(),
-            mavenBundle().groupId("org.reactivestreams").artifactId("reactive-streams").versionAsInProject()
-        );
+                mavenBundle()
+                        .groupId("com.graphql-java")
+                        .artifactId("graphql-java")
+                        .versionAsInProject(),
+                mavenBundle().groupId("org.antlr").artifactId("antlr4-runtime").versionAsInProject(),
+                mavenBundle()
+                        .groupId("com.graphql-java")
+                        .artifactId("java-dataloader")
+                        .versionAsInProject(),
+                mavenBundle()
+                        .groupId("org.reactivestreams")
+                        .artifactId("reactive-streams")
+                        .versionAsInProject());
     }
 
     /**
@@ -172,7 +206,7 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
         final String path = "/.json";
         final Instant endTime = Instant.now().plus(Duration.ofSeconds(STARTUP_WAIT_SECONDS));
 
-        while(Instant.now().isBefore(endTime)) {
+        while (Instant.now().isBefore(endTime)) {
             final int status = executeRequest("GET", path, null, null, null, -1).getStatus();
             statuses.add(status);
             if (status == expectedStatus) {
@@ -184,15 +218,20 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
         fail("Did not get a " + expectedStatus + " status at " + path + " got " + statuses);
     }
 
-    protected SlingHttpServletResponseResult executeRequest(final String method,
-                                                            final String path, Map<String, String[]> params, String contentType,
-                                                            Reader body, final int expectedStatus) throws Exception {
+    protected SlingHttpServletResponseResult executeRequest(
+            final String method,
+            final String path,
+            Map<String, String[]> params,
+            String contentType,
+            Reader body,
+            final int expectedStatus)
+            throws Exception {
 
-        // Admin resolver is fine for testing    
-        @SuppressWarnings("deprecation")            
+        // Admin resolver is fine for testing
+        @SuppressWarnings("deprecation")
         final ResourceResolver resourceResolver = resourceResolverFactory.getAdministrativeResourceResolver(null);
 
-        final int [] statusParam = expectedStatus == -1 ? null : new int[] { expectedStatus };
+        final int[] statusParam = expectedStatus == -1 ? null : new int[] {expectedStatus};
         Resource resource = resourceResolver.resolve(path);
         String selectorsExtensionSuffix = resource.getResourceMetadata().getResolutionPathInfo();
         String[] selectors = new String[0];
@@ -201,7 +240,8 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
         int firstSlash = selectorsExtensionSuffix.indexOf('/');
         if (firstSlash != -1) {
             suffix = selectorsExtensionSuffix.substring(firstSlash);
-            selectorsExtensionSuffix = selectorsExtensionSuffix.substring(0, selectorsExtensionSuffix.length() - suffix.length());
+            selectorsExtensionSuffix =
+                    selectorsExtensionSuffix.substring(0, selectorsExtensionSuffix.length() - suffix.length());
         }
         if (selectorsExtensionSuffix.startsWith(".")) {
             selectorsExtensionSuffix = selectorsExtensionSuffix.substring(1);
@@ -236,11 +276,12 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
                 .withParameters(params)
                 .withContentType(contentType)
                 .withBody(body == null ? null : IOUtils.toString(body))
-                .withSelectors(resource instanceof  ResourceWrapper ? null : selectors)
+                .withSelectors(resource instanceof ResourceWrapper ? null : selectors)
                 .withExtension(resource instanceof ResourceWrapper ? null : extension)
                 .withSuffix(resource instanceof ResourceWrapper ? null : suffix)
                 .build();
-        final SlingHttpServletResponseResult response = Builders.newResponseBuilder().build();
+        final SlingHttpServletResponseResult response =
+                Builders.newResponseBuilder().build();
         requestProcessor.processRequest(request, response, resourceResolver);
         return response;
     }
@@ -249,7 +290,7 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
         return executeRequest("GET", path, null, null, null, 200).getOutputAsString();
     }
 
-    protected String getContent(String path, String ... params) throws Exception {
+    protected String getContent(String path, String... params) throws Exception {
         return executeRequest("GET", path, toMap(params), null, null, 200).getOutputAsString();
     }
 
@@ -263,10 +304,12 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
             body.put("variables", variables);
         }
 
-        return executeRequest("POST", path, null, "application/json", new StringReader(toJSON(body)), 200).getOutputAsString();
+        return executeRequest("POST", path, null, "application/json", new StringReader(toJSON(body)), 200)
+                .getOutputAsString();
     }
 
-    protected SlingHttpServletResponseResult persistQuery(String path, String query, Map<String, Object> variables) throws Exception {
+    protected SlingHttpServletResponseResult persistQuery(String path, String query, Map<String, Object> variables)
+            throws Exception {
         Map<String, Object> body = new HashMap<>();
         if (query != null) {
             String queryEncoded = query.replace("\n", "\\n");
@@ -276,7 +319,8 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
             body.put("variables", variables);
         }
 
-        return executeRequest("POST", path + "/persisted", null, "application/json", new StringReader(toJSON(body)), -1);
+        return executeRequest(
+                "POST", path + "/persisted", null, "application/json", new StringReader(toJSON(body)), -1);
     }
 
     protected String toJSON(Object source) {
@@ -284,10 +328,10 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
         return mapper.toStructure(source).toString();
     }
 
-    protected Map<String, String[]> toMap(String ...keyValuePairs) {
+    protected Map<String, String[]> toMap(String... keyValuePairs) {
         final Map<String, String[]> result = new HashMap<>();
-        for(int i=0 ; i < keyValuePairs.length; i+=2) {
-            result.put(keyValuePairs[i], new String[] {keyValuePairs[i+1]});
+        for (int i = 0; i < keyValuePairs.length; i += 2) {
+            result.put(keyValuePairs[i], new String[] {keyValuePairs[i + 1]});
         }
         return result;
     }
@@ -297,10 +341,10 @@ public abstract class GraphQLCoreTestSupport extends TestSupport {
         bundle.set(Constants.BUNDLE_SYMBOLICNAME, getClass().getSimpleName() + UUID.randomUUID());
 
         final StringBuilder exports = new StringBuilder();
-        
+
         for (final Class<?> clazz : classes) {
             bundle.add(clazz);
-            if(exports.length() != 0) {
+            if (exports.length() != 0) {
                 exports.append(",");
             }
             exports.append(clazz.getPackage().getName());

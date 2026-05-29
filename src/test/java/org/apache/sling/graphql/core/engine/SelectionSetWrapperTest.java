@@ -18,12 +18,12 @@
  */
 package org.apache.sling.graphql.core.engine;
 
+import java.util.Arrays;
+import java.util.List;
+
 import graphql.schema.DataFetchingFieldSelectionSet;
 import org.apache.sling.graphql.api.SelectedField;
 import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -88,17 +88,24 @@ public class SelectionSetWrapperTest {
         SelectionSetWrapper wrapper = new SelectionSetWrapper(root);
 
         // Only one top-level field named "item"
-        assertEquals("Duplicate-named entries must be merged to a single top-level field",
-                1, wrapper.getFields().size());
+        assertEquals(
+                "Duplicate-named entries must be merged to a single top-level field",
+                1,
+                wrapper.getFields().size());
 
         // The merged field must expose sub-fields from BOTH aliases
         SelectedField merged = wrapper.get("item");
         assertNotNull("merged item field not found", merged);
-        assertTrue("subA (from first alias) must be present after merge",
+        assertTrue(
+                "subA (from first alias) must be present after merge",
                 merged.hasSubSelectedFieldsByFQN("ItemModel.subA"));
-        assertTrue("subB (from second alias) must be present after merge",
+        assertTrue(
+                "subB (from second alias) must be present after merge",
                 merged.hasSubSelectedFieldsByFQN("ItemModel.subB"));
-        assertEquals("merged item must have 2 sub-fields", 2, merged.getSubSelectedFields().size());
+        assertEquals(
+                "merged item must have 2 sub-fields",
+                2,
+                merged.getSubSelectedFields().size());
     }
 
     /**
@@ -114,7 +121,8 @@ public class SelectionSetWrapperTest {
 
         SelectionSetWrapper wrapper = new SelectionSetWrapper(selSet);
 
-        assertTrue("Slash-named field must not appear in top-level fields list",
+        assertTrue(
+                "Slash-named field must not appear in top-level fields list",
                 wrapper.getFields().isEmpty());
     }
 
@@ -133,8 +141,7 @@ public class SelectionSetWrapperTest {
         SelectionSetWrapper wrapper = new SelectionSetWrapper(root);
 
         assertNotNull("parent must be found by simple name", wrapper.get("parent"));
-        assertNotNull("leaf must be found by flat qualified path parent/leaf",
-                wrapper.get("parent/leaf"));
+        assertNotNull("leaf must be found by flat qualified path parent/leaf", wrapper.get("parent/leaf"));
         assertNull("unknown path must return null", wrapper.get("parent/unknown"));
     }
 

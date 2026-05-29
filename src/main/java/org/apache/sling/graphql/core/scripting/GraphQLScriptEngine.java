@@ -16,8 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.core.scripting;
+
+import javax.script.AbstractScriptEngine;
+import javax.script.Bindings;
+import javax.script.ScriptContext;
+import javax.script.ScriptEngineFactory;
+import javax.script.ScriptException;
 
 import java.io.PrintWriter;
 import java.io.Reader;
@@ -29,14 +34,7 @@ import java.util.List;
 import java.util.Map;
 
 import jakarta.json.Json;
-import jakarta.json.JsonObject;
 import jakarta.json.JsonWriter;
-import javax.script.AbstractScriptEngine;
-import javax.script.Bindings;
-import javax.script.ScriptContext;
-import javax.script.ScriptEngineFactory;
-import javax.script.ScriptException;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.scripting.SlingBindings;
@@ -56,15 +54,16 @@ public class GraphQLScriptEngine extends AbstractScriptEngine {
 
     @Override
     public Object eval(Reader reader, ScriptContext context) throws ScriptException {
-        try (JsonWriter writer = Json.createWriter((PrintWriter) context.getBindings(ScriptContext.ENGINE_SCOPE).get(SlingBindings.OUT))) {
+        try (JsonWriter writer = Json.createWriter(
+                (PrintWriter) context.getBindings(ScriptContext.ENGINE_SCOPE).get(SlingBindings.OUT))) {
 
-            final Resource resource = (Resource) context.getBindings(ScriptContext.ENGINE_SCOPE)
-                    .get(SlingBindings.RESOURCE);
-            final String [] selectors = getRequestSelectors(resource);
-            Map<String, Object> executionResult = factory.getQueryExecutor().execute(IOUtils.toString(reader), Collections.emptyMap(),
-                    resource, selectors);
+            final Resource resource =
+                    (Resource) context.getBindings(ScriptContext.ENGINE_SCOPE).get(SlingBindings.RESOURCE);
+            final String[] selectors = getRequestSelectors(resource);
+            Map<String, Object> executionResult = factory.getQueryExecutor()
+                    .execute(IOUtils.toString(reader), Collections.emptyMap(), resource, selectors);
             writer.write(Json.createObjectBuilder(executionResult).build().asJsonObject());
-        } catch(Exception e) {
+        } catch (Exception e) {
             throw new ScriptException(e);
         }
         return null;
@@ -86,12 +85,12 @@ public class GraphQLScriptEngine extends AbstractScriptEngine {
      *  the resource, which is the selectors + extension if it
      *  starts with a dot
      */
-    private String [] getRequestSelectors(Resource r) {
+    private String[] getRequestSelectors(Resource r) {
         final List<String> result = new ArrayList<>();
-        if(r != null) {
+        if (r != null) {
             final String pathInfo = r.getResourceMetadata().getResolutionPathInfo();
-            if(pathInfo != null && pathInfo.startsWith(".")) {
-                final String [] parts = pathInfo.split("\\.");
+            if (pathInfo != null && pathInfo.startsWith(".")) {
+                final String[] parts = pathInfo.split("\\.");
                 Arrays.stream(parts).limit(parts.length - 1).forEach(result::add);
             }
         }

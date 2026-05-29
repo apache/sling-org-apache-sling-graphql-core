@@ -18,9 +18,6 @@
  */
 package org.apache.sling.graphql.core.engine;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -30,10 +27,12 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import static org.junit.Assert.assertEquals;
+
 @RunWith(Parameterized.class)
 public class SlingDataFetcherNameValidationTest {
-    
-    @Parameters(name="{0}")
+
+    @Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         final List<Object[]> result = new ArrayList<>();
         result.add(new Object[] {"with/slash", true});
@@ -62,5 +61,4 @@ public class SlingDataFetcherNameValidationTest {
         final String msg = String.format("Expecting '%s' to be %s", name, expectValid ? "valid" : "invalid");
         assertEquals(msg, SlingDataFetcherSelector.nameMatchesPattern(name), expectValid);
     }
-
 }

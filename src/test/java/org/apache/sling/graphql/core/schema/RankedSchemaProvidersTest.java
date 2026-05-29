@@ -18,8 +18,6 @@
  */
 package org.apache.sling.graphql.core.schema;
 
-import static org.junit.Assert.assertEquals;
-
 import java.io.IOException;
 import java.util.Dictionary;
 import java.util.Hashtable;
@@ -36,6 +34,8 @@ import org.mockito.Mockito;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 
+import static org.junit.Assert.assertEquals;
+
 public class RankedSchemaProvidersTest {
     private final String DEFAULT_SCHEMA_PROVIDER_OUTPUT = "";
     private final int DEFAULT_SERVICE_RANKING = DefaultSchemaProvider.SERVICE_RANKING;
@@ -48,8 +48,8 @@ public class RankedSchemaProvidersTest {
     public void setup() {
         final ServletResolver sr = Mockito.mock(ServletResolver.class);
         context.bundleContext().registerService(ServletResolver.class, sr, null);
-        context.registerInjectActivateService(new DefaultSchemaProvider(), Constants.SERVICE_RANKING,
-                DefaultSchemaProvider.SERVICE_RANKING);
+        context.registerInjectActivateService(
+                new DefaultSchemaProvider(), Constants.SERVICE_RANKING, DefaultSchemaProvider.SERVICE_RANKING);
         context.registerInjectActivateService(new RankedSchemaProviders());
         resourceResolver = Mockito.mock(ResourceResolver.class);
     }

@@ -1,31 +1,22 @@
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- ~ Licensed to the Apache Software Foundation (ASF) under one
- ~ or more contributor license agreements.  See the NOTICE file
- ~ distributed with this work for additional information
- ~ regarding copyright ownership.  The ASF licenses this file
- ~ to you under the Apache License, Version 2.0 (the
- ~ "License"); you may not use this file except in compliance
- ~ with the License.  You may obtain a copy of the License at
- ~
- ~   http://www.apache.org/licenses/LICENSE-2.0
- ~
- ~ Unless required by applicable law or agreed to in writing,
- ~ software distributed under the License is distributed on an
- ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- ~ KIND, either express or implied.  See the License for the
- ~ specific language governing permissions and limitations
- ~ under the License.
- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.apache.sling.graphql.helpers.lazyloading;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,11 +29,19 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import ch.qos.logback.classic.Level;
 import org.apache.sling.graphql.core.util.LogCapture;
 import org.junit.Before;
 import org.junit.Test;
 
-import ch.qos.logback.classic.Level;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class LazyLoadingMapTest {
     private static final String TEST_STRING = "Fritz Frisst etc. etc.";
@@ -51,7 +50,7 @@ public class LazyLoadingMapTest {
     private final Supplier<String> constantSupplier = () -> TEST_STRING;
     private LazyLoadingMap<Integer, String> map;
 
-    private static final List<Consumer<Map<?,?>>> COMPUTE_ALL_TEST_CASES = new ArrayList<>();
+    private static final List<Consumer<Map<?, ?>>> COMPUTE_ALL_TEST_CASES = new ArrayList<>();
 
     static {
         COMPUTE_ALL_TEST_CASES.add(m -> m.values());
@@ -347,20 +346,21 @@ public class LazyLoadingMapTest {
         map.get(null);
         assertEquals(1, map.getStats().getSuppliersCallCount());
 
-        map.put(null, (String)null);
+        map.put(null, (String) null);
         assertNull(map.get(null));
     }
 
     @Test
     public void applesAndOranges() {
-        final boolean isEqual = map.equals((Object)"A string");
+        final boolean isEqual = map.equals((Object) "A string");
         assertFalse(isEqual);
     }
 
     @Test
     public void computeAllLogs() {
         COMPUTE_ALL_TEST_CASES.stream().forEach(tc -> {
-            try (LogCapture capture = new LogCapture(LazyLoadingMap.class.getPackage().getName(), true)) {
+            try (LogCapture capture =
+                    new LogCapture(LazyLoadingMap.class.getPackage().getName(), true)) {
                 map.values();
                 assertTrue(capture.list.isEmpty());
 
@@ -371,7 +371,7 @@ public class LazyLoadingMapTest {
                 map.put(42, counterSupplier);
                 tc.accept(map);
                 capture.assertContains(Level.DEBUG, "computeAll called");
-            } catch(IOException iox) {
+            } catch (IOException iox) {
                 fail("Unexpected IOException:" + iox);
             }
         });
@@ -408,17 +408,14 @@ public class LazyLoadingMapTest {
     @Test
     public void forbidComputeAll() {
         assertNotNull(map.computeAllThrowsException(true));
-        final String [] expected = { "computeAll()", "disabled", "computeAllThrowsException" };
+        final String[] expected = {"computeAll()", "disabled", "computeAllThrowsException"};
         COMPUTE_ALL_TEST_CASES.stream().forEach(tc -> {
-            final Throwable t = assertThrows(
-                "Expecting a RuntimeException",
-                RuntimeException.class, () -> tc.accept(map)
-            );
+            final Throwable t =
+                    assertThrows("Expecting a RuntimeException", RuntimeException.class, () -> tc.accept(map));
             Stream.of(expected).forEach(exp -> {
                 assertTrue(
-                    "Expecting message to contain [" + exp + "] but was " + t.getMessage(),
-                    t.getMessage().contains(exp)
-                );
+                        "Expecting message to contain [" + exp + "] but was " + t.getMessage(),
+                        t.getMessage().contains(exp));
             });
         });
     }

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.core.engine;
 
 import java.util.HashMap;
@@ -49,7 +48,8 @@ public class SlingTypeResolverSelector {
     private static final Logger LOGGER = LoggerFactory.getLogger(SlingTypeResolverSelector.class);
     static final Pattern RESOLVER_NAME_PATTERN = Pattern.compile("\\w+(/\\w+)+");
 
-    private final Map<String, TreeSet<ServiceReferenceObjectTuple<SlingTypeResolver<Object>>>> typeResolvers = new HashMap<>();
+    private final Map<String, TreeSet<ServiceReferenceObjectTuple<SlingTypeResolver<Object>>>> typeResolvers =
+            new HashMap<>();
 
     /**
      * Resolvers which have a name starting with this prefix must be
@@ -76,12 +76,15 @@ public class SlingTypeResolverSelector {
         return null;
     }
 
-    private boolean hasValidName(@NotNull ServiceReference<SlingTypeResolver<Object>> serviceReference,
-                                 @NotNull SlingTypeResolver<Object> slingTypeResolver) {
-        String name = PropertiesUtil.toString(serviceReference.getProperty(SlingTypeResolver.NAME_SERVICE_PROPERTY), null);
+    private boolean hasValidName(
+            @NotNull ServiceReference<SlingTypeResolver<Object>> serviceReference,
+            @NotNull SlingTypeResolver<Object> slingTypeResolver) {
+        String name =
+                PropertiesUtil.toString(serviceReference.getProperty(SlingTypeResolver.NAME_SERVICE_PROPERTY), null);
         if (StringUtils.isNotEmpty(name)) {
             if (!nameMatchesPattern(name)) {
-                LOGGER.error("Invalid SlingTypeResolver {}: type resolver name is not namespaced (e.g. ns/myTypeResolver)",
+                LOGGER.error(
+                        "Invalid SlingTypeResolver {}: type resolver name is not namespaced (e.g. ns/myTypeResolver)",
                         slingTypeResolver.getClass().getName());
                 return false;
             }
@@ -89,15 +92,19 @@ public class SlingTypeResolverSelector {
                 final String className = slingTypeResolver.getClass().getName();
                 if (!slingTypeResolver.getClass().getName().startsWith(RESERVED_PACKAGE_PREFIX)) {
                     LOGGER.error(
-                            "Invalid SlingTypeResolver {}: type resolver names starting with '{}' are reserved for Apache Sling Java " +
-                                    "packages",
-                            className, RESERVED_NAME_PREFIX);
+                            "Invalid SlingTypeResolver {}: type resolver names starting with '{}' are reserved for Apache Sling Java "
+                                    + "packages",
+                            className,
+                            RESERVED_NAME_PREFIX);
                     return false;
                 }
             }
         } else {
-            LOGGER.error("Invalid {} implementation: type resolver {} is missing the mandatory value for its {} service property.",
-                    SlingTypeResolver.class.getName(), slingTypeResolver.getClass().getName(), SlingTypeResolver.NAME_SERVICE_PROPERTY);
+            LOGGER.error(
+                    "Invalid {} implementation: type resolver {} is missing the mandatory value for its {} service property.",
+                    SlingTypeResolver.class.getName(),
+                    slingTypeResolver.getClass().getName(),
+                    SlingTypeResolver.NAME_SERVICE_PROPERTY);
             return false;
         }
         return true;
@@ -113,14 +120,14 @@ public class SlingTypeResolverSelector {
     @Reference(
             service = SlingTypeResolver.class,
             cardinality = ReferenceCardinality.MULTIPLE,
-            policy = ReferencePolicy.DYNAMIC
-    )
-    private void bindSlingTypeResolver(ServiceReference<SlingTypeResolver<Object>> reference, SlingTypeResolver<Object> slingTypeResolver) {
+            policy = ReferencePolicy.DYNAMIC)
+    private void bindSlingTypeResolver(
+            ServiceReference<SlingTypeResolver<Object>> reference, SlingTypeResolver<Object> slingTypeResolver) {
         if (hasValidName(reference, slingTypeResolver)) {
             synchronized (typeResolvers) {
                 String name = (String) reference.getProperty(SlingTypeResolver.NAME_SERVICE_PROPERTY);
-                TreeSet<ServiceReferenceObjectTuple<SlingTypeResolver<Object>>> resolvers = typeResolvers.computeIfAbsent(name,
-                        key -> new TreeSet<>());
+                TreeSet<ServiceReferenceObjectTuple<SlingTypeResolver<Object>>> resolvers =
+                        typeResolvers.computeIfAbsent(name, key -> new TreeSet<>());
                 resolvers.add(new ServiceReferenceObjectTuple<>(reference, slingTypeResolver));
             }
         }
@@ -133,12 +140,12 @@ public class SlingTypeResolverSelector {
             synchronized (typeResolvers) {
                 TreeSet<ServiceReferenceObjectTuple<SlingTypeResolver<Object>>> resolvers = typeResolvers.get(name);
                 if (resolvers != null) {
-                    Optional<ServiceReferenceObjectTuple<SlingTypeResolver<Object>>> tupleToRemove =
-                            resolvers.stream().filter(tuple -> reference.equals(tuple.getServiceReference())).findFirst();
+                    Optional<ServiceReferenceObjectTuple<SlingTypeResolver<Object>>> tupleToRemove = resolvers.stream()
+                            .filter(tuple -> reference.equals(tuple.getServiceReference()))
+                            .findFirst();
                     tupleToRemove.ifPresent(resolvers::remove);
                 }
             }
         }
     }
-
 }

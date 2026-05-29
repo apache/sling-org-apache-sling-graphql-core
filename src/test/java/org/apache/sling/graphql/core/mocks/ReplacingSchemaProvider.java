@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.core.mocks;
 
 import java.io.IOException;
@@ -52,12 +51,12 @@ public class ReplacingSchemaProvider implements SchemaProvider {
         return original.replaceAll(pattern, replacement);
     }
 
-    public ServiceRegistration<?> register(BundleContext ctx, SchemaProvider defaultSchemaProvider, int serviceRanking) throws InvalidSyntaxException {
+    public ServiceRegistration<?> register(BundleContext ctx, SchemaProvider defaultSchemaProvider, int serviceRanking)
+            throws InvalidSyntaxException {
         this.defaultSchemaProvider = defaultSchemaProvider;
 
         final Dictionary<String, Object> props = new Hashtable<>();
         props.put(Constants.SERVICE_RANKING, serviceRanking);
         return ctx.registerService(SchemaProvider.class, this, props);
     }
-
 }

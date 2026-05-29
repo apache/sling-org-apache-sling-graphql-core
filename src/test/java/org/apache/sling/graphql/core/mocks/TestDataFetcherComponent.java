@@ -16,18 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.core.mocks;
 
 import org.apache.sling.graphql.api.SlingDataFetcher;
 import org.apache.sling.graphql.api.SlingDataFetcherEnvironment;
 import org.osgi.service.component.annotations.Component;
 
-@Component(service=SlingDataFetcher.class, property = { "name=test/pipe"})
+@Component(
+        service = SlingDataFetcher.class,
+        property = {"name=test/pipe"})
 public class TestDataFetcherComponent implements SlingDataFetcher<Object> {
 
     @Override
-	public Object get(SlingDataFetcherEnvironment env) throws Exception {
+    public Object get(SlingDataFetcherEnvironment env) throws Exception {
         if ("farenheit".equals(env.getFetcherOptions())) {
             return 451;
         } else {

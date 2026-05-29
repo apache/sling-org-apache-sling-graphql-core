@@ -21,8 +21,6 @@ package org.apache.sling.graphql.core.it;
 import javax.inject.Inject;
 import javax.script.ScriptEngineFactory;
 
-import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
-
 import org.apache.sling.graphql.api.SchemaProvider;
 import org.apache.sling.graphql.core.mocks.ReplacingSchemaProvider;
 import org.apache.sling.resource.presence.ResourcePresence;
@@ -36,6 +34,7 @@ import org.ops4j.pax.exam.spi.reactors.PerClass;
 import org.ops4j.pax.exam.util.Filter;
 import org.osgi.framework.BundleContext;
 
+import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.factoryConfiguration;
@@ -60,12 +59,12 @@ public class ServerSideQueryIT extends GraphQLCoreTestSupport {
 
     @Configuration
     public Option[] configuration() {
-        return new Option[]{
+        return new Option[] {
             baseConfiguration(),
             testDataFetchers(),
             factoryConfiguration("org.apache.sling.resource.presence.internal.ResourcePresenter")
-                .put("path", "/apps/graphql/test/one/json.gql")
-                .asOption(),
+                    .put("path", "/apps/graphql/test/one/json.gql")
+                    .asOption(),
         };
     }
 
@@ -84,8 +83,10 @@ public class ServerSideQueryIT extends GraphQLCoreTestSupport {
 
     @Test
     public void testMultipleSchemaProviders() throws Exception {
-        new ReplacingSchemaProvider("oneSchemaResource", "REPLACED").register(bundleContext, defaultSchemaProvider, Integer.MAX_VALUE);
-        new ReplacingSchemaProvider("oneSchemaResource", "NOT_THIS_ONE").register(bundleContext, defaultSchemaProvider, 1);
+        new ReplacingSchemaProvider("oneSchemaResource", "REPLACED")
+                .register(bundleContext, defaultSchemaProvider, Integer.MAX_VALUE);
+        new ReplacingSchemaProvider("oneSchemaResource", "NOT_THIS_ONE")
+                .register(bundleContext, defaultSchemaProvider, 1);
         assertDefaultContent(".REPLACED", "REPLACED");
     }
 

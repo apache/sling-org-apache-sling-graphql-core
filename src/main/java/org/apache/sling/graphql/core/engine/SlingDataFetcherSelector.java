@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.core.engine;
 
 import java.util.HashMap;
@@ -42,15 +41,14 @@ import org.slf4j.LoggerFactory;
 /** Selects a SlingDataFetcher used to retrieve data, based
  *  on a name specified by a GraphQL schema directive.
  */
-@Component(
-        service=SlingDataFetcherSelector.class
-)
+@Component(service = SlingDataFetcherSelector.class)
 public class SlingDataFetcherSelector {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SlingDataFetcherSelector.class);
     static final Pattern FETCHER_NAME_PATTERN = Pattern.compile("\\w+(/\\w+)+");
 
-    private final Map<String, TreeSet<ServiceReferenceObjectTuple<SlingDataFetcher<Object>>>> dataFetchers = new HashMap<>();
+    private final Map<String, TreeSet<ServiceReferenceObjectTuple<SlingDataFetcher<Object>>>> dataFetchers =
+            new HashMap<>();
 
     /** Fetchers which have a name starting with this prefix must be
      *  under the {#link RESERVED_PACKAGE_PREFIX} package.
@@ -81,11 +79,15 @@ public class SlingDataFetcherSelector {
         return null;
     }
 
-    private boolean hasValidName(@NotNull ServiceReference<SlingDataFetcher<Object>> serviceReference, @NotNull SlingDataFetcher<Object> fetcher) {
-        String name = PropertiesUtil.toString(serviceReference.getProperty(SlingDataFetcher.NAME_SERVICE_PROPERTY), null);
+    private boolean hasValidName(
+            @NotNull ServiceReference<SlingDataFetcher<Object>> serviceReference,
+            @NotNull SlingDataFetcher<Object> fetcher) {
+        String name =
+                PropertiesUtil.toString(serviceReference.getProperty(SlingDataFetcher.NAME_SERVICE_PROPERTY), null);
         if (StringUtils.isNotEmpty(name)) {
             if (!nameMatchesPattern(name)) {
-                LOGGER.error("Invalid SlingDataFetcher {}: fetcher name is not namespaced (e.g. ns/myFetcher)",
+                LOGGER.error(
+                        "Invalid SlingDataFetcher {}: fetcher name is not namespaced (e.g. ns/myFetcher)",
                         fetcher.getClass().getName());
                 return false;
             }
@@ -94,13 +96,17 @@ public class SlingDataFetcherSelector {
                 if (!fetcher.getClass().getName().startsWith(RESERVED_PACKAGE_PREFIX)) {
                     LOGGER.error(
                             "Invalid SlingDataFetcher {}: fetcher names starting with '{}' are reserved for Apache Sling Java packages",
-                            className, RESERVED_NAME_PREFIX);
+                            className,
+                            RESERVED_NAME_PREFIX);
                     return false;
                 }
             }
         } else {
-            LOGGER.error("Invalid {} implementation: fetcher {} is missing the mandatory value for its {} service property.",
-                    SlingDataFetcher.class.getName(), fetcher.getClass().getName(), SlingDataFetcher.NAME_SERVICE_PROPERTY);
+            LOGGER.error(
+                    "Invalid {} implementation: fetcher {} is missing the mandatory value for its {} service property.",
+                    SlingDataFetcher.class.getName(),
+                    fetcher.getClass().getName(),
+                    SlingDataFetcher.NAME_SERVICE_PROPERTY);
             return false;
         }
         return true;
@@ -116,14 +122,14 @@ public class SlingDataFetcherSelector {
     @Reference(
             service = SlingDataFetcher.class,
             cardinality = ReferenceCardinality.MULTIPLE,
-            policy = ReferencePolicy.DYNAMIC
-    )
-    private void bindSlingDataFetcher(ServiceReference<SlingDataFetcher<Object>> reference, SlingDataFetcher<Object> slingDataFetcher) {
+            policy = ReferencePolicy.DYNAMIC)
+    private void bindSlingDataFetcher(
+            ServiceReference<SlingDataFetcher<Object>> reference, SlingDataFetcher<Object> slingDataFetcher) {
         if (hasValidName(reference, slingDataFetcher)) {
             synchronized (dataFetchers) {
                 String name = (String) reference.getProperty(SlingDataFetcher.NAME_SERVICE_PROPERTY);
-                TreeSet<ServiceReferenceObjectTuple<SlingDataFetcher<Object>>> fetchers = dataFetchers.computeIfAbsent(name,
-                        key -> new TreeSet<>());
+                TreeSet<ServiceReferenceObjectTuple<SlingDataFetcher<Object>>> fetchers =
+                        dataFetchers.computeIfAbsent(name, key -> new TreeSet<>());
                 fetchers.add(new ServiceReferenceObjectTuple<>(reference, slingDataFetcher));
             }
         }
@@ -136,8 +142,9 @@ public class SlingDataFetcherSelector {
             if (StringUtils.isNotEmpty(name)) {
                 TreeSet<ServiceReferenceObjectTuple<SlingDataFetcher<Object>>> fetchers = dataFetchers.get(name);
                 if (fetchers != null) {
-                    Optional<ServiceReferenceObjectTuple<SlingDataFetcher<Object>>> tupleToRemove =
-                            fetchers.stream().filter(tuple -> reference.equals(tuple.getServiceReference())).findFirst();
+                    Optional<ServiceReferenceObjectTuple<SlingDataFetcher<Object>>> tupleToRemove = fetchers.stream()
+                            .filter(tuple -> reference.equals(tuple.getServiceReference()))
+                            .findFirst();
                     tupleToRemove.ifPresent(fetchers::remove);
                 }
             }

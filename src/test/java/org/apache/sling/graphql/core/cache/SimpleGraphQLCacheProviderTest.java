@@ -1,23 +1,26 @@
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- ~ Licensed to the Apache Software Foundation (ASF) under one
- ~ or more contributor license agreements.  See the NOTICE file
- ~ distributed with this work for additional information
- ~ regarding copyright ownership.  The ASF licenses this file
- ~ to you under the Apache License, Version 2.0 (the
- ~ "License"); you may not use this file except in compliance
- ~ with the License.  You may obtain a copy of the License at
- ~
- ~   http://www.apache.org/licenses/LICENSE-2.0
- ~
- ~ Unless required by applicable law or agreed to in writing,
- ~ software distributed under the License is distributed on an
- ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- ~ KIND, either express or implied.  See the License for the
- ~ specific language governing permissions and limitations
- ~ under the License.
- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.apache.sling.graphql.core.cache;
 
+import java.util.UUID;
+
+import com.codahale.metrics.MetricRegistry;
 import org.apache.sling.commons.metrics.Counter;
 import org.apache.sling.commons.metrics.MetricsService;
 import org.apache.sling.commons.metrics.Timer;
@@ -28,16 +31,12 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import com.codahale.metrics.MetricRegistry;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-import java.util.UUID;
 
 public class SimpleGraphQLCacheProviderTest {
 
@@ -59,15 +58,19 @@ public class SimpleGraphQLCacheProviderTest {
     @Test
     public void getHash() {
         context.registerInjectActivateService(new SimpleGraphQLCacheProvider());
-        SimpleGraphQLCacheProvider provider = (SimpleGraphQLCacheProvider) context.getService(GraphQLCacheProvider.class);
+        SimpleGraphQLCacheProvider provider =
+                (SimpleGraphQLCacheProvider) context.getService(GraphQLCacheProvider.class);
         assertNotNull(provider);
-        assertEquals("b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9", SHA256Hasher.getHash("hello world"));
+        assertEquals(
+                "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9",
+                SHA256Hasher.getHash("hello world"));
     }
 
     @Test
     public void testMemoryLimits() {
         context.registerInjectActivateService(new SimpleGraphQLCacheProvider(), "cacheSize", 0, "maxMemory", 40);
-        SimpleGraphQLCacheProvider provider = (SimpleGraphQLCacheProvider) context.getService(GraphQLCacheProvider.class);
+        SimpleGraphQLCacheProvider provider =
+                (SimpleGraphQLCacheProvider) context.getService(GraphQLCacheProvider.class);
         assertNotNull(provider);
 
         String aHash = provider.cacheQuery("a", "a/b/c", null);
@@ -94,7 +97,8 @@ public class SimpleGraphQLCacheProviderTest {
     @Test
     public void testCapacityLimits() {
         context.registerInjectActivateService(new SimpleGraphQLCacheProvider(), "cacheSize", 3, "maxMemory", 0);
-        SimpleGraphQLCacheProvider provider = (SimpleGraphQLCacheProvider) context.getService(GraphQLCacheProvider.class);
+        SimpleGraphQLCacheProvider provider =
+                (SimpleGraphQLCacheProvider) context.getService(GraphQLCacheProvider.class);
         assertNotNull(provider);
 
         String aHash = provider.cacheQuery("a", "a/b/c", null);
@@ -121,7 +125,8 @@ public class SimpleGraphQLCacheProviderTest {
     @Test
     public void testCapacityHasPriorityOverMemory() {
         context.registerInjectActivateService(new SimpleGraphQLCacheProvider(), "cacheSize", 2, "maxMemory", 40);
-        SimpleGraphQLCacheProvider provider = (SimpleGraphQLCacheProvider) context.getService(GraphQLCacheProvider.class);
+        SimpleGraphQLCacheProvider provider =
+                (SimpleGraphQLCacheProvider) context.getService(GraphQLCacheProvider.class);
         assertNotNull(provider);
 
         String aHash = provider.cacheQuery("a", "a/b/c", null);
@@ -144,7 +149,8 @@ public class SimpleGraphQLCacheProviderTest {
     @Test
     public void testSelectors() {
         context.registerInjectActivateService(new SimpleGraphQLCacheProvider(), "cacheSize", 2, "maxMemory", 40);
-        SimpleGraphQLCacheProvider provider = (SimpleGraphQLCacheProvider) context.getService(GraphQLCacheProvider.class);
+        SimpleGraphQLCacheProvider provider =
+                (SimpleGraphQLCacheProvider) context.getService(GraphQLCacheProvider.class);
         assertNotNull(provider);
 
         final String queryText = UUID.randomUUID().toString();

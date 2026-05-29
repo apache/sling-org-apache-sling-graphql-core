@@ -18,18 +18,17 @@
  */
 package org.apache.sling.graphql.core.engine;
 
-import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
-
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-
 import org.apache.sling.graphql.api.ScalarConversionException;
 import org.apache.sling.graphql.core.mocks.AddressDataFetcher;
 import org.apache.sling.graphql.core.mocks.TestUtil;
 import org.apache.sling.graphql.core.mocks.URLScalarConverter;
 import org.apache.sling.graphql.core.mocks.UppercaseScalarConverter;
 import org.junit.Test;
+
+import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 
 public class CustomScalarsTest extends ResourceQueryTestBase {
     protected String getTestSchemaName() {
@@ -39,7 +38,8 @@ public class CustomScalarsTest extends ResourceQueryTestBase {
     protected void setupAdditionalServices() {
         TestUtil.registerSlingDataFetcher(context.bundleContext(), "scalars/address", new AddressDataFetcher());
         TestUtil.registerSlingScalarConverter(context.bundleContext(), "URL", new URLScalarConverter());
-        TestUtil.registerSlingScalarConverter(context.bundleContext(), "UppercaseString", new UppercaseScalarConverter());
+        TestUtil.registerSlingScalarConverter(
+                context.bundleContext(), "UppercaseString", new UppercaseScalarConverter());
     }
 
     @Test
@@ -56,6 +56,11 @@ public class CustomScalarsTest extends ResourceQueryTestBase {
         final String url = "This is not an URL!";
         final String query = String.format("{ address (url: \"%s\") { url hostname } }", url);
         final String json = queryJSON(query);
-        assertThat(json, hasJsonPath("$.errors[0].extensions.cause", is(ScalarConversionException.class.getCanonicalName() + ": " + URLScalarConverter.class.getSimpleName() + ":Invalid URL:" + url)));
+        assertThat(
+                json,
+                hasJsonPath(
+                        "$.errors[0].extensions.cause",
+                        is(ScalarConversionException.class.getCanonicalName() + ": "
+                                + URLScalarConverter.class.getSimpleName() + ":Invalid URL:" + url)));
     }
 }

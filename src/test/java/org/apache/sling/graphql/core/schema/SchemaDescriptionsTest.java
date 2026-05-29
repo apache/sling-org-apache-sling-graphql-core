@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import jakarta.json.Json;
-
+import net.minidev.json.JSONArray;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.graphql.api.SchemaProvider;
@@ -31,9 +31,9 @@ import org.apache.sling.graphql.api.engine.QueryExecutor;
 import org.apache.sling.graphql.core.engine.DefaultQueryExecutor;
 import org.apache.sling.graphql.core.engine.SlingDataFetcherSelector;
 import org.apache.sling.graphql.core.engine.SlingTypeResolverSelector;
+import org.apache.sling.graphql.core.mocks.CharacterTypeResolver;
 import org.apache.sling.graphql.core.mocks.MockSchemaProvider;
 import org.apache.sling.graphql.core.mocks.TestUtil;
-import org.apache.sling.graphql.core.mocks.CharacterTypeResolver;
 import org.apache.sling.graphql.core.scalars.SlingScalarsProvider;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.hamcrest.CustomMatcher;
@@ -43,8 +43,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import net.minidev.json.JSONArray;
-
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotNull;
@@ -52,7 +50,7 @@ import static org.junit.Assert.assertNotNull;
 /**
  * Test the fields descriptions which are part of the schema as per
  * http://spec.graphql.org/June2018/#sec-Descriptions
- * 
+ *
  * Created for SLING-9479, to verify that our fetch: schema annotations
  * are ignored if separated from their types or fields by a comment line
  * containing just a hash character.
@@ -83,8 +81,8 @@ public class SchemaDescriptionsTest {
         @Override
         public boolean matches(Object item) {
             String itemStr = null;
-            if(item instanceof JSONArray) {
-                itemStr = String.valueOf(((JSONArray)item).get(0));
+            if (item instanceof JSONArray) {
+                itemStr = String.valueOf(((JSONArray) item).get(0));
             } else {
                 itemStr = String.valueOf(item);
             }
@@ -95,9 +93,9 @@ public class SchemaDescriptionsTest {
     static Matcher<String> descriptionEquals(String str) {
         return new DescriptionMatcher(str);
     }
-    
+
     @Before
-    public void setup()  throws Exception {
+    public void setup() throws Exception {
         final String resourceType = "RT-" + UUID.randomUUID();
         final String path = "/some/path/" + UUID.randomUUID();
         resource = Mockito.mock(Resource.class);
@@ -118,7 +116,8 @@ public class SchemaDescriptionsTest {
     private String queryJSON(String stmt) throws Exception {
         QueryExecutor queryExecutor = context.getService(QueryExecutor.class);
         assertNotNull(queryExecutor);
-        Map<String, Object> executionResult = queryExecutor.execute(stmt, Collections.emptyMap(), resource, new String[]{});
+        Map<String, Object> executionResult =
+                queryExecutor.execute(stmt, Collections.emptyMap(), resource, new String[] {});
         return Json.createObjectBuilder(executionResult).build().asJsonObject().toString();
     }
 
@@ -129,9 +128,7 @@ public class SchemaDescriptionsTest {
 
     private void assertFieldDescription(String typeName, String fieldName, String expected) {
         final String path = String.format(
-            "$.data.__schema.types[?(@.name=='%s')].fields[?(@.name=='%s')].description", 
-            typeName,
-            fieldName);
+                "$.data.__schema.types[?(@.name=='%s')].fields[?(@.name=='%s')].description", typeName, fieldName);
         assertThat(schemaJson, hasJsonPath(path, descriptionEquals(expected)));
     }
 

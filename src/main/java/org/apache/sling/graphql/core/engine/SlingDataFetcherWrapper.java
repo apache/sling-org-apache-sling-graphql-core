@@ -16,14 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.core.engine;
-
-import org.apache.sling.api.resource.Resource;
-import org.apache.sling.graphql.api.SlingDataFetcher;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.graphql.api.SlingDataFetcher;
 
 /** Wraps a SlingDataFetcher to make it usable by graphql-java */
 class SlingDataFetcherWrapper<T> implements DataFetcher<T> {

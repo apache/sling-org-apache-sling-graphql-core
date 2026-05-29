@@ -1,22 +1,21 @@
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- ~ Licensed to the Apache Software Foundation (ASF) under one
- ~ or more contributor license agreements.  See the NOTICE file
- ~ distributed with this work for additional information
- ~ regarding copyright ownership.  The ASF licenses this file
- ~ to you under the Apache License, Version 2.0 (the
- ~ "License"); you may not use this file except in compliance
- ~ with the License.  You may obtain a copy of the License at
- ~
- ~   http://www.apache.org/licenses/LICENSE-2.0
- ~
- ~ Unless required by applicable law or agreed to in writing,
- ~ software distributed under the License is distributed on an
- ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- ~ KIND, either express or implied.  See the License for the
- ~ specific language governing permissions and limitations
- ~ under the License.
- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.apache.sling.graphql.helpers;
 
 import java.util.ArrayList;
@@ -70,7 +69,7 @@ public final class GenericConnection<T> implements Connection<T>, PageInfo {
     }
 
     private void initialize() {
-        if(initialized) {
+        if (initialized) {
             throw new IllegalStateException("Already initialized");
         }
         initialized = true;
@@ -79,20 +78,20 @@ public final class GenericConnection<T> implements Connection<T>, PageInfo {
         // apparently uses before visiting all the edges
         boolean inRange = false;
         int itemsToAdd = limit;
-        while(itemsToAdd > 0 && dataIterator.hasNext()) {
+        while (itemsToAdd > 0 && dataIterator.hasNext()) {
             final T node = dataIterator.next();
             boolean addThisNode = false;
-            if(!inRange) {
-                if(startAfter == null) {
+            if (!inRange) {
+                if (startAfter == null) {
                     inRange = true;
                     addThisNode = true;
-                    if(hasPreviousPage == null) {
+                    if (hasPreviousPage == null) {
                         hasPreviousPage = false;
                     }
                 } else {
                     final String rawCursor = cursorStringProvider.apply(node);
                     inRange = startAfter.getRawValue().equals(rawCursor);
-                    if(hasPreviousPage == null) {
+                    if (hasPreviousPage == null) {
                         hasPreviousPage = true;
                     }
                 }
@@ -100,9 +99,9 @@ public final class GenericConnection<T> implements Connection<T>, PageInfo {
                 addThisNode = true;
             }
 
-            if(addThisNode) {
+            if (addThisNode) {
                 final Edge<T> toAdd = newEdge(node, cursorStringProvider);
-                if(startCursor == null) {
+                if (startCursor == null) {
                     startCursor = toAdd.getCursor();
                 }
                 endCursor = toAdd.getCursor();
@@ -111,19 +110,19 @@ public final class GenericConnection<T> implements Connection<T>, PageInfo {
             }
         }
 
-        if(!inRange && limit > 0 && startAfter != null) {
+        if (!inRange && limit > 0 && startAfter != null) {
             throw new SlingGraphQLException("Start cursor not found in supplied data:" + startAfter);
         }
-        if(hasPreviousPage == null) {
+        if (hasPreviousPage == null) {
             hasPreviousPage = false;
         }
-        if(hasNextPage == null) {
+        if (hasNextPage == null) {
             hasNextPage = dataIterator.hasNext();
         }
     }
 
     private static void checkNotNull(Object o, String whatIsThat) {
-        if(o == null) {
+        if (o == null) {
             throw new IllegalArgumentException(whatIsThat + " is null");
         }
     }
@@ -193,10 +192,10 @@ public final class GenericConnection<T> implements Connection<T>, PageInfo {
          * @return this builder
          */
         public Builder<T> withLimit(int limit) {
-            if(limit < 0) {
+            if (limit < 0) {
                 limit = 0;
             }
-            if(limit > MAX_LIMIT) {
+            if (limit > MAX_LIMIT) {
                 throw new IllegalArgumentException("Invalid limit " + limit + ", the maximum value is " + MAX_LIMIT);
             }
             connection.limit = limit;

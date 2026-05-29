@@ -16,22 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.api;
 
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ConsumerType;
 
 /**
- * A service that parses and serializes a custom GraphQL Scalar by 
+ * A service that parses and serializes a custom GraphQL Scalar by
  * converting between an eXternal type X an an inTernal one T.
- * 
+ *
  * Instances of this service must have a {@link SlingScalarConverter#NAME_SERVICE_PROPERTY}
  * service property which is the name of the scalar type.
  */
 @ConsumerType
 public interface SlingScalarConverter<T, X> {
-    
+
     String NAME_SERVICE_PROPERTY = "name";
 
     /** Parse an external value (a query argument for example) into its internal representation
@@ -40,7 +39,7 @@ public interface SlingScalarConverter<T, X> {
      * @return the internal representation of the passed input
      * @throws ScalarConversionException if the parsing operation fails
      **/
-    @Nullable 
+    @Nullable
     T parseValue(@Nullable X input) throws ScalarConversionException;
 
     /** Serialize an internal value (provided by a {@link SlingDataFetcher} into its

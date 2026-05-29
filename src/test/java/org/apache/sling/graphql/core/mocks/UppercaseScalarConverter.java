@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.core.mocks;
 
 import org.apache.sling.graphql.api.ScalarConversionException;

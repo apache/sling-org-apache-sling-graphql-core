@@ -1,21 +1,21 @@
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- ~ Licensed to the Apache Software Foundation (ASF) under one
- ~ or more contributor license agreements.  See the NOTICE file
- ~ distributed with this work for additional information
- ~ regarding copyright ownership.  The ASF licenses this file
- ~ to you under the Apache License, Version 2.0 (the
- ~ "License"); you may not use this file except in compliance
- ~ with the License.  You may obtain a copy of the License at
- ~
- ~   http://www.apache.org/licenses/LICENSE-2.0
- ~
- ~ Unless required by applicable law or agreed to in writing,
- ~ software distributed under the License is distributed on an
- ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- ~ KIND, either express or implied.  See the License for the
- ~ specific language governing permissions and limitations
- ~ under the License.
- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.apache.sling.graphql.core.cache;
 
 import java.util.Arrays;
@@ -29,6 +29,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import com.codahale.metrics.Gauge;
+import com.codahale.metrics.MetricRegistry;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.commons.metrics.Counter;
@@ -49,35 +51,30 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.Gauge;
-import com.codahale.metrics.MetricRegistry;
-
 @Component()
 @Designate(ocd = SimpleGraphQLCacheProvider.Config.class)
 public class SimpleGraphQLCacheProvider implements GraphQLCacheProvider {
 
     @ObjectClassDefinition(
             name = "Apache Sling GraphQL Simple Cache Provider",
-            description = "The Apache Sling GraphQL Simple Cache Provider provides an in-memory size bound cache for persisted GraphQL " +
-                    "queries."
-    )
+            description =
+                    "The Apache Sling GraphQL Simple Cache Provider provides an in-memory size bound cache for persisted GraphQL "
+                            + "queries.")
     public @interface Config {
 
         @AttributeDefinition(
                 name = "Capacity",
-                description = "The number of persisted queries to cache. If the cache size is set to a number greater than 0, then this " +
-                        "parameter will have priority over maxMemory.",
+                description =
+                        "The number of persisted queries to cache. If the cache size is set to a number greater than 0, then this "
+                                + "parameter will have priority over maxMemory.",
                 type = AttributeType.INTEGER,
-                min = "0"
-        )
+                min = "0")
         int cacheSize() default 0;
 
         @AttributeDefinition(
                 name = "Max Values in Bytes",
-                description = "The maximum amount of memory the values stored in the cache can use."
-        )
+                description = "The maximum amount of memory the values stored in the cache can use.")
         long maxMemory() default 10 * FileUtils.ONE_MB;
-
     }
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SimpleGraphQLCacheProvider.class);
@@ -100,8 +97,8 @@ public class SimpleGraphQLCacheProvider implements GraphQLCacheProvider {
     private static final String GAUGE_MAX_MEMORY = METRIC_NS + ".maxMemory";
     private static final String GAUGE_CURRENT_MEMORY = METRIC_NS + ".currentMemory";
     private static final String COUNTER_EVICTIONS = METRIC_NS + ".evictions";
-    private static final Set<String> MANUALLY_REGISTERED_METRICS = new HashSet<>(Arrays.asList(GAUGE_CACHE_SIZE, GAUGE_ELEMENTS,
-            GAUGE_MAX_MEMORY, GAUGE_CURRENT_MEMORY));
+    private static final Set<String> MANUALLY_REGISTERED_METRICS =
+            new HashSet<>(Arrays.asList(GAUGE_CACHE_SIZE, GAUGE_ELEMENTS, GAUGE_MAX_MEMORY, GAUGE_CURRENT_MEMORY));
 
     @Activate
     private void activate(Config config, BundleContext bundleContext) {
@@ -247,8 +244,10 @@ public class SimpleGraphQLCacheProvider implements GraphQLCacheProvider {
         public boolean equals(Object obj) {
             if (obj instanceof InMemoryLRUCache) {
                 InMemoryLRUCache other = (InMemoryLRUCache) obj;
-                return Objects.equals(capacity, other.capacity) && Objects.equals(maxSizeInBytes, other.maxSizeInBytes) &&
-                        Objects.equals(currentSizeInBytes, other.currentSizeInBytes) && super.equals(obj);
+                return Objects.equals(capacity, other.capacity)
+                        && Objects.equals(maxSizeInBytes, other.maxSizeInBytes)
+                        && Objects.equals(currentSizeInBytes, other.currentSizeInBytes)
+                        && super.equals(obj);
             }
             return false;
         }

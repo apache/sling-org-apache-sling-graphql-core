@@ -16,16 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.core.mocks;
-
-import org.apache.sling.api.resource.Resource;
-import org.apache.sling.graphql.api.SlingDataFetcher;
-import org.apache.sling.graphql.api.SlingDataFetcherEnvironment;
 
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.graphql.api.SlingDataFetcher;
+import org.apache.sling.graphql.api.SlingDataFetcherEnvironment;
 
 public class DigestDataFetcher implements SlingDataFetcher<Object> {
 

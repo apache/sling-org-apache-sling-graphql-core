@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.graphql.core.engine;
 
 import graphql.TypeResolutionEnvironment;
@@ -35,8 +34,8 @@ class SlingTypeResolverWrapper implements TypeResolver {
     private final String options;
     private final String source;
 
-    SlingTypeResolverWrapper(SlingTypeResolver<Object> resolver, Resource currentResource, String options,
-                             String source) {
+    SlingTypeResolverWrapper(
+            SlingTypeResolver<Object> resolver, Resource currentResource, String options, String source) {
         this.resolver = resolver;
         this.currentResource = currentResource;
         this.options = options;
