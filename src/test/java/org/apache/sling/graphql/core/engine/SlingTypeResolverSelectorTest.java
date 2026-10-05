@@ -18,6 +18,13 @@
  */
 package org.apache.sling.graphql.core.engine;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+
 import com.example.resolvers.DoNothingTypeResolver;
 import org.apache.sling.graphql.api.SlingTypeResolver;
 import org.apache.sling.graphql.api.SlingTypeResolverEnvironment;
@@ -28,6 +35,7 @@ import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.osgi.framework.ServiceRegistration;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
@@ -35,6 +43,8 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class SlingTypeResolverSelectorTest {
@@ -79,5 +89,73 @@ public class SlingTypeResolverSelectorTest {
         assertNotNull(str);
         assertEquals(DummyTypeResolver.class, str.getClass());
         assertNull(str.getType(mock(SlingTypeResolverEnvironment.class)));
+    }
+
+    @Test
+    public void concurrentBindUnbindAndRead() throws Exception {
+        final String name = "example/concurrent";
+        final int readers = 8;
+        final int iterations = 200;
+        final DummyTypeResolver low = new DummyTypeResolver();
+        final CharacterTypeResolver high = new CharacterTypeResolver();
+        final ServiceRegistration<?> lowReg = TestUtil.registerSlingTypeResolver(context.bundleContext(), name, 0, low);
+
+        ExecutorService pool = Executors.newFixedThreadPool(readers + 1);
+        final CountDownLatch start = new CountDownLatch(1);
+        final CountDownLatch done = new CountDownLatch(readers + 1);
+        final AtomicInteger failures = new AtomicInteger();
+        final AtomicReference<ServiceRegistration<?>> highReg = new AtomicReference<>();
+        try {
+            for (int i = 0; i < readers; i++) {
+                pool.submit(() -> {
+                    try {
+                        start.await();
+                        for (int n = 0; n < iterations; n++) {
+                            SlingTypeResolver<Object> resolver = selector.getSlingTypeResolver(name);
+                            if (resolver != null && resolver != low && resolver != high) {
+                                failures.incrementAndGet();
+                            }
+                        }
+                    } catch (Exception e) {
+                        failures.incrementAndGet();
+                    } finally {
+                        done.countDown();
+                    }
+                });
+            }
+            pool.submit(() -> {
+                try {
+                    start.await();
+                    for (int n = 0; n < iterations; n++) {
+                        ServiceRegistration<?> existing = highReg.getAndSet(null);
+                        if (existing != null) {
+                            existing.unregister();
+                        } else {
+                            highReg.set(TestUtil.registerSlingTypeResolver(context.bundleContext(), name, 100, high));
+                        }
+                    }
+                } catch (Exception e) {
+                    failures.incrementAndGet();
+                } finally {
+                    done.countDown();
+                }
+            });
+            start.countDown();
+            assertTrue(done.await(30, TimeUnit.SECONDS));
+            assertEquals(0, failures.get());
+
+            SlingTypeResolver<Object> winner = selector.getSlingTypeResolver(name);
+            assertNotNull(winner);
+            ServiceRegistration<?> remainingHigh = highReg.get();
+            if (remainingHigh != null) {
+                assertSame(high, winner);
+                remainingHigh.unregister();
+            }
+            assertSame(low, selector.getSlingTypeResolver(name));
+            lowReg.unregister();
+            assertNull(selector.getSlingTypeResolver(name));
+        } finally {
+            pool.shutdownNow();
+        }
     }
 }

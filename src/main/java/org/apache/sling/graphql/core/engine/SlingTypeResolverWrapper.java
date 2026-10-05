@@ -22,28 +22,38 @@ import graphql.TypeResolutionEnvironment;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.TypeResolver;
 import org.apache.sling.api.resource.Resource;
+import org.apache.sling.graphql.api.SlingGraphQLException;
 import org.apache.sling.graphql.api.SlingTypeResolver;
 
 /**
- * Wraps a SlingTypeResolver to make it usable by graphql-java
+ * Wraps a SlingTypeResolver to make it usable by graphql-java.
+ * The request {@link Resource} is read from {@link graphql.GraphQLContext}
+ * at resolve time so executable schemas can be reused across requests.
  */
 class SlingTypeResolverWrapper implements TypeResolver {
 
-    private final SlingTypeResolver<Object> resolver;
-    private final Resource currentResource;
+    private final SlingTypeResolverSelector selector;
+    private final String name;
     private final String options;
     private final String source;
 
-    SlingTypeResolverWrapper(
-            SlingTypeResolver<Object> resolver, Resource currentResource, String options, String source) {
-        this.resolver = resolver;
-        this.currentResource = currentResource;
+    SlingTypeResolverWrapper(SlingTypeResolverSelector selector, String name, String options, String source) {
+        this.selector = selector;
+        this.name = name;
         this.options = options;
         this.source = source;
     }
 
     @Override
     public GraphQLObjectType getType(TypeResolutionEnvironment environment) {
+        final Resource currentResource = environment.getGraphQLContext().get(Resource.class);
+        if (currentResource == null) {
+            throw new SlingGraphQLException("GraphQLContext is missing the request Resource");
+        }
+        final SlingTypeResolver<Object> resolver = selector.getSlingTypeResolver(name);
+        if (resolver == null) {
+            return null;
+        }
         Object r = resolver.getType(new TypeResolverEnvironmentWrapper(environment, currentResource, options, source));
         if (r instanceof GraphQLObjectType) {
             return (GraphQLObjectType) r;

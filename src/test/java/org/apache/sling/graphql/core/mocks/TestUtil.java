@@ -60,8 +60,14 @@ public class TestUtil {
 
     public static ServiceRegistration<?> registerSlingScalarConverter(
             BundleContext bc, String name, SlingScalarConverter<?, ?> c) {
+        return registerSlingScalarConverter(bc, name, 0, c);
+    }
+
+    public static ServiceRegistration<?> registerSlingScalarConverter(
+            BundleContext bc, String name, int serviceRanking, SlingScalarConverter<?, ?> c) {
         final Dictionary<String, Object> props = new Hashtable<>();
         props.put(SlingScalarConverter.NAME_SERVICE_PROPERTY, name);
+        props.put(Constants.SERVICE_RANKING, serviceRanking);
         return bc.registerService(SlingScalarConverter.class, c, props);
     }
 

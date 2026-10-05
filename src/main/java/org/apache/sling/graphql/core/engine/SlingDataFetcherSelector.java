@@ -18,10 +18,12 @@
  */
 package org.apache.sling.graphql.core.engine;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
@@ -50,6 +52,10 @@ public class SlingDataFetcherSelector {
     private final Map<String, TreeSet<ServiceReferenceObjectTuple<SlingDataFetcher<Object>>>> dataFetchers =
             new HashMap<>();
 
+    /** Highest-ranked live service per name. Rebuilt on bind/unbind; read without a lock. */
+    private final AtomicReference<Map<String, SlingDataFetcher<Object>>> lookupSnapshot =
+            new AtomicReference<>(Collections.emptyMap());
+
     /** Fetchers which have a name starting with this prefix must be
      *  under the {#link RESERVED_PACKAGE_PREFIX} package.
      */
@@ -64,19 +70,22 @@ public class SlingDataFetcherSelector {
      */
     @Nullable
     public SlingDataFetcher<Object> getSlingFetcher(@NotNull String name) {
-        SlingDataFetcher<Object> result = getOsgiServiceFetcher(name);
-        return result;
+        return lookupSnapshot.get().get(name);
     }
 
     /**
-     * Returns a SlingFetcher from the available OSGi services, if there's one registered with the supplied name.
+     * Rebuilds the lock-free lookup map. Caller must hold {@code dataFetchers}.
      */
-    private SlingDataFetcher<Object> getOsgiServiceFetcher(@NotNull String name) {
-        TreeSet<ServiceReferenceObjectTuple<SlingDataFetcher<Object>>> fetcherSet = dataFetchers.get(name);
-        if (fetcherSet != null && !fetcherSet.isEmpty()) {
-            return fetcherSet.last().getServiceObject();
+    private void rebuildLookupSnapshot() {
+        Map<String, SlingDataFetcher<Object>> next = new HashMap<>();
+        for (Map.Entry<String, TreeSet<ServiceReferenceObjectTuple<SlingDataFetcher<Object>>>> entry :
+                dataFetchers.entrySet()) {
+            TreeSet<ServiceReferenceObjectTuple<SlingDataFetcher<Object>>> set = entry.getValue();
+            if (set != null && !set.isEmpty()) {
+                next.put(entry.getKey(), set.last().getServiceObject());
+            }
         }
-        return null;
+        lookupSnapshot.set(Collections.unmodifiableMap(next));
     }
 
     private boolean hasValidName(
@@ -131,6 +140,7 @@ public class SlingDataFetcherSelector {
                 TreeSet<ServiceReferenceObjectTuple<SlingDataFetcher<Object>>> fetchers =
                         dataFetchers.computeIfAbsent(name, key -> new TreeSet<>());
                 fetchers.add(new ServiceReferenceObjectTuple<>(reference, slingDataFetcher));
+                rebuildLookupSnapshot();
             }
         }
     }
@@ -145,7 +155,10 @@ public class SlingDataFetcherSelector {
                     Optional<ServiceReferenceObjectTuple<SlingDataFetcher<Object>>> tupleToRemove = fetchers.stream()
                             .filter(tuple -> reference.equals(tuple.getServiceReference()))
                             .findFirst();
-                    tupleToRemove.ifPresent(fetchers::remove);
+                    if (tupleToRemove.isPresent()) {
+                        fetchers.remove(tupleToRemove.get());
+                        rebuildLookupSnapshot();
+                    }
                 }
             }
         }
